@@ -10,6 +10,8 @@
   "author": "Your Name",
   "license": "MIT",
   "dependencies": {
+    "diff": "^5.2.0",
+    "diff2html": "^3.4.52",
     "openai": "^4.24.1"
   },
   "devDependencies": {

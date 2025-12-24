@@ -20,3 +20,14 @@ button:disabled { background: #ccc; cursor: not-allowed; }
 #saveKeyBtn { margin-bottom: 15px; }
 .hidden { display: none; }
 #modelSelect { background: white; }
+#diffView { margin-top: 20px; border: 1px solid #ddd; padding: 10px; overflow: auto; }
+.d2h-wrapper { width: 100%; overflow-x: auto; }
+.d2h-file-side-by-side { table-layout: fixed; width: 100%; }
+.d2h-file-side-by-side .d2h-code-wrapper { position: relative; height: auto; overflow-y: auto; max-height: 400px; }
+.d2h-file-side-by-side .d2h-code-side { width: 50%; float: left; box-sizing: border-box; }
+.d2h-code-linenumber { position: relative !important; width: 50px; text-align: right; padding: 0 5px; }
+.d2h-code-line { white-space: pre-wrap; word-wrap: break-word; }
+.diff { font-family: monospace; font-size: 14px; }
+.diff-added { background: #e6ffed; color: #22863a; }
+.diff-removed { background: #ffeef0; color: #b31d28; }
+#download { margin-bottom: 20px; }  /* Space between download and diffView */

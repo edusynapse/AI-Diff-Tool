@@ -6,6 +6,7 @@
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; script-src 'self' 'unsafe-eval';">
   <title>AI Diff Tool - Grok 4 Patch Applier</title>
   <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="node_modules/diff2html/bundles/css/diff2html.min.css">
 </head>
 <body>
   <h1>AI Diff Tool: Apply Patches with Grok 4</h1>
@@ -42,6 +43,7 @@
     <button id="copyBtn" class="hidden">Copy</button>
   </div>
   <button id="download" class="hidden">Download Modified File</button>
+  <div id="diffView"></div>
   <div id="error"></div>
   
   <script src="renderer.js"></script>

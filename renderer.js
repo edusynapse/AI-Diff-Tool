@@ -1,4 +1,6 @@
 const OpenAI = require('openai');  // Loaded via Node integration
+const { createTwoFilesPatch } = require('diff');  // For computing diff
+const Diff2Html = require('diff2html');  // For rendering as HTML
 let retryCount = 0;
 const MAX_RETRIES = 3;
 const MAX_FILE_SIZE_MB = 5;  // Warn if larger; adjust based on API limits
@@ -66,9 +68,11 @@ async function applyPatch() {
   const retryBtn = document.getElementById('retryBtn');
   const downloadBtn = document.getElementById('download');
   const copyBtn = document.getElementById('copyBtn');
+  const diffViewEl = document.getElementById('diffView');
 
   errorEl.textContent = '';
   outputEl.textContent = '';
+  diffViewEl.innerHTML = '';
   downloadBtn.classList.add('hidden');
   copyBtn.classList.add('hidden');
   retryBtn.classList.add('hidden');
@@ -120,6 +124,16 @@ async function applyPatch() {
     copyBtn.classList.remove('hidden');
     window.modifiedBlob = new Blob([modified], { type: 'text/plain' });
     retryCount = 0;
+
+    // Compute and display diff view with full context
+    const unifiedDiff = createTwoFilesPatch('original', 'modified', modelContent, modified, '', '', { context: Number.MAX_SAFE_INTEGER });
+    const html = Diff2Html.html(unifiedDiff, {
+      drawFileList: false,
+      matching: 'none',  // Disable matching to show all lines
+      outputFormat: 'side-by-side',
+      synchronisedScroll: true
+    });
+    diffViewEl.innerHTML = html;
 
   } catch (error) {
     errorEl.textContent = `Error: ${error.message}. `;
