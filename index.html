@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; script-src 'self' 'unsafe-eval';">
+  <title>AI Diff Tool - Grok 4 Patch Applier</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <h1>AI Diff Tool: Apply Patches with Grok 4</h1>
+  <label for="modelSelect">Select Model:</label>
+  <select id="modelSelect">
+    <option value="grok-4-1-fast-reasoning">grok-4-1-fast-reasoning</option>
+    <option value="grok-4-1-fast-non-reasoning">grok-4-1-fast-non-reasoning</option>
+    <option value="grok-code-fast-1">grok-code-fast-1</option>
+    <option value="grok-4-fast-reasoning">grok-4-fast-reasoning</option>
+    <option value="grok-4-fast-non-reasoning">grok-4-fast-non-reasoning</option>
+  </select>
+  
+  <label for="diff">Diff Patch (paste or load file):</label>
+  <textarea id="diff" rows="10"></textarea>
+  <input type="file" id="diffFile">
+  
+  <label for="model">File Content (paste or load file):</label>
+  <textarea id="model" rows="15"></textarea>
+  <input type="file" id="modelFile">
+  
+  <label for="apiKey">xAI API Key:</label>
+  <div id="apiKeyContainer">
+    <input type="password" id="apiKey">
+    <button id="saveKeyBtn">Save</button>
+  </div>
+  <div id="key-warning">Warning: Your API key is used locally in this desktop app, but keep it secure and never share this app with untrusted parties. See <a href="https://help.openai.com/en/articles/5112595-best-practices-for-api-key-safety" target="_blank">best practices</a>.</div>
+  
+  <button id="applyBtn">Apply Patch with Grok 4 Fast</button>
+  <button id="retryBtn" class="hidden">Retry</button>
+  
+  <div id="loading" class="hidden"><div class="spinner"></div> Processing...</div>
+  <div id="output-container">
+    <pre id="output"></pre>
+    <button id="copyBtn" class="hidden">Copy</button>
+  </div>
+  <button id="download" class="hidden">Download Modified File</button>
+  <div id="error"></div>
+  
+  <script src="renderer.js"></script>
+</body>
+</html>
