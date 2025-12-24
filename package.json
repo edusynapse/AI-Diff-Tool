@@ -4,13 +4,27 @@
   "description": "Desktop app to apply diff patches using Grok 4 API",
   "main": "main.js",
   "scripts": {
-    "start": "electron . --password-store=gnome-libsecret",
-    "package": "electron-packager . ai-diff-tool --platform=all --arch=all --out=dist --overwrite"
+    "start": "electron .",
+    "build": "electron-builder"
   },
   "author": "Your Name",
   "license": "MIT",
   "dependencies": {
-    "electron": "^28.1.4",  
-    "openai": "^4.24.1"     
+    "openai": "^4.24.1"
+  },
+  "devDependencies": {
+    "electron": "^28.1.4",
+    "electron-builder": "^26.0.12",
+    "electron-packager": "^17.1.2"
+  },
+  "build": {
+    "appId": "com.example.aidifftool",
+    "productName": "AI Diff Tool",
+    "linux": {
+      "target": "AppImage"
+    },
+    "directories": {
+      "output": "dist"
+    }
   }
 }
