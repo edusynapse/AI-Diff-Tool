@@ -1,4 +1,3 @@
-```markdown
 # AI-Diff-Tool
 
 A desktop app built with Electron and Node.js to apply diff patches to files using the xAI Grok 4 API.
@@ -51,4 +50,3 @@ The AppImage is portable—copy it anywhere (USB, etc.) and run without installa
 - Supports any text-based files (JS, HTML, etc.).
 - Handles large content with warnings.
 - Built/Updated on Dec 24, 2025.
-```
