@@ -883,3 +883,85 @@ body.dark .main-topbar {
 body.dark .main-title {
   color: var(--text) !important;
 }
+
+/* Topbar actions group (right side) */
+.main-topbar-actions{
+  display: flex;
+  align-items: stretch;
+}
+
+/* Keep topbar buttons separated */
+.main-topbar-actions .topbar-btn{
+  border-left: 1px solid #ddd;
+}
+
+body.dark .main-topbar-actions .topbar-btn{
+  border-left-color: var(--border);
+}
+
+/* Slightly narrower than "Go to top" */
+.topbar-btn--nav{
+  min-width: 140px;
+}
+
+/* Optional: highlight the target row briefly after jumping */
+.diff-nav-flash{
+  outline: 2px solid rgba(0, 123, 255, 0.55);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+body.dark .diff-nav-flash{
+  outline-color: rgba(169, 130, 93, 0.55) !important;
+}
+
+/* IMPORTANT: avoid nested scrolling inside Diff2Html output
+   (so mainScroll is the only scroll container) */
+#diffView .d2h-file-diff{
+  overflow: visible !important;
+  max-height: none !important;
+}
+
+/* Make the right-side actions bar fill the topbar height */
+.main-topbar-actions{
+  height: 100%;
+  align-self: stretch;   /* key: overrides .main-topbar align-items:center */
+}
+
+/* (Optional but safe) ensure buttons also stretch inside the actions bar */
+.main-topbar-actions .topbar-btn{
+  height: 100%;
+}
+/* --- Topbar: keep actions visible; avoid clipping on narrow widths --- */
+
+/* Let title shrink instead of pushing buttons off-screen */
+.main-title{
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Actions fill the topbar height and don't wrap */
+.main-topbar-actions{
+  display: flex;
+  height: 100%;
+  align-self: stretch;
+  align-items: stretch;
+  flex-wrap: nowrap;
+  min-width: 0;
+}
+
+/* Buttons stay full-height and can shrink a bit if needed */
+.main-topbar-actions .topbar-btn{
+  height: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Responsive widths so 3 buttons fit more often */
+.topbar-btn--nav,
+.topbar-btn--main{
+  min-width: clamp(92px, 14vw, 140px);
+}

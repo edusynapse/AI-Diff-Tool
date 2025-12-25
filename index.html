@@ -36,13 +36,22 @@
     <main class="main">
   <!-- Fixed topbar (same height as sidebar topbar) -->
   <div class="main-topbar">
-    <div class="main-title">AI Diff Tool</div>
+  <div class="main-title">AI Diff Tool</div>
+
+  <div class="main-topbar-actions">
+    <button id="diffPrevBtn" class="topbar-btn topbar-btn--nav hidden" type="button" title="Previous change">
+      Prev change
+    </button>
+    <button id="diffNextBtn" class="topbar-btn topbar-btn--nav hidden" type="button" title="Next change">
+      Next change
+    </button>
 
     <!-- Appears only after scrolling down -->
     <button id="goTopBtn" class="topbar-btn topbar-btn--main hidden" type="button">
       Go to top
     </button>
   </div>
+</div>
 
   <!-- Scrollable body -->
   <div id="mainScroll" class="main-body">

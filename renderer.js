@@ -35,6 +35,139 @@ function syncDiff2HtmlTheme() {
   wrap.classList.remove('d2h-auto-color-scheme');
 }
 
+// -------------------------
+// Diff navigation (Prev/Next change)
+// -------------------------
+let diffNavObserver = null;
+let diffNavVisible = false;
+let diffNavIdx = -1; // -1 means "not aligned to a change yet"
+
+function getMainScrollEl() {
+  return document.getElementById('mainScroll');
+}
+
+function resetDiffNav() { diffNavIdx = -1; }
+
+function getChangeTargets() {
+  const diffRoot = document.getElementById('diffView');
+  if (!diffRoot) return [];
+
+  const wrapper = diffRoot.querySelector('.d2h-wrapper');
+  if (!wrapper) return [];
+
+  // SIMPLE + RELIABLE: every changed row is a target (in DOM order).
+  // (No hunks/blocks logic; that's what keeps biting you.)
+  const rows = Array.from(wrapper.querySelectorAll('tr'));
+  const isChangeRow = (tr) =>
+    !!tr.querySelector('td.d2h-code-line.d2h-ins, td.d2h-code-line.d2h-del, td.d2h-code-line.d2h-change, td.d2h-ins, td.d2h-del, td.d2h-change');
+  return rows.filter(isChangeRow);
+}
+
+function scrollToChange(dir /* -1 | 1 */) {
+  const root = getMainScrollEl(); // ALWAYS scroll what the user actually scrolls
+  const targets = getChangeTargets();
+  if (!root || !targets.length) return;
+
+  const rootRect = root.getBoundingClientRect();
+  const yFor = (el) => el.getBoundingClientRect().top - rootRect.top + root.scrollTop;
+  const ys = targets.map(yFor);
+
+  // If user scrolled manually, diffNavIdx is reset to -1 (see scroll handler below).
+  if (diffNavIdx === -1) {
+    const cur = root.scrollTop;
+    const margin = 12;
+    if (dir > 0) {
+      // first change below current viewport top
+      let i = ys.findIndex(y => y > cur + margin);
+      if (i === -1) i = 0; // wrap
+      diffNavIdx = i;
+    } else {
+      // last change above current viewport top
+      let i = -1;
+      for (let k = ys.length - 1; k >= 0; k--) {
+        if (ys[k] < cur - margin) { i = k; break; }
+      }
+      if (i === -1) i = ys.length - 1; // wrap
+      diffNavIdx = i;
+    }
+  } else {
+    // Deterministic step
+    diffNavIdx = (diffNavIdx + dir + targets.length) % targets.length;
+  }
+
+  const targetEl = targets[diffNavIdx];
+  const y = ys[diffNavIdx];
+  root.scrollTo({ top: Math.max(0, y - 24), behavior: 'smooth' });
+
+  // brief highlight (optional)
+  try {
+    targetEl.classList.add('diff-nav-flash');
+    setTimeout(() => targetEl.classList.remove('diff-nav-flash'), 700);
+  } catch {}
+}
+
+function updateDiffNavButtons() {
+  const prevBtn = document.getElementById('diffPrevBtn');
+  const nextBtn = document.getElementById('diffNextBtn');
+  if (!prevBtn || !nextBtn) return;
+
+  const hasDiff = !!document.querySelector('#diffView .d2h-wrapper');
+  // Show ONLY when the diff section is actually visible in the scroll viewport
+  const show = hasDiff && diffNavVisible;
+
+  prevBtn.classList.toggle('hidden', !show);
+  nextBtn.classList.toggle('hidden', !show);
+
+  if (show) {
+    const hasTargets = getChangeTargets().length > 0;
+    prevBtn.disabled = !hasTargets;
+    nextBtn.disabled = !hasTargets;
+  }
+}
+
+function setupDiffNavObserver() {
+  const mainScroll = getMainScrollEl();
+  const diffView = document.getElementById('diffView');
+  if (!mainScroll || !diffView) return;
+
+  if (diffNavObserver) diffNavObserver.disconnect();
+
+  diffNavObserver = new IntersectionObserver((entries) => {
+    const e = entries?.[0];
+    // NOTE: intersectionRatio is relative to the TARGET (diffView) height.
+    // For tall diffs it may never reach 0.12 even when the diff is on-screen.
+    // Using isIntersecting makes the buttons appear whenever any part is visible.
+    diffNavVisible = !!(e && e.isIntersecting);
+    updateDiffNavButtons();
+  }, { root: mainScroll, threshold: [0] });
+
+  diffNavObserver.observe(diffView);
+
+  // Immediate sync (IO callback can be delayed)
+  computeDiffNavVisible();
+  updateDiffNavButtons();
+}
+
+function computeDiffNavVisible() {
+  const root = getMainScrollEl();
+  const target = document.getElementById('diffView');
+  if (!root || !target) {
+    diffNavVisible = false;
+    return diffNavVisible;
+  }
+
+  const rootRect = root.getBoundingClientRect();
+  const tRect = target.getBoundingClientRect();
+
+  const overlapTop = Math.max(rootRect.top, tRect.top);
+  const overlapBottom = Math.min(rootRect.bottom, tRect.bottom);
+  const overlap = Math.max(0, overlapBottom - overlapTop);
+
+  // Visible if any part of diffView is within the scroll viewport
+  diffNavVisible = overlap > 0;
+  return diffNavVisible;
+}
+
 function isValidPin(pin) {
   return /^\d{6}$/.test((pin || '').trim());
 }
@@ -285,6 +418,8 @@ function makeTab(label) {
     diffHtml: '',
     errorText: '',
     retryCount: 0,
+    // Per-tab main scroll position
+    scrollTop: 0,
     // NEW
     requestSeq: 0,
     inFlightToken: null,
@@ -306,6 +441,9 @@ function saveActiveTabFromDom() {
   tab.diffHtml = document.getElementById('diffView').innerHTML || '';
   tab.errorText = document.getElementById('error').textContent || '';
   tab.originalFileName = originalFileName;
+  // Save main scroll per tab
+  const mainScroll = getMainScrollEl();
+  tab.scrollTop = mainScroll ? mainScroll.scrollTop : 0;
 }
 
 function applyTabToDom(tab) {
@@ -324,6 +462,22 @@ function applyTabToDom(tab) {
   const modelFile = document.getElementById('modelFile');
   if (diffFile) diffFile.value = '';
   if (modelFile) modelFile.value = '';
+
+  // Restore per-tab scroll AFTER content is in DOM
+  const mainScroll = getMainScrollEl();
+  if (mainScroll) {
+    const desired = Number.isFinite(tab.scrollTop) ? tab.scrollTop : 0;
+    requestAnimationFrame(() => {
+      const max = Math.max(0, mainScroll.scrollHeight - mainScroll.clientHeight);
+      mainScroll.scrollTop = Math.min(Math.max(0, desired), max);
+      // Force recompute so we don't rely on IO callback timing
+      computeDiffNavVisible();
+      updateDiffNavButtons();
+    });
+  } else {
+    computeDiffNavVisible();
+    updateDiffNavButtons();
+  }
 
   // buttons visibility
   const downloadBtn = document.getElementById('download');
@@ -748,6 +902,20 @@ window.addEventListener('load', () => {
     });
   }
 
+  // --- Diff nav buttons ---
+  document.getElementById('diffPrevBtn')?.addEventListener('click', () => scrollToChange(-1));
+  document.getElementById('diffNextBtn')?.addEventListener('click', () => scrollToChange(1));
+
+  setupDiffNavObserver();
+  updateDiffNavButtons();
+
+  // Optional keyboard shortcuts:
+  // F7 = prev change, F8 = next change
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'F7') { e.preventDefault(); scrollToChange(-1); }
+    if (e.key === 'F8') { e.preventDefault(); scrollToChange(1); }
+  });
+
   // ESC should close whichever modal is open
   window.addEventListener('keydown', (e) => {
     if (e.key !== 'Escape') return;
@@ -769,6 +937,7 @@ window.addEventListener('load', () => {
 
   if (mainScroll && goTopBtn) {
     const updateGoTop = () => {
+      resetDiffNav(); // user scrolled manually -> next/prev should re-anchor from viewport
       const show = mainScroll.scrollTop > 120;
       goTopBtn.classList.toggle('hidden', !show);
     };
@@ -836,6 +1005,9 @@ async function applyPatch({ isRetry = false } = {}) {
   errorEl.textContent = '';
   outputEl.textContent = '';
   diffViewEl.innerHTML = '';
+  resetDiffNav();
+  diffNavVisible = false;
+  updateDiffNavButtons();
   downloadBtn.classList.add('hidden');
   copyBtn.classList.add('hidden');
   retryBtn.classList.add('hidden');
@@ -948,6 +1120,7 @@ async function applyPatch({ isRetry = false } = {}) {
       if (activeTabId === tabId) {
         outputEl.textContent = '';
         diffViewEl.innerHTML = '';
+        updateDiffNavButtons();
         downloadBtn.classList.add('hidden');
         copyBtn.classList.add('hidden');
         retryBtn.classList.add('hidden');
@@ -986,6 +1159,10 @@ async function applyPatch({ isRetry = false } = {}) {
       outputEl.textContent = modified;
       diffViewEl.innerHTML = html;
       syncDiff2HtmlTheme();
+      requestAnimationFrame(() => {
+        computeDiffNavVisible();
+        updateDiffNavButtons();
+      });
       errorEl.textContent = '';
       downloadBtn.classList.remove('hidden');
       copyBtn.classList.remove('hidden');
