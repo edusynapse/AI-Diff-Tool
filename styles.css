@@ -40,6 +40,99 @@ body { padding: 0; }                 /* move padding to .main so layout is even 
   overflow-y: auto;
   min-height: 0;           /* key flexbox rule for overflow scrolling */
 }
+/* =========================
+   Fixed topbars + scroll bodies
+   ========================= */
+
+:root {
+  --topbar-h: 56px; /* fixed height for both left + right topbars */
+}
+
+/* Sidebar becomes a column: topbar fixed, body scrolls */
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  padding: 0;           /* topbar flush */
+  overflow: hidden;     /* prevent sidebar itself from scrolling */
+}
+
+/* Main becomes a column: topbar fixed, body scrolls */
+.main {
+  display: flex;
+  flex-direction: column;
+  padding: 0;           /* move padding to .main-body */
+  overflow: hidden;     /* prevent main itself from scrolling */
+}
+
+/* Shared topbar look */
+.sidebar-topbar,
+.main-topbar {
+  height: var(--topbar-h);
+  flex: 0 0 var(--topbar-h);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  padding-left: 12px;   /* label padding */
+  padding-right: 0;     /* button flush to edge */
+
+  background: #ededed;  /* slightly different section */
+  border-bottom: 1px solid #ddd;
+}
+
+/* Scroll areas */
+.sidebar-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 12px;        /* inner spacing like before */
+}
+
+.main-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 20px;        /* keeps your original main padding */
+}
+
+/* Title in topbar */
+.main-title {
+  font-weight: 700;
+  color: #333;
+}
+
+/* Flush topbar buttons (full height, no rounding) */
+.topbar-btn {
+  height: 100%;
+  border-radius: 0 !important;
+  margin: 0 !important;          /* override global button margin-right */
+  border: none;
+  cursor: pointer;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 0 16px;
+}
+
+/* Sidebar “+” button: fixed width, larger glyph */
+.topbar-btn--sidebar {
+  width: var(--topbar-h);
+  padding: 0;
+  font-size: 22px;
+  line-height: 1;
+}
+
+/* Main “Go to top” button: a bit wider */
+.topbar-btn--main {
+  min-width: 140px;
+}
+
+/* Make sure your responsive main padding still works */
+@media (max-width: 600px) {
+  .main-body { padding: 10px; }
+}
 
 .sidebar-header {
   display: flex;
@@ -778,5 +871,15 @@ body.dark .diff-added {
 }
 body.dark .diff-removed {
   background: rgba(208, 106, 96, 0.12) !important;
+  color: var(--text) !important;
+}
+
+body.dark .sidebar-topbar,
+body.dark .main-topbar {
+  background: var(--panel2) !important;
+  border-bottom-color: var(--border) !important;
+}
+
+body.dark .main-title {
   color: var(--text) !important;
 }

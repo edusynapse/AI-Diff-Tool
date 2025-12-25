@@ -762,6 +762,24 @@ window.addEventListener('load', () => {
     }
     else if (helpOpen) closeHelp();
   });
+
+  // --- Go to top (appears when scrolling the main body) ---
+  const mainScroll = document.getElementById('mainScroll');
+  const goTopBtn = document.getElementById('goTopBtn');
+
+  if (mainScroll && goTopBtn) {
+    const updateGoTop = () => {
+      const show = mainScroll.scrollTop > 120;
+      goTopBtn.classList.toggle('hidden', !show);
+    };
+
+    mainScroll.addEventListener('scroll', updateGoTop);
+    updateGoTop();
+
+    goTopBtn.addEventListener('click', () => {
+      mainScroll.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+  }
 });
 
 ipcRenderer.on('theme:set', (_evt, theme) => {

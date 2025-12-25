@@ -11,52 +11,75 @@
 <body>
   <div class="app-shell">
     <aside class="sidebar" aria-label="Workspaces">
-      <div class="sidebar-header">
-        <div class="sidebar-title">Workspaces</div>
-        <button id="newTabBtn" class="icon-btn" type="button" title="New tab" aria-label="New tab">+</button>
-      </div>
+  <!-- Fixed topbar -->
+  <div class="sidebar-topbar">
+    <div class="sidebar-title">Workspaces</div>
+    <button
+      id="newTabBtn"
+      class="topbar-btn topbar-btn--sidebar"
+      type="button"
+      title="New tab"
+      aria-label="New tab"
+    >+</button>
+  </div>
 
-      <div id="tabsList" class="tabs-list" role="tablist" aria-orientation="vertical"></div>
+  <!-- Scrollable area -->
+  <div class="sidebar-scroll">
+    <div id="tabsList" class="tabs-list" role="tablist" aria-orientation="vertical"></div>
 
-      <div class="sidebar-footer">
-        <div class="sidebar-hint">Double-click a tab to rename</div>
-      </div>
-    </aside>
+    <div class="sidebar-footer">
+      <div class="sidebar-hint">Double-click a tab to rename</div>
+    </div>
+  </div>
+</aside>
 
     <main class="main">
-      <h1>AI Diff Tool: Apply Patches with Grok 4</h1>
+  <!-- Fixed topbar (same height as sidebar topbar) -->
+  <div class="main-topbar">
+    <div class="main-title">AI Diff Tool</div>
 
-      <label for="modelSelect">Select Model:</label>
-      <select id="modelSelect">
-        <option value="grok-4-1-fast-reasoning">grok-4-1-fast-reasoning</option>
-        <option value="grok-4-1-fast-non-reasoning">grok-4-1-fast-non-reasoning</option>
-        <option value="grok-code-fast-1">grok-code-fast-1</option>
-        <option value="grok-4-fast-reasoning">grok-4-fast-reasoning</option>
-        <option value="grok-4-fast-non-reasoning">grok-4-fast-non-reasoning</option>
-      </select>
+    <!-- Appears only after scrolling down -->
+    <button id="goTopBtn" class="topbar-btn topbar-btn--main hidden" type="button">
+      Go to top
+    </button>
+  </div>
 
-      <label for="diff">Diff Patch (paste or load file):</label>
-      <textarea id="diff" rows="10"></textarea>
-      <input type="file" id="diffFile">
+  <!-- Scrollable body -->
+  <div id="mainScroll" class="main-body">
+    <!-- REMOVE the old <h1> entirely (per your request) -->
 
-      <label for="model">File Content (paste or load file):</label>
-      <textarea id="model" rows="15"></textarea>
-      <input type="file" id="modelFile">
+    <label for="modelSelect">Select Model:</label>
+    <select id="modelSelect">
+      <option value="grok-4-1-fast-reasoning">grok-4-1-fast-reasoning</option>
+      <option value="grok-4-1-fast-non-reasoning">grok-4-1-fast-non-reasoning</option>
+      <option value="grok-code-fast-1">grok-code-fast-1</option>
+      <option value="grok-4-fast-reasoning">grok-4-fast-reasoning</option>
+      <option value="grok-4-fast-non-reasoning">grok-4-fast-non-reasoning</option>
+    </select>
 
-      <button id="applyBtn">Apply Patch with Grok 4 Fast</button>
-      <button id="retryBtn" class="hidden">Retry</button>
+    <label for="diff">Diff Patch (paste or load file):</label>
+    <textarea id="diff" rows="10"></textarea>
+    <input type="file" id="diffFile">
 
-      <div id="loading" class="hidden"><div class="spinner"></div> Processing...</div>
+    <label for="model">File Content (paste or load file):</label>
+    <textarea id="model" rows="15"></textarea>
+    <input type="file" id="modelFile">
 
-      <div id="output-container">
-        <pre id="output"></pre>
-        <button id="copyBtn" class="hidden">Copy</button>
-      </div>
+    <button id="applyBtn">Apply Patch with Grok 4 Fast</button>
+    <button id="retryBtn" class="hidden">Retry</button>
 
-      <button id="download" class="hidden">Download Modified File</button>
-      <div id="diffView"></div>
-      <div id="error"></div>
-    </main>
+    <div id="loading" class="hidden"><div class="spinner"></div> Processing...</div>
+
+    <div id="output-container">
+      <pre id="output"></pre>
+      <button id="copyBtn" class="hidden">Copy</button>
+    </div>
+
+    <button id="download" class="hidden">Download Modified File</button>
+    <div id="diffView"></div>
+    <div id="error"></div>
+  </div>
+</main>
   </div>
 
   <!-- Help overlay (opened from Help menu) -->
