@@ -57,6 +57,7 @@
   <div id="mainScroll" class="main-body">
     <!-- REMOVE the old <h1> entirely (per your request) -->
 
+    <!-- Model selector (per-tab state handled in renderer.js) -->
     <label for="modelSelect">Select Model:</label>
     <select id="modelSelect">
       <option value="grok-4-1-fast-reasoning">grok-4-1-fast-reasoning</option>
@@ -67,11 +68,23 @@
     </select>
 
     <label for="diff">Diff Patch (paste or load file):</label>
-    <textarea id="diff" rows="10"></textarea>
+    <div class="ta-container">
+      <div class="ta-actions" aria-label="Diff textarea actions">
+        <button type="button" class="ta-fab" data-ta-action="max" data-ta-target="#diff" title="Maximize" aria-label="Maximize">⛶</button>
+        <button type="button" class="ta-fab" data-ta-action="min" data-ta-target="#diff" title="Minimize" aria-label="Minimize">🗕</button>
+      </div>
+      <textarea id="diff" rows="10"></textarea>
+    </div>
     <input type="file" id="diffFile">
 
     <label for="model">File Content (paste or load file):</label>
-    <textarea id="model" rows="15"></textarea>
+    <div class="ta-container">
+      <div class="ta-actions" aria-label="File content textarea actions">
+        <button type="button" class="ta-fab" data-ta-action="max" data-ta-target="#model" title="Maximize" aria-label="Maximize">⛶</button>
+        <button type="button" class="ta-fab" data-ta-action="min" data-ta-target="#model" title="Minimize" aria-label="Minimize">🗕</button>
+      </div>
+      <textarea id="model" rows="15"></textarea>
+    </div>
     <input type="file" id="modelFile">
 
     <button id="applyBtn">Apply Patch with Grok 4 Fast</button>
@@ -79,9 +92,14 @@
 
     <div id="loading" class="hidden"><div class="spinner"></div> Processing...</div>
 
-    <div id="output-container">
+    <div id="output-container" class="ta-container">
+      <div class="ta-actions" aria-label="Output actions">
+        <button type="button" class="ta-fab" data-ta-action="max" data-ta-target="#output" title="Maximize" aria-label="Maximize">⛶</button>
+        <button type="button" class="ta-fab" data-ta-action="min" data-ta-target="#output" title="Minimize" aria-label="Minimize">🗕</button>
+        <!-- In output: max/min MUST precede Copy -->
+        <button id="copyBtn" class="ta-copy hidden" type="button">Copy</button>
+      </div>
       <pre id="output"></pre>
-      <button id="copyBtn" class="hidden">Copy</button>
     </div>
 
     <button id="download" class="hidden">Download Modified File</button>
@@ -195,6 +213,27 @@
   </div>
 </div>
 
+  <!-- Tab Close confirmation overlay -->
+  <div id="tabCloseOverlay" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="tabCloseTitle">
+    <div class="modal-content modal-sm" role="document">
+      <div class="modal-header">
+        <h2 id="tabCloseTitle">Close tab?</h2>
+        <button id="tabCloseCloseBtn" class="modal-close" aria-label="Close close-tab dialog">×</button>
+      </div>
+ 
+      <div class="modal-body">
+        <p>
+          Close <b id="tabCloseName">this tab</b>? Any unsaved input in this tab will be lost.
+        </p>
+      </div>
+ 
+      <div class="modal-footer">
+        <button id="tabCloseConfirmBtn" class="modal-ok">Close tab</button>
+        <button id="tabCloseCancelBtn" class="modal-ok">Cancel</button>
+      </div>
+    </div>
+  </div>
+ 
   <script src="renderer.js"></script>
 </body>
 </html>

@@ -33,6 +33,110 @@ function syncDiff2HtmlTheme() {
   wrap.classList.toggle('d2h-dark-color-scheme', isDark);
   wrap.classList.toggle('d2h-light-color-scheme', !isDark);
   wrap.classList.remove('d2h-auto-color-scheme');
+ }
+
+// -------------------------
+// Textarea / Output expand-collapse (maximize / minimize)
+// -------------------------
+function ensureDefaultMetrics(el) {
+  if (!el || !el.dataset) return;
+  if (!el.dataset.taDefaultH) el.dataset.taDefaultH = String(el.offsetHeight || 0);
+  if (!el.dataset.taDefaultMaxH) {
+    const cs = window.getComputedStyle(el);
+    el.dataset.taDefaultMaxH = cs.maxHeight || '';
+    el.dataset.taDefaultOverflowY = cs.overflowY || '';
+  }
+}
+
+function setExpandedButtonState(el) {
+  if (!el) return;
+  const wrap = el.closest('.ta-container');
+  if (!wrap) return;
+  const maxBtn = wrap.querySelector('button[data-ta-action="max"]');
+  const minBtn = wrap.querySelector('button[data-ta-action="min"]');
+  const expanded = el.dataset.taExpanded === '1';
+  if (maxBtn) maxBtn.disabled = expanded;
+  if (minBtn) minBtn.disabled = !expanded;
+}
+
+function maximizeElement(el) {
+  if (!el) return;
+  ensureDefaultMetrics(el);
+
+  // TEXTAREA
+  if (el.tagName === 'TEXTAREA') {
+    el.style.height = `${el.scrollHeight}px`;
+    el.style.overflowY = 'hidden';
+    el.dataset.taExpanded = '1';
+    setExpandedButtonState(el);
+    return;
+  }
+
+  // PRE (output)
+  if (el.tagName === 'PRE') {
+    el.style.maxHeight = 'none';
+    el.style.height = `${el.scrollHeight}px`;
+    el.style.overflowY = 'visible';
+    el.dataset.taExpanded = '1';
+    setExpandedButtonState(el);
+  }
+}
+
+function minimizeElement(el) {
+  if (!el) return;
+  ensureDefaultMetrics(el);
+
+  // TEXTAREA
+  if (el.tagName === 'TEXTAREA') {
+    const h = Number(el.dataset.taDefaultH || 0);
+    if (h > 0) el.style.height = `${h}px`;
+    else el.style.height = '';
+    el.style.overflowY = 'auto';
+    el.dataset.taExpanded = '0';
+    setExpandedButtonState(el);
+    return;
+  }
+
+  // PRE (output)
+  if (el.tagName === 'PRE') {
+    const maxH = el.dataset.taDefaultMaxH || '300px';
+    el.style.height = '';
+    el.style.maxHeight = maxH;
+    el.style.overflowY = 'auto';
+    el.dataset.taExpanded = '0';
+    setExpandedButtonState(el);
+  }
+}
+
+function autoResizeIfExpanded(el) {
+  if (!el) return;
+  if (el.dataset.taExpanded === '1') {
+    // Re-apply maximize sizing to match new content
+    maximizeElement(el);
+  }
+}
+
+function initTextareaExpandCollapse() {
+  // Prime defaults + initial button state
+  ['#diff', '#model', '#output'].forEach((sel) => {
+    const el = document.querySelector(sel);
+    if (!el) return;
+    ensureDefaultMetrics(el);
+    if (!el.dataset.taExpanded) el.dataset.taExpanded = '0';
+    setExpandedButtonState(el);
+  });
+
+  // Event delegation for all max/min buttons
+  document.addEventListener('click', (e) => {
+    const btn = e.target?.closest?.('button[data-ta-action][data-ta-target]');
+    if (!btn) return;
+    const action = btn.getAttribute('data-ta-action');
+    const targetSel = btn.getAttribute('data-ta-target');
+    const el = targetSel ? document.querySelector(targetSel) : null;
+    if (!el) return;
+    if (action === 'max') maximizeElement(el);
+    if (action === 'min') minimizeElement(el);
+  });
 }
 
 // -------------------------
@@ -404,6 +508,7 @@ let tabs = [];
 let activeTabId = null;
 let tabSeq = 1;
 let renamingTabId = null;
+let closingTabId = null;
 
 function makeTab(label) {
   const id = `tab-${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -411,6 +516,7 @@ function makeTab(label) {
     id,
     label,
     labelCustomized: false,
+    selectedModel: (localStorage.getItem('selectedModel') || document.getElementById('modelSelect')?.value || 'grok-4-fast-reasoning'),
     diffText: '',
     modelText: '',
     originalFileName: 'file.txt',
@@ -435,6 +541,7 @@ function saveActiveTabFromDom() {
   const tab = getActiveTab();
   if (!tab) return;
 
+  tab.selectedModel = document.getElementById('modelSelect')?.value || tab.selectedModel;
   tab.diffText = document.getElementById('diff').value || '';
   tab.modelText = document.getElementById('model').value || '';
   tab.modifiedText = document.getElementById('output').textContent || '';
@@ -447,6 +554,15 @@ function saveActiveTabFromDom() {
 }
 
 function applyTabToDom(tab) {
+  // Restore per-tab model selection into the shared dropdown
+  const modelSelect = document.getElementById('modelSelect');
+  if (modelSelect) {
+    const desired = tab.selectedModel || localStorage.getItem('selectedModel') || modelSelect.value;
+    // only set if it's a valid option
+    const ok = Array.from(modelSelect.options).some(o => o.value === desired);
+    if (ok) modelSelect.value = desired;
+  }
+
   document.getElementById('diff').value = tab.diffText || '';
   document.getElementById('model').value = tab.modelText || '';
   document.getElementById('output').textContent = tab.modifiedText || '';
@@ -454,6 +570,11 @@ function applyTabToDom(tab) {
   // If the diff HTML was saved under a different theme, fix its wrapper class now
   syncDiff2HtmlTheme();
   document.getElementById('error').textContent = tab.errorText || '';
+
+  // If any area is currently expanded, re-fit it to the newly applied content
+  autoResizeIfExpanded(document.getElementById('diff'));
+  autoResizeIfExpanded(document.getElementById('model'));
+  autoResizeIfExpanded(document.getElementById('output'));
 
   originalFileName = tab.originalFileName || 'file.txt';
 
@@ -507,46 +628,70 @@ function renderTabs() {
     const isActive = t.id === activeTabId;
     const isBusy = !!t.inFlight;
 
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className =
+    const row = document.createElement('div');
+    row.className =
       'tab-item' +
       (isActive ? ' active' : '') +
       (isBusy ? ' busy' : '');
 
-    btn.setAttribute('role', 'tab');
-    btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
-    btn.setAttribute('aria-busy', isBusy ? 'true' : 'false');
-    btn.dataset.tabId = t.id;
+    row.setAttribute('role', 'tab');
+    row.setAttribute('aria-selected', isActive ? 'true' : 'false');
+    row.setAttribute('aria-busy', isBusy ? 'true' : 'false');
+    row.tabIndex = 0;
+    row.dataset.tabId = t.id;
 
     const label = document.createElement('div');
     label.className = 'tab-label';
     label.textContent = t.label;
 
     // Optional tooltip
-    if (isBusy) btn.title = 'Processing…';
-    else btn.removeAttribute('title');
+    if (isBusy) row.title = 'Processing…';
+    else row.removeAttribute('title');
 
-    const meta = document.createElement('div');
-    meta.className = 'tab-meta';
-    meta.textContent = String(idx + 1);
+    row.appendChild(label);
 
-    btn.appendChild(label);
-
-    // NEW: spinner badge when this tab has a request in flight
+    // Spinner badge when this tab has a request in flight
     if (isBusy) {
       const spin = document.createElement('span');
       spin.className = 'tab-spinner';
       spin.setAttribute('aria-hidden', 'true');
-      btn.appendChild(spin);
+      row.appendChild(spin);
     }
 
-    btn.appendChild(meta);
+    // Close (X) button at right-most
+    const closeBtn = document.createElement('button');
+    closeBtn.type = 'button';
+    closeBtn.className = 'tab-close';
+    closeBtn.setAttribute('aria-label', `Close ${t.label}`);
+    closeBtn.textContent = '×';
 
-    btn.addEventListener('click', () => selectTab(t.id));
-    btn.addEventListener('dblclick', () => openTabRenameModal(t.id));
+    closeBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      openTabCloseModal(t.id);
+    });
+    closeBtn.addEventListener('dblclick', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+    });
 
-    list.appendChild(btn);
+    row.appendChild(closeBtn);
+
+    row.addEventListener('click', () => selectTab(t.id));
+    row.addEventListener('dblclick', () => openTabRenameModal(t.id));
+    row.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        selectTab(t.id);
+        return;
+      }
+      if (e.key === 'Backspace' || e.key === 'Delete') {
+        e.preventDefault();
+        openTabCloseModal(t.id);
+      }
+    });
+
+    list.appendChild(row);
   });
 }
 
@@ -561,7 +706,9 @@ function selectTab(tabId) {
 
 function newTab() {
   saveActiveTabFromDom();
+  const curModel = document.getElementById('modelSelect')?.value || localStorage.getItem('selectedModel') || 'grok-4-fast-reasoning';
   const tab = makeTab(`Tab ${tabSeq++}`);
+  tab.selectedModel = curModel;
   tabs.push(tab);
   activeTabId = tab.id;
   applyTabToDom(tab);
@@ -569,7 +716,9 @@ function newTab() {
 }
 
 function initTabs() {
+  const curModel = document.getElementById('modelSelect')?.value || localStorage.getItem('selectedModel') || 'grok-4-fast-reasoning';
   tabs = [makeTab('Tab 1')];
+  tabs[0].selectedModel = curModel;
   tabSeq = 2;
   activeTabId = tabs[0].id;
   applyTabToDom(tabs[0]);
@@ -603,8 +752,9 @@ function closeTabRenameModal() {
   const helpOpen = !document.getElementById('helpOverlay')?.classList.contains('hidden');
   const apiOpen = !document.getElementById('apiKeyOverlay')?.classList.contains('hidden');
   const renameOpen = !overlay.classList.contains('hidden');
+  const closeOpen = !document.getElementById('tabCloseOverlay')?.classList.contains('hidden');
 
-  if (!helpOpen && !apiOpen && !renameOpen) {
+  if (!helpOpen && !apiOpen && !renameOpen && !closeOpen) {
     document.body.classList.remove('modal-open');
   }
 
@@ -625,7 +775,82 @@ function saveTabRename() {
   tab.labelCustomized = true;
   renderTabs();
   closeTabRenameModal();
-}
+ }
+
+ function openTabCloseModal(tabId) {
+   const overlay = document.getElementById('tabCloseOverlay');
+   const nameEl = document.getElementById('tabCloseName');
+   const tab = tabs.find(t => t.id === tabId);
+   if (!overlay || !tab) return;
+
+   closingTabId = tabId;
+   if (nameEl) nameEl.textContent = tab.label || 'this tab';
+
+   overlay.classList.remove('hidden');
+   document.body.classList.add('modal-open');
+
+   // Focus Cancel by default (safer)
+   setTimeout(() => {
+     document.getElementById('tabCloseCancelBtn')?.focus();
+   }, 0);
+ }
+
+ function closeTabCloseModal() {
+   const overlay = document.getElementById('tabCloseOverlay');
+   if (!overlay) return;
+   overlay.classList.add('hidden');
+
+   // Only remove modal-open if *no* other modal is open
+   const helpOpen = !document.getElementById('helpOverlay')?.classList.contains('hidden');
+   const apiOpen = !document.getElementById('apiKeyOverlay')?.classList.contains('hidden');
+   const renameOpen = !document.getElementById('tabRenameOverlay')?.classList.contains('hidden');
+   const closeOpen = !overlay.classList.contains('hidden');
+
+   if (!helpOpen && !apiOpen && !renameOpen && !closeOpen) {
+     document.body.classList.remove('modal-open');
+   }
+
+   closingTabId = null;
+ }
+
+ function doCloseTab(tabId) {
+   const idx = tabs.findIndex(t => t.id === tabId);
+   if (idx === -1) return;
+
+   const t = tabs[idx];
+   // If something is in flight, invalidate token so its response is ignored
+   t.inFlightToken = null;
+   t.inFlight = false;
+
+   const wasActive = activeTabId === tabId;
+   tabs.splice(idx, 1);
+
+   // Always keep at least one tab alive
+   if (tabs.length === 0) {
+     const fresh = makeTab('Tab 1');
+     tabs = [fresh];
+     tabSeq = 2;
+     activeTabId = fresh.id;
+     applyTabToDom(fresh);
+     renderTabs();
+     return;
+   }
+
+   if (wasActive) {
+     // pick the next tab (same index after removal) or previous
+     const next = tabs[Math.min(idx, tabs.length - 1)] || tabs[0];
+     activeTabId = next.id;
+     applyTabToDom(next);
+   }
+
+   renderTabs();
+ }
+
+ function confirmTabClose() {
+   if (!closingTabId) return;
+   doCloseTab(closingTabId);
+   closeTabCloseModal();
+ }
 
 function getStoredApiKey() {
   return sessionApiKey || '';
@@ -699,8 +924,9 @@ function closeApiKeyModal({ force = false } = {}) {
   const helpOpen = !document.getElementById('helpOverlay')?.classList.contains('hidden');
   const renameOpen = !document.getElementById('tabRenameOverlay')?.classList.contains('hidden');
   const apiOpen = !overlay.classList.contains('hidden');
+  const closeOpen = !document.getElementById('tabCloseOverlay')?.classList.contains('hidden');
 
-  if (!helpOpen && !renameOpen && !apiOpen) {
+  if (!helpOpen && !renameOpen && !apiOpen && !closeOpen) {
     document.body.classList.remove('modal-open');
   }
 
@@ -816,8 +1042,17 @@ function closeHelp() {
   const overlay = document.getElementById('helpOverlay');
   if (!overlay) return;
   overlay.classList.add('hidden');
-  document.body.classList.remove('modal-open');
-}
+ 
+  // Only remove modal-open if *no* other modal is open
+  const apiOpen = !document.getElementById('apiKeyOverlay')?.classList.contains('hidden');
+  const renameOpen = !document.getElementById('tabRenameOverlay')?.classList.contains('hidden');
+  const closeOpen = !document.getElementById('tabCloseOverlay')?.classList.contains('hidden');
+  const helpOpen = !overlay.classList.contains('hidden');
+ 
+  if (!apiOpen && !renameOpen && !closeOpen && !helpOpen) {
+    document.body.classList.remove('modal-open');
+  }
+ }
 
 // Load stored API key and model on app start
 window.addEventListener('load', () => {
@@ -836,13 +1071,17 @@ window.addEventListener('load', () => {
   document.getElementById('copyBtn').addEventListener('click', copyOutput);
   document.getElementById('download').addEventListener('click', downloadResult);
   document.getElementById('modelSelect').addEventListener('change', (e) => {
-    localStorage.setItem('selectedModel', e.target.value);
+    // Per-tab model selection (does NOT change other tabs)
+    const tab = getActiveTab();
+    if (tab) tab.selectedModel = e.target.value;
+    localStorage.setItem('selectedModel', e.target.value); // default for new tabs / next launch
   });
 
   // Tabs
   initTabs();
   document.getElementById('newTabBtn')?.addEventListener('click', newTab);
-
+  // Max/Min floating buttons
+  initTextareaExpandCollapse();
   // --- Help overlay wiring (must be inside load) ---
   const overlay = document.getElementById('helpOverlay');
   const closeBtn = document.getElementById('helpCloseBtn');
@@ -902,6 +1141,22 @@ window.addEventListener('load', () => {
     });
   }
 
+  // --- Tab close modal wiring ---
+  const tabCloseOverlay = document.getElementById('tabCloseOverlay');
+  const tabCloseCloseBtn = document.getElementById('tabCloseCloseBtn');
+  const tabCloseCancelBtn = document.getElementById('tabCloseCancelBtn');
+  const tabCloseConfirmBtn = document.getElementById('tabCloseConfirmBtn');
+
+  if (tabCloseCloseBtn) tabCloseCloseBtn.addEventListener('click', closeTabCloseModal);
+  if (tabCloseCancelBtn) tabCloseCancelBtn.addEventListener('click', closeTabCloseModal);
+  if (tabCloseConfirmBtn) tabCloseConfirmBtn.addEventListener('click', confirmTabClose);
+
+  if (tabCloseOverlay) {
+    tabCloseOverlay.addEventListener('click', (e) => {
+      if (e.target === tabCloseOverlay) closeTabCloseModal();
+    });
+  }
+
   // --- Diff nav buttons ---
   document.getElementById('diffPrevBtn')?.addEventListener('click', () => scrollToChange(-1));
   document.getElementById('diffNextBtn')?.addEventListener('click', () => scrollToChange(1));
@@ -923,8 +1178,10 @@ window.addEventListener('load', () => {
     const renameOpen = renameOverlay && !renameOverlay.classList.contains('hidden');
     const apiOpen = apiOverlay && !apiOverlay.classList.contains('hidden');
     const helpOpen = overlay && !overlay.classList.contains('hidden');
+    const closeOpen = tabCloseOverlay && !tabCloseOverlay.classList.contains('hidden');
 
-    if (renameOpen) closeTabRenameModal();
+    if (closeOpen) closeTabCloseModal();
+    else if (renameOpen) closeTabRenameModal();
     else if (apiOpen) {
       if (!apiModalBlocking) closeApiKeyModal();
     }
@@ -992,7 +1249,9 @@ async function applyPatch({ isRetry = false } = {}) {
   const diffText = document.getElementById('diff').value;
   const modelContent = document.getElementById('model').value;
   const apiKey = getStoredApiKey();
-  const selectedModel = document.getElementById('modelSelect').value;
+  const selectedModelSnapshot = document.getElementById('modelSelect').value;
+  // lock model choice into the originating tab + request
+  tab.selectedModel = selectedModelSnapshot;
   const outputEl = document.getElementById('output');
   const errorEl = document.getElementById('error');
   const loadingEl = document.getElementById('loading');
@@ -1092,7 +1351,7 @@ async function applyPatch({ isRetry = false } = {}) {
     const userPrompt = `Original file content:\n\n${modelContentSnapshot}\n\nDiff patch to apply:\n\n${diffTextSnapshot}\n\nApply the patch and output the exact resulting file.`;
 
     const completion = await openai.chat.completions.create({
-      model: selectedModel,
+      model: selectedModelSnapshot,
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userPrompt }
@@ -1157,6 +1416,7 @@ async function applyPatch({ isRetry = false } = {}) {
     // Only paint UI if user is still viewing that tab
     if (activeTabId === tabId) {
       outputEl.textContent = modified;
+      autoResizeIfExpanded(outputEl);
       diffViewEl.innerHTML = html;
       syncDiff2HtmlTheme();
       requestAnimationFrame(() => {
