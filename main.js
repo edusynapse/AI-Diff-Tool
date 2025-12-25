@@ -1,6 +1,11 @@
 const { app, BrowserWindow, Menu, ipcMain } = require('electron');
+const path = require('path');  
 
 let isDark = false;
+
+const iconPath = app.isPackaged
+  ? path.join(process.resourcesPath, 'icons', '512x512.png')
+  : path.join(__dirname, 'build', 'icons', '512x512.png');
 
 function createAppMenu() {
   const isMac = process.platform === 'darwin';
@@ -161,7 +166,8 @@ function createWindow() {
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: false
-    }
+    },
+    icon: iconPath
   });
 
   win.loadFile('index.html');

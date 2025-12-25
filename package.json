@@ -23,10 +23,15 @@
     "appId": "com.example.aidifftool",
     "productName": "AI Diff Tool",
     "linux": {
-      "target": "AppImage"
+      "target": "AppImage",
+      "icon": "build/icons"
     },
     "directories": {
-      "output": "dist"
-    }
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "extraResources": [
+      { "from": "build/icons", "to": "icons" }
+    ]
   }
 }
