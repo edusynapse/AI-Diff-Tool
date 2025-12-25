@@ -5,11 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; script-src 'self' 'unsafe-eval';">
   <title>AI Diff Tool - Grok 4 Patch Applier</title>
-  <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="node_modules/diff2html/bundles/css/diff2html.min.css">
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <h1>AI Diff Tool: Apply Patches with Grok 4</h1>
+  <div class="theme-switch">
+    <label for="darkModeToggle">Dark Mode</label>
+    <input type="checkbox" id="darkModeToggle">
+  </div>
   <label for="modelSelect">Select Model:</label>
   <select id="modelSelect">
     <option value="grok-4-1-fast-reasoning">grok-4-1-fast-reasoning</option>

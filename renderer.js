@@ -1,6 +1,7 @@
 const OpenAI = require('openai');  // Loaded via Node integration
 const { createTwoFilesPatch } = require('diff');  // For computing diff
 const Diff2Html = require('diff2html');  // For rendering as HTML
+const { ipcRenderer } = require('electron');
 let retryCount = 0;
 const MAX_RETRIES = 3;
 const MAX_FILE_SIZE_MB = 5;  // Warn if larger; adjust based on API limits
@@ -20,6 +21,14 @@ window.addEventListener('load', () => {
   const storedModel = localStorage.getItem('selectedModel') || 'grok-4-fast-reasoning';
   document.getElementById('modelSelect').value = storedModel;
 
+  const storedTheme = localStorage.getItem('theme') || 'light';
+  const toggle = document.getElementById('darkModeToggle');
+  if (storedTheme === 'dark') {
+    document.body.classList.add('dark');
+    toggle.checked = true;
+  }
+  ipcRenderer.send('theme:state', storedTheme);
+
   // Setup context menu
   document.body.addEventListener('contextmenu', handleContextMenu);
   // Add event listeners for buttons
@@ -31,6 +40,29 @@ window.addEventListener('load', () => {
   document.getElementById('modelSelect').addEventListener('change', (e) => {
     localStorage.setItem('selectedModel', e.target.value);
   });
+  toggle.addEventListener('change', (e) => {
+    if (e.target.checked) {
+      document.body.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
+      ipcRenderer.send('theme:state', 'dark');
+    } else {
+      document.body.classList.remove('dark');
+      localStorage.setItem('theme', 'light');
+      ipcRenderer.send('theme:state', 'light');
+    }
+  });
+});
+
+ipcRenderer.on('theme:set', (_evt, theme) => {
+  const toggle = document.getElementById('darkModeToggle');
+  const shouldDark = theme === 'dark';
+
+  document.body.classList.toggle('dark', shouldDark);
+  toggle.checked = shouldDark;
+  localStorage.setItem('theme', shouldDark ? 'dark' : 'light');
+
+  // keep the menu checkbox in sync (useful if future changes happen elsewhere)
+  ipcRenderer.send('theme:state', shouldDark ? 'dark' : 'light');
 });
 
 function toggleSaveKey() {
