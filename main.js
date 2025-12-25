@@ -30,6 +30,17 @@ function createAppMenu() {
     {
       label: 'File',
       submenu: [
+        {
+          label: 'xAI API Key…',
+          accelerator: 'CmdOrCtrl+K',
+          click: () => {
+            const win = BrowserWindow.getFocusedWindow() || BrowserWindow.getAllWindows()[0];
+            if (win && !win.isDestroyed()) {
+              win.webContents.send('apikey:open');
+            }
+          }
+        },
+        { type: 'separator' },
         ...(isMac ? [{ role: 'close' }] : [{ role: 'quit' }])
       ]
     },

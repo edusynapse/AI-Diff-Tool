@@ -33,12 +33,6 @@
   <textarea id="model" rows="15"></textarea>
   <input type="file" id="modelFile">
 
-  <label for="apiKey">xAI API Key:</label>
-  <div id="apiKeyContainer">
-    <input type="password" id="apiKey">
-    <button id="saveKeyBtn">Save</button>
-  </div>
-
   <!-- removed best practices message -->
 
   <button id="applyBtn">Apply Patch with Grok 4 Fast</button>
@@ -97,6 +91,31 @@
 
       <div class="modal-footer">
         <button id="helpOkBtn" class="modal-ok">Close</button>
+      </div>
+    </div>
+  </div>
+  <!-- API Key overlay (opened from menu, or when required) -->
+  <div id="apiKeyOverlay" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="apiKeyTitle">
+    <div class="modal-content" role="document">
+      <div class="modal-header">
+        <h2 id="apiKeyTitle">xAI API Key</h2>
+        <button id="apiKeyCloseBtn" class="modal-close" aria-label="Close API key dialog">×</button>
+      </div>
+
+      <div class="modal-body">
+        <p>
+          Enter your <b>xAI API Key</b>. It will be stored locally in this app (localStorage).
+        </p>
+
+        <label for="apiKeyModalInput">API Key</label>
+        <input type="password" id="apiKeyModalInput" placeholder="xai-..." autocomplete="off">
+
+        <div id="apiKeyModalHint" class="modal-hint"></div>
+      </div>
+
+      <div class="modal-footer">
+        <button id="apiKeyPrimaryBtn" class="modal-ok">Save</button>
+        <button id="apiKeyCancelBtn" class="modal-ok">Cancel</button>
       </div>
     </div>
   </div>

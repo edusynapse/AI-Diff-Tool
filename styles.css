@@ -1,28 +1,56 @@
-body { font-family: Arial, sans-serif; padding: 20px; background: #f4f4f4; }
-h1, label, #error, #key-warning { transition: color 150ms ease; }
+/* ---- Layout sanity: prevents 100% width + padding overflow ---- */
+html { box-sizing: border-box; }
+*, *::before, *::after { box-sizing: inherit; }
+body { font-family: Arial, sans-serif; padding: 20px; margin: 0; background: #f4f4f4; overflow-x: hidden; }
+h1, label, #error { transition: color 150ms ease; }
 body { color: #111; transition: background 150ms ease, color 150ms ease; }
 h1 { text-align: center; color: #333; }
 label { display: block; margin: 10px 0 5px; font-weight: bold; }
-textarea, input[type="file"], input[type="password"], select { width: 100%; padding: 10px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 4px; }
+textarea,
+input[type="file"],
+input[type="password"],
+select {
+  width: 100%;
+  max-width: 100%;
+  display: block;
+  padding: 10px;
+  margin-bottom: 15px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+/* Fixed width, flexible height (user can resize only vertically) */
+textarea { resize: vertical; }
 button { padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; margin-right: 10px; }
 button:hover { background: #0056b3; }
 button:disabled { background: #ccc; cursor: not-allowed; }
 #output-container { position: relative; }
-#output { background: white; padding: 15px; border: 1px solid #ddd; border-radius: 4px; max-height: 300px; overflow-y: auto; white-space: pre-wrap; margin-bottom: 15px; }
+#output { background: white; padding: 15px; border: 1px solid #ddd; border-radius: 4px; max-height: 300px; overflow-y: auto; white-space: pre-wrap; margin-bottom: 15px; width: 100%; box-sizing: border-box; }
 #copyBtn { position: absolute; top: 5px; right: 5px; padding: 5px 10px; font-size: 0.8em; }
 #error { color: red; margin-top: 10px; }
 #loading { text-align: center; margin: 20px; }
 .spinner { border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; width: 20px; height: 20px; animation: spin 1s linear infinite; display: inline-block; }
 @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 @media (max-width: 600px) { body { padding: 10px; } textarea { height: 150px; } }
-#key-warning { color: orange; font-size: 0.9em; margin-bottom: 15px; }
 #apiKey:disabled { background: #e9e9e9; color: #666; }  /* Greyed out style */
-#apiKeyContainer { display: flex; align-items: center; }
-#apiKey { flex: 1; margin-right: 10px; margin-bottom: 0; }
-#saveKeyBtn { margin-bottom: 15px; }
+#apiKeyContainer {
+  display: flex;
+  align-items: center;
+  gap: 10px;           /* instead of margins that can overflow */
+  width: 100%;
+  margin-bottom: 15px; /* give the row spacing */
+}
+#apiKey {
+  flex: 1;
+  min-width: 0;        /* IMPORTANT: prevents flex overflow */
+  margin-right: 0;     /* remove old margin */
+  margin-bottom: 0;    /* keep row tight */
+}
+/* stop global button margin from breaking the row width */
+#apiKeyContainer button { margin-right: 0; }
+#saveKeyBtn { margin-bottom: 0; }  /* override your old margin-bottom: 15px */
 .hidden { display: none; }
 #modelSelect { background: white; }
-#diffView { margin-top: 20px; border: 1px solid #ddd; padding: 10px; overflow: auto; max-height: none; height: auto; }
+#diffView { margin-top: 20px; border: 1px solid #ddd; padding: 10px; overflow: auto; max-height: none; height: auto; width: 100%; box-sizing: border-box; }
 .d2h-wrapper { width: 100%; overflow-x: auto; }
 .d2h-file-side-by-side { table-layout: fixed; width: 100%; border-collapse: collapse; }
 .d2h-file-side-by-side .d2h-code-wrapper { position: relative; height: auto; overflow-y: visible; }
@@ -62,7 +90,6 @@ body.dark #output {
   border-color: #3a3a3a;
 }
 body.dark #apiKey:disabled { background: #2a2a2a; color: #bdbdbd; }
-body.dark #key-warning { color: #ffb74d; }
 
 body.dark button { background: #2d6cdf; }
 body.dark button:hover { background: #2456ad; }
@@ -355,6 +382,15 @@ body.dark #diffView td.d2h-ins.d2h-code-linenumber {
   padding: 8px 14px;
 }
 
+/* API key modal footer buttons layout */
+#apiKeyOverlay .modal-footer {
+  gap: 10px;
+}
+
+#apiKeyOverlay .modal-footer button {
+  margin-right: 0; /* your global button has margin-right: 10px */
+}
+
 /* Prevent background scroll when modal is open */
 body.modal-open {
   overflow: hidden;
@@ -433,4 +469,13 @@ body.dark textarea::-webkit-scrollbar-thumb,
 body.dark .modal-content::-webkit-scrollbar-thumb {
   background: #404040;
   border-color: #161616;
+}
+/* Small helper text inside modals (CSP-safe: no inline styles) */
+.modal-hint {
+  margin-top: 8px;
+  opacity: 0.85;
+}
+
+body.dark .modal-hint {
+  opacity: 0.9;
 }

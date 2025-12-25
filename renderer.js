@@ -6,7 +6,85 @@ let retryCount = 0;
 const MAX_RETRIES = 3;
 const MAX_FILE_SIZE_MB = 5;  // Warn if larger; adjust based on API limits
 let originalFileName = 'file.txt';  // Default for pasted content
-let isKeyEditable = true;  // Moved to top
+let isApiKeyEditable = true;
+
+function getStoredApiKey() {
+  return localStorage.getItem('xaiApiKey') || '';
+}
+
+function openApiKeyModal({ forceEdit = false, hint = '' } = {}) {
+  const overlay = document.getElementById('apiKeyOverlay');
+  const input = document.getElementById('apiKeyModalInput');
+  const primaryBtn = document.getElementById('apiKeyPrimaryBtn');
+  const hintEl = document.getElementById('apiKeyModalHint');
+
+  if (!overlay || !input || !primaryBtn) return;
+
+  const storedKey = getStoredApiKey();
+
+  // show hint if any
+  if (hintEl) hintEl.textContent = hint || '';
+
+  overlay.classList.remove('hidden');
+  document.body.classList.add('modal-open');
+
+  if (storedKey && !forceEdit) {
+    // locked display mode
+    input.value = storedKey;
+    input.disabled = true;
+    primaryBtn.textContent = 'Update';
+    isApiKeyEditable = false;
+    document.getElementById('apiKeyCloseBtn')?.focus();
+  } else {
+    // editable mode
+    input.value = storedKey || '';
+    input.disabled = false;
+    primaryBtn.textContent = storedKey ? 'Save' : 'Save';
+    isApiKeyEditable = true;
+    setTimeout(() => input.focus(), 0);
+  }
+}
+
+function closeApiKeyModal() {
+  const overlay = document.getElementById('apiKeyOverlay');
+  if (!overlay) return;
+  overlay.classList.add('hidden');
+  document.body.classList.remove('modal-open');
+}
+
+function handleApiKeyPrimaryClick() {
+  const input = document.getElementById('apiKeyModalInput');
+  const primaryBtn = document.getElementById('apiKeyPrimaryBtn');
+  if (!input || !primaryBtn) return;
+
+  if (isApiKeyEditable) {
+    // Save
+    const val = (input.value || '').trim();
+    if (!val) {
+      // treat empty as "no key"
+      localStorage.removeItem('xaiApiKey');
+      closeApiKeyModal();
+      return;
+    }
+
+    localStorage.setItem('xaiApiKey', val);
+
+    // lock it after save
+    input.disabled = true;
+    primaryBtn.textContent = 'Update';
+    isApiKeyEditable = false;
+
+    // close after save (you asked for save/update flow from menu)
+    closeApiKeyModal();
+  } else {
+    // Update mode: unlock for editing
+    input.disabled = false;
+    isApiKeyEditable = true;
+    primaryBtn.textContent = 'Save';
+    input.focus();
+    input.select();
+  }
+}
 
 function openHelp() {
   const overlay = document.getElementById('helpOverlay');
@@ -25,14 +103,6 @@ function closeHelp() {
 
 // Load stored API key and model on app start
 window.addEventListener('load', () => {
-  const storedKey = localStorage.getItem('xaiApiKey');
-  if (storedKey) {
-    const apiKeyInput = document.getElementById('apiKey');
-    apiKeyInput.value = storedKey;
-    apiKeyInput.disabled = true;
-    document.getElementById('saveKeyBtn').textContent = 'Update';
-    isKeyEditable = false;
-  }
   const storedModel = localStorage.getItem('selectedModel') || 'grok-4-fast-reasoning';
   document.getElementById('modelSelect').value = storedModel;
 
@@ -47,7 +117,6 @@ window.addEventListener('load', () => {
   // Setup context menu
   document.body.addEventListener('contextmenu', handleContextMenu);
   // Add event listeners for buttons
-  document.getElementById('saveKeyBtn').addEventListener('click', toggleSaveKey);
   document.getElementById('applyBtn').addEventListener('click', applyPatch);
   document.getElementById('retryBtn').addEventListener('click', applyPatch);
   document.getElementById('copyBtn').addEventListener('click', copyOutput);
@@ -81,8 +150,31 @@ window.addEventListener('load', () => {
     });
   }
 
+  // --- API key modal wiring ---
+  const apiOverlay = document.getElementById('apiKeyOverlay');
+  const apiCloseBtn = document.getElementById('apiKeyCloseBtn');
+  const apiCancelBtn = document.getElementById('apiKeyCancelBtn');
+  const apiPrimaryBtn = document.getElementById('apiKeyPrimaryBtn');
+
+  if (apiCloseBtn) apiCloseBtn.addEventListener('click', closeApiKeyModal);
+  if (apiCancelBtn) apiCancelBtn.addEventListener('click', closeApiKeyModal);
+  if (apiPrimaryBtn) apiPrimaryBtn.addEventListener('click', handleApiKeyPrimaryClick);
+
+  if (apiOverlay) {
+    apiOverlay.addEventListener('click', (e) => {
+      if (e.target === apiOverlay) closeApiKeyModal();
+    });
+  }
+
+  // ESC should close whichever modal is open
   window.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') closeHelp();
+    if (e.key !== 'Escape') return;
+
+    const apiOpen = apiOverlay && !apiOverlay.classList.contains('hidden');
+    const helpOpen = overlay && !overlay.classList.contains('hidden');
+
+    if (apiOpen) closeApiKeyModal();
+    else if (helpOpen) closeHelp();
   });
 });
 
@@ -102,33 +194,14 @@ ipcRenderer.on('help:open', () => {
   openHelp();
 });
 
-function toggleSaveKey() {
-  const apiKeyInput = document.getElementById('apiKey');
-  const saveBtn = document.getElementById('saveKeyBtn');
-  if (isKeyEditable) {
-    // Save mode: Save and lock
-    const apiKey = apiKeyInput.value;
-    if (apiKey) {
-      localStorage.setItem('xaiApiKey', apiKey);
-      apiKeyInput.disabled = true;
-      saveBtn.textContent = 'Update';
-      isKeyEditable = false;
-    } else {
-      localStorage.removeItem('xaiApiKey');
-    }
-  } else {
-    // Update mode: Unlock for edit
-    apiKeyInput.disabled = false;
-    apiKeyInput.focus();
-    saveBtn.textContent = 'Save';
-    isKeyEditable = true;
-  }
-}
+ipcRenderer.on('apikey:open', () => {
+  openApiKeyModal({ forceEdit: false, hint: '' });
+});
 
 async function applyPatch() {
   const diffText = document.getElementById('diff').value;
   const modelContent = document.getElementById('model').value;
-  const apiKey = document.getElementById('apiKey').value;
+  const apiKey = getStoredApiKey();
   const selectedModel = document.getElementById('modelSelect').value;
   const outputEl = document.getElementById('output');
   const errorEl = document.getElementById('error');
@@ -146,8 +219,17 @@ async function applyPatch() {
   copyBtn.classList.add('hidden');
   retryBtn.classList.add('hidden');
 
-  if (!diffText || !modelContent || !apiKey) {
-    errorEl.textContent = 'Please fill all fields.';
+  if (!diffText || !modelContent) {
+    errorEl.textContent = 'Please fill Diff Patch and File Content.';
+    return;
+  }
+
+  if (!apiKey) {
+    // requirement: clicking Apply when key missing opens modal
+    openApiKeyModal({
+      forceEdit: true,
+      hint: 'API key is required before you can apply a patch.'
+    });
     return;
   }
 
