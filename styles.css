@@ -602,3 +602,181 @@ body.dark #diffView td.d2h-code-side-linenumber {
   color: #a0a0a0 !important;
   background: #161616 !important;
 }
+
+/* =========================
+   Dark "espresso → warm grey" theme (override)
+   Put at VERY END of styles.css
+   ========================= */
+
+body.dark {
+  /* Warmer-grey, darker (less brown saturation) */
+  --bg:     #0e0c0b;   /* darker, near-warm-grey */
+  --panel:  #141110;   /* sidebar / main surfaces */
+  --panel2: #1b1715;   /* lifted cards/inputs */
+  --border: #2f2a27;   /* warm grey border */
+
+  --text:   #d9d2c8;   /* slightly dimmer + greyer */
+  --muted:  #b2a79a;   /* warm grey muted */
+  --muted2: #8f8477;   /* more muted */
+
+  /* accents: still warm, but less orange + less bright */
+  --accent: #a9825d;   /* muted amber-brown */
+  --accent2:#bb936c;   /* hover */
+  --link:   #b99873;   /* link */
+  --danger: #d06a60;   /* softer red */
+  --ok:     #7da06b;   /* softer green */
+
+  background: var(--bg) !important;
+  color: var(--text) !important;
+}
+
+body.dark h1,
+body.dark label { color: var(--text) !important; }
+
+body.dark a { color: var(--link) !important; }
+body.dark a:hover { color: var(--accent2) !important; }
+
+/* Layout */
+body.dark .main { background: var(--bg) !important; }
+
+body.dark .sidebar {
+  background: var(--panel) !important;
+  border-right-color: var(--border) !important;
+}
+
+body.dark .sidebar-title { color: var(--text) !important; }
+body.dark .sidebar-hint { color: var(--muted) !important; opacity: 1 !important; }
+
+/* Tabs */
+body.dark .tab-item {
+  background: var(--panel2) !important;
+  border-color: var(--border) !important;
+  color: var(--text) !important;
+}
+
+body.dark .tab-meta { color: var(--muted2) !important; opacity: 1 !important; }
+
+body.dark .tab-item.active {
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 2px rgba(169, 130, 93, 0.20) !important;
+}
+
+/* Buttons / icon buttons */
+body.dark button,
+body.dark .icon-btn {
+  background: var(--accent) !important;
+  color: #141110 !important; /* dark text on warm-grey button */
+}
+
+body.dark button:hover,
+body.dark .icon-btn:hover {
+  background: var(--accent2) !important;
+}
+
+body.dark button:disabled {
+  background: rgba(47, 42, 39, 0.85) !important;
+  color: rgba(217, 210, 200, 0.52) !important;
+}
+
+/* Inputs */
+body.dark textarea,
+body.dark input[type="file"],
+body.dark input[type="password"],
+body.dark select {
+  background: var(--panel2) !important;
+  color: var(--text) !important;
+  border-color: var(--border) !important;
+}
+
+body.dark textarea::placeholder,
+body.dark input::placeholder {
+  color: rgba(178, 167, 154, 0.85) !important;
+  opacity: 1 !important;
+}
+
+body.dark #modelSelect { background: var(--panel2) !important; }
+
+/* Output / diff containers */
+body.dark #output,
+body.dark #diffView {
+  background: var(--panel) !important;
+  color: var(--text) !important;
+  border-color: var(--border) !important;
+}
+
+/* Error */
+body.dark #error { color: var(--danger) !important; }
+
+/* File chooser button */
+body.dark input[type="file"]::file-selector-button,
+body.dark input[type="file"]::-webkit-file-upload-button {
+  background: rgba(169, 130, 93, 0.14) !important;
+  color: var(--text) !important;
+  border-color: var(--border) !important;
+}
+body.dark input[type="file"]::file-selector-button:hover,
+body.dark input[type="file"]::-webkit-file-upload-button:hover {
+  background: rgba(169, 130, 93, 0.22) !important;
+}
+
+/* PIN boxes */
+body.dark .pin-boxes .pin-box {
+  background: var(--panel2) !important;
+  color: var(--text) !important;
+  border-color: var(--border) !important;
+}
+body.dark .pin-boxes .pin-box:focus {
+  outline-color: var(--accent2) !important;
+  border-color: var(--accent2) !important;
+}
+
+/* Modal */
+body.dark .modal-content {
+  background: var(--panel) !important;
+  color: var(--text) !important;
+  border-color: var(--border) !important;
+}
+body.dark .modal-header { border-bottom-color: rgba(47,42,39,0.70) !important; }
+body.dark .modal-footer { border-top-color: rgba(47,42,39,0.70) !important; }
+body.dark .modal-close {
+  background: rgba(47, 42, 39, 0.55) !important;
+  color: var(--text) !important;
+  border-color: var(--border) !important;
+}
+
+/* Spinners */
+body.dark .spinner,
+body.dark .tab-spinner {
+  border-color: rgba(217, 210, 200, 0.16) !important;
+  border-top-color: var(--accent2) !important;
+}
+
+/* Scrollbars */
+body.dark ::-webkit-scrollbar-track { background: #0a0908 !important; }
+body.dark ::-webkit-scrollbar-thumb {
+  background: rgba(178, 167, 154, 0.20) !important;
+  border-radius: 10px;
+  border: 3px solid #0a0908 !important;
+}
+body.dark ::-webkit-scrollbar-thumb:hover {
+  background: rgba(178, 167, 154, 0.32) !important;
+}
+body.dark ::-webkit-scrollbar-corner { background: #0a0908 !important; }
+
+/* Diff line numbers (visible, warm-grey) */
+body.dark #diffView td.d2h-code-linenumber,
+body.dark #diffView td.d2h-code-side-linenumber {
+  color: rgba(178, 167, 154, 0.95) !important;
+  background: rgba(14, 12, 11, 0.82) !important;
+  border-right: 1px solid rgba(47, 42, 39, 0.70) !important;
+}
+
+/* Your own added/removed helpers */
+body.dark .diff-added {
+  background: rgba(125, 160, 107, 0.14) !important;
+  color: var(--text) !important;
+}
+body.dark .diff-removed {
+  background: rgba(208, 106, 96, 0.12) !important;
+  color: var(--text) !important;
+}
