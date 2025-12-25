@@ -7,10 +7,22 @@ const MAX_FILE_SIZE_MB = 5;  // Warn if larger; adjust based on API limits
 let originalFileName = 'file.txt';  // Default for pasted content
 let isApiKeyEditable = true;
 // -------------------------
-// Encrypted API key storage (PIN-based)
+// Encrypted API key storage (PIN-based) - supports xAI + OpenAI
 // -------------------------
-const LS_ENC_KEY = 'xaiApiKeyEnc';  // JSON payload
-const LS_PLAIN_KEY = 'xaiApiKey';   // legacy plaintext (migration only)
+const PROVIDER_XAI = 'xai';
+const PROVIDER_OPENAI = 'openai';
+const PROVIDERS = [PROVIDER_XAI, PROVIDER_OPENAI];
+
+const LS = {
+  [PROVIDER_XAI]: {
+    enc: 'xaiApiKeyEnc',   // JSON payload
+    plain: 'xaiApiKey'     // legacy plaintext (migration only)
+  },
+  [PROVIDER_OPENAI]: {
+    enc: 'openaiApiKeyEnc',
+    plain: 'openaiApiKey'
+  }
+};
 
 const ENC_VERSION = 1;
 const PBKDF2_ITERS = 120000;
@@ -19,9 +31,14 @@ let autoUnlockBusy = false;
 const SALT_BYTES = 16;
 const AES_GCM_IV_BYTES = 12;
 
-let sessionApiKey = '';        // decrypted API key (memory only)
+const sessionApiKeys = { [PROVIDER_XAI]: '', [PROVIDER_OPENAI]: '' }; // decrypted keys (memory only)
+let sessionPin = '';           // PIN in RAM for this app session (never stored)
 let apiModalMode = 'setup';    // 'setup' | 'unlock' | 'manage'
 let apiModalBlocking = false;
+let apiModalProvider = PROVIDER_XAI; // 'xai' | 'openai' | 'all'
+let apiModalAskPin = true;          // if false, use sessionPin silently
+
+let keyTypeBlocking = false;
 
 const webCrypto = (typeof window !== 'undefined' && window.crypto) ? window.crypto : globalThis.crypto;
 
@@ -276,6 +293,22 @@ function isValidPin(pin) {
   return /^\d{6}$/.test((pin || '').trim());
 }
 
+function providerForModel(model) {
+  const m = (model || '').trim();
+  // Convention: OpenAI models start with "gpt-"
+  return m.startsWith('gpt-') ? PROVIDER_OPENAI : PROVIDER_XAI;
+}
+
+function baseUrlForProvider(provider) {
+  return provider === PROVIDER_XAI ? 'https://api.x.ai/v1' : 'https://api.openai.com/v1';
+}
+
+function getProviderUi(provider) {
+  if (provider === PROVIDER_OPENAI) return { title: 'OpenAI API Key', placeholder: 'sk-...', introKey: 'OpenAI' };
+  if (provider === PROVIDER_XAI) return { title: 'xAI API Key', placeholder: 'xai-...', introKey: 'xAI' };
+  return { title: 'Unlock API Keys', placeholder: '', introKey: 'saved keys' };
+}
+
 function getPinBoxes() {
   const wrap = document.getElementById('apiKeyPinBoxes');
   if (!wrap) return [];
@@ -479,12 +512,16 @@ async function decryptApiKeyWithPin(payload, pin) {
   return new TextDecoder().decode(new Uint8Array(ptBuf));
 }
 
-function hasEncryptedApiKey() {
-  return !!localStorage.getItem(LS_ENC_KEY);
+function hasEncryptedApiKey(provider) {
+  return !!localStorage.getItem(LS[provider]?.enc);
 }
 
-function loadEncryptedPayload() {
-  const raw = localStorage.getItem(LS_ENC_KEY);
+function hasAnyEncryptedApiKey() {
+  return PROVIDERS.some(p => hasEncryptedApiKey(p));
+}
+
+function loadEncryptedPayload(provider) {
+  const raw = localStorage.getItem(LS[provider]?.enc);
   if (!raw) return null;
   try {
     const obj = JSON.parse(raw);
@@ -495,10 +532,30 @@ function loadEncryptedPayload() {
   }
 }
 
-function saveEncryptedPayload(payload) {
-  localStorage.setItem(LS_ENC_KEY, JSON.stringify(payload));
+function saveEncryptedPayload(provider, payload) {
+  localStorage.setItem(LS[provider]?.enc, JSON.stringify(payload));
   // remove legacy plaintext if present
-  localStorage.removeItem(LS_PLAIN_KEY);
+  localStorage.removeItem(LS[provider]?.plain);
+}
+
+function loadLegacyPlain(provider) {
+  return (localStorage.getItem(LS[provider]?.plain) || '').trim();
+}
+
+async function maybeDecryptProviderInSession(provider) {
+  if (sessionApiKeys[provider]) return true;
+  if (!isValidPin(sessionPin)) return false;
+  if (!hasEncryptedApiKey(provider)) return false;
+  const payload = loadEncryptedPayload(provider);
+  if (!payload) return false;
+  try {
+    const dec = await decryptApiKeyWithPin(payload, sessionPin);
+    if (!dec || !dec.trim()) return false;
+    sessionApiKeys[provider] = dec.trim();
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 // -------------------------
@@ -852,25 +909,44 @@ function saveTabRename() {
    closeTabCloseModal();
  }
 
-function getStoredApiKey() {
-  return sessionApiKey || '';
+function getStoredApiKey(provider) {
+  return sessionApiKeys[provider] || '';
 }
 
-function openApiKeyModal({ mode = 'manage', blocking = false, hint = '', prefillKey = '' } = {}) {
+function openApiKeyModal({ provider = PROVIDER_XAI, mode = 'manage', blocking = false, hint = '', prefillKey = '', askPin = true } = {}) {
   const overlay = document.getElementById('apiKeyOverlay');
   const apiInput = document.getElementById('apiKeyModalInput');
   const pinInput = document.getElementById('apiKeyPinInput'); // hidden aggregator
   const pinBoxesWrap = document.getElementById('apiKeyPinBoxes');
+  const pinLabel = document.getElementById('apiKeyPinLabel');
   const primaryBtn = document.getElementById('apiKeyPrimaryBtn');
   const cancelBtn = document.getElementById('apiKeyCancelBtn');
   const closeBtn = document.getElementById('apiKeyCloseBtn');
   const hintEl = document.getElementById('apiKeyModalHint');
   const apiLabel = document.getElementById('apiKeyModalLabel');
+  const titleEl = document.getElementById('apiKeyTitle');
+  const introEl = document.getElementById('apiKeyModalIntro');
 
   if (!overlay || !primaryBtn || !pinBoxesWrap || !pinInput) return;
 
   apiModalMode = mode;
   apiModalBlocking = !!blocking;
+  apiModalProvider = provider;
+  apiModalAskPin = !!askPin;
+
+  const ui = getProviderUi(provider);
+  if (titleEl) titleEl.textContent = ui.title;
+  if (apiInput && ui.placeholder) apiInput.setAttribute('placeholder', ui.placeholder);
+
+  if (introEl) {
+    if (mode === 'unlock') {
+      introEl.innerHTML = 'Enter your <b>6-digit PIN</b> to unlock and decrypt saved keys for this session.';
+    } else if (!apiModalAskPin && isValidPin(sessionPin)) {
+      introEl.innerHTML = `Enter your <b>${ui.introKey} API Key</b>. It will be encrypted locally using the PIN already unlocked for this session.`;
+    } else {
+      introEl.innerHTML = `Enter your <b>${ui.introKey} API Key</b> and a <b>6-digit PIN</b>. The key is encrypted locally and stored in this app (localStorage). The PIN is not stored.`;
+    }
+  }
 
   if (hintEl) hintEl.textContent = hint || '';
 
@@ -886,9 +962,11 @@ function openApiKeyModal({ mode = 'manage', blocking = false, hint = '', prefill
     apiInput.value = showKey ? (prefillKey || '') : '';
   }
 
-  // always show PIN field (needed for unlock + save)
+  // PIN UI: show only if askPin=true (or unlock mode)
+  const showPinUi = (mode === 'unlock') ? true : apiModalAskPin;
+  if (pinLabel) pinLabel.classList.toggle('hidden', !showPinUi);
+  pinBoxesWrap.classList.toggle('hidden', !showPinUi);
   if (pinInput) pinInput.value = '';
-  // clear + focus PIN boxes
   clearPinBoxes({ focusIndex: 0 });
 
   // button labels
@@ -942,7 +1020,7 @@ async function handleApiKeyPrimaryClick() {
   const pinInput = document.getElementById('apiKeyPinInput'); // hidden aggregator
   const hintEl = document.getElementById('apiKeyModalHint');
 
-  const pin = getPinFromBoxes();
+  const pin = apiModalAskPin ? getPinFromBoxes() : (sessionPin || '');
   const key = (apiInput?.value || '').trim();
 
   if (hintEl) hintEl.textContent = '';
@@ -952,24 +1030,35 @@ async function handleApiKeyPrimaryClick() {
     return;
   }
 
-  if (!isValidPin(pin)) {
-    if (hintEl) hintEl.textContent = 'PIN must be exactly 6 digits.';
-    clearPinBoxes({ focusIndex: 0 });
-    return;
-  }
-
-  // UNLOCK MODE: decrypt existing encrypted key
-  if (apiModalMode === 'unlock') {
-    const payload = loadEncryptedPayload();
-    if (!payload) {
-      if (hintEl) hintEl.textContent = 'No encrypted API key found (or data is corrupted).';
+  // Validate PIN only when required (unlock or first-time setup)
+  if (apiModalMode === 'unlock' || apiModalAskPin) {
+    if (!isValidPin(pin)) {
+      if (hintEl) hintEl.textContent = 'PIN must be exactly 6 digits.';
+      clearPinBoxes({ focusIndex: 0 });
       return;
     }
+  }
 
+  // UNLOCK MODE: decrypt all saved encrypted keys (xAI + OpenAI) in one go
+  if (apiModalMode === 'unlock') {
     try {
-      const dec = await decryptApiKeyWithPin(payload, pin);
-      if (!dec || !dec.trim()) throw new Error('Decryption produced empty key');
-      sessionApiKey = dec.trim();
+      let any = false;
+      for (const p of PROVIDERS) {
+        const payload = loadEncryptedPayload(p);
+        if (!payload) continue;
+        const dec = await decryptApiKeyWithPin(payload, pin);
+        if (dec && dec.trim()) {
+          sessionApiKeys[p] = dec.trim();
+          any = true;
+        }
+      }
+
+      if (!any) {
+        if (hintEl) hintEl.textContent = 'No encrypted keys found (or data is corrupted).';
+        return;
+      }
+
+      sessionPin = pin; // keep PIN in RAM for this session
 
       // close even if blocking (success path)
       closeApiKeyModal({ force: true });
@@ -989,9 +1078,17 @@ async function handleApiKeyPrimaryClick() {
   }
 
   try {
-    const payload = await encryptApiKeyWithPin(key, pin);
-    saveEncryptedPayload(payload);
-    sessionApiKey = key;
+    const effectivePin = apiModalAskPin ? pin : sessionPin;
+    if (!isValidPin(effectivePin)) {
+      if (hintEl) hintEl.textContent = 'PIN is not available in this session. Please unlock first.';
+      return;
+    }
+
+    const provider = apiModalProvider || PROVIDER_XAI;
+    const payload = await encryptApiKeyWithPin(key, effectivePin);
+    saveEncryptedPayload(provider, payload);
+    sessionApiKeys[provider] = key;
+    sessionPin = effectivePin; // keep PIN in RAM for this session
 
     closeApiKeyModal({ force: true });
   } catch (e) {
@@ -1000,34 +1097,67 @@ async function handleApiKeyPrimaryClick() {
 }
 
 function bootstrapApiKeyFlow() {
-  // Encrypted key exists -> ask for PIN to unlock
-  if (hasEncryptedApiKey()) {
+  // Any encrypted keys exist -> ask once for PIN and decrypt BOTH keys into RAM
+  if (hasAnyEncryptedApiKey()) {
     openApiKeyModal({
+      provider: 'all',
       mode: 'unlock',
       blocking: true,
-      hint: 'Enter your 6-digit PIN to unlock the saved API key.'
+      askPin: true,
+      hint: 'Enter your 6-digit PIN to unlock saved keys for this session.'
     });
     return;
   }
 
-  // Legacy plaintext exists -> force PIN setup to encrypt it
-  const legacy = localStorage.getItem(LS_PLAIN_KEY) || '';
-  if (legacy.trim()) {
-    openApiKeyModal({
-      mode: 'setup',
-      blocking: true,
-      hint: 'Set a 6-digit PIN to encrypt your existing saved API key.',
-      prefillKey: legacy.trim()
-    });
-    return;
+  // Legacy plaintext migration (pick first provider with legacy)
+  for (const p of PROVIDERS) {
+    const legacy = loadLegacyPlain(p);
+    if (legacy) {
+      openApiKeyModal({
+        provider: p,
+        mode: 'setup',
+        blocking: true,
+        askPin: true,
+        hint: 'Set a 6-digit PIN to encrypt your existing saved API key.',
+        prefillKey: legacy
+      });
+      return;
+    }
   }
 
-  // No key -> force setup (non-disposable)
-  openApiKeyModal({
-    mode: 'setup',
-    blocking: true,
-    hint: 'API key + 6-digit PIN are required before you can use Apply Patch.'
-  });
+  // No keys at all -> force provider selection first
+  openKeyTypeModal({ blocking: true });
+}
+
+function openKeyTypeModal({ blocking = true, hint = '' } = {}) {
+  const overlay = document.getElementById('keyTypeOverlay');
+  const hintEl = document.getElementById('keyTypeHint');
+  if (!overlay) return;
+  keyTypeBlocking = !!blocking;
+  if (hintEl) hintEl.textContent = hint || '';
+  overlay.classList.remove('hidden');
+  document.body.classList.add('modal-open');
+  setTimeout(() => {
+    document.getElementById('keyTypeXaiBtn')?.focus();
+  }, 0);
+}
+
+function closeKeyTypeModal({ force = false } = {}) {
+  if (keyTypeBlocking && !force) return;
+  const overlay = document.getElementById('keyTypeOverlay');
+  if (!overlay) return;
+  overlay.classList.add('hidden');
+
+  // Only remove modal-open if *no* other modal is open
+  const helpOpen = !document.getElementById('helpOverlay')?.classList.contains('hidden');
+  const apiOpen = !document.getElementById('apiKeyOverlay')?.classList.contains('hidden');
+  const renameOpen = !document.getElementById('tabRenameOverlay')?.classList.contains('hidden');
+  const closeOpen = !document.getElementById('tabCloseOverlay')?.classList.contains('hidden');
+  const typeOpen = !overlay.classList.contains('hidden');
+  if (!helpOpen && !apiOpen && !renameOpen && !closeOpen && !typeOpen) {
+    document.body.classList.remove('modal-open');
+  }
+  keyTypeBlocking = false;
 }
 
 function openHelp() {
@@ -1117,6 +1247,37 @@ window.addEventListener('load', () => {
 
   // --- API key bootstrap (PIN unlock/setup on startup) ---
   bootstrapApiKeyFlow();
+
+  // --- Key type overlay wiring ---
+  const keyTypeOverlay = document.getElementById('keyTypeOverlay');
+  const keyTypeXaiBtn = document.getElementById('keyTypeXaiBtn');
+  const keyTypeOpenAiBtn = document.getElementById('keyTypeOpenAiBtn');
+
+  if (keyTypeXaiBtn) keyTypeXaiBtn.addEventListener('click', () => {
+    closeKeyTypeModal({ force: true });
+    openApiKeyModal({
+      provider: PROVIDER_XAI,
+      mode: 'setup',
+      blocking: true,
+      askPin: !isValidPin(sessionPin),
+      hint: 'Enter your xAI API key and a 6-digit PIN to save it.'
+    });
+  });
+  if (keyTypeOpenAiBtn) keyTypeOpenAiBtn.addEventListener('click', () => {
+    closeKeyTypeModal({ force: true });
+    openApiKeyModal({
+      provider: PROVIDER_OPENAI,
+      mode: 'setup',
+      blocking: true,
+      askPin: !isValidPin(sessionPin),
+      hint: 'Enter your OpenAI API key and a 6-digit PIN to save it.'
+    });
+  });
+  if (keyTypeOverlay) {
+    keyTypeOverlay.addEventListener('click', (e) => {
+      if (e.target === keyTypeOverlay) closeKeyTypeModal();
+    });
+  }
 
   // --- Tab rename modal wiring ---
   const renameOverlay = document.getElementById('tabRenameOverlay');
@@ -1225,13 +1386,31 @@ ipcRenderer.on('help:open', () => {
   openHelp();
 });
 
-ipcRenderer.on('apikey:open', () => {
+ipcRenderer.on('apikey:open', (_evt, payload) => {
+  const provider = payload?.provider === PROVIDER_OPENAI ? PROVIDER_OPENAI : PROVIDER_XAI;
+
+  // If PIN isn't in RAM but keys exist, force unlock first
+  if (!isValidPin(sessionPin) && hasAnyEncryptedApiKey()) {
+    openApiKeyModal({
+      provider: 'all',
+      mode: 'unlock',
+      blocking: true,
+      askPin: true,
+      hint: 'Enter your 6-digit PIN to unlock saved keys for this session.'
+    });
+    return;
+  }
+
   openApiKeyModal({
-    mode: 'manage',
+    provider,
+    mode: hasEncryptedApiKey(provider) ? 'manage' : 'setup',
     blocking: false,
-    hint: 'Enter a new API key and 6-digit PIN to re-encrypt and save.'
+    askPin: !isValidPin(sessionPin),
+    hint: isValidPin(sessionPin)
+      ? 'Enter a new API key to re-encrypt and save (PIN already unlocked for this session).'
+      : 'Enter an API key and 6-digit PIN to encrypt and save.'
   });
-});
+ });
 
 async function applyPatch({ isRetry = false } = {}) {
   const tab = getActiveTab();
@@ -1248,8 +1427,9 @@ async function applyPatch({ isRetry = false } = {}) {
 
   const diffText = document.getElementById('diff').value;
   const modelContent = document.getElementById('model').value;
-  const apiKey = getStoredApiKey();
   const selectedModelSnapshot = document.getElementById('modelSelect').value;
+  const provider = providerForModel(selectedModelSnapshot);
+  // lock model choice into the originating tab + request
   // lock model choice into the originating tab + request
   tab.selectedModel = selectedModelSnapshot;
   const outputEl = document.getElementById('output');
@@ -1278,20 +1458,42 @@ async function applyPatch({ isRetry = false } = {}) {
     return;
   }
 
+  // Ensure the correct provider key is available (xAI for grok-*, OpenAI for gpt-*)
+  // 1) If PIN is in RAM and key is stored encrypted but not yet decrypted in this session -> decrypt silently
+  await maybeDecryptProviderInSession(provider);
+
+  const apiKey = getStoredApiKey(provider);
   if (!apiKey) {
-    if (hasEncryptedApiKey()) {
+    // If NO keys exist at all -> choose provider first
+    const anyStored = hasAnyEncryptedApiKey() || PROVIDERS.some(p => loadLegacyPlain(p));
+    if (!anyStored) {
+      openKeyTypeModal({ blocking: true, hint: 'Choose a provider to set up an API key.' });
+      return;
+    }
+
+    // If keys exist but PIN not unlocked in this session -> unlock once (decrypt both)
+    if (hasAnyEncryptedApiKey() && !isValidPin(sessionPin)) {
       openApiKeyModal({
+        provider: 'all',
         mode: 'unlock',
         blocking: true,
-        hint: 'Enter your 6-digit PIN to unlock the saved API key.'
+        askPin: true,
+        hint: 'Enter your 6-digit PIN to unlock saved keys for this session.'
       });
-    } else {
-      openApiKeyModal({
-        mode: 'setup',
-        blocking: true,
-        hint: 'API key + 6-digit PIN are required before you can apply a patch.'
-      });
+      return;
     }
+
+    // Otherwise, we need to set up the missing provider key.
+    // If PIN already unlocked in RAM, DO NOT ask for it again.
+    openApiKeyModal({
+      provider,
+      mode: 'setup',
+      blocking: true,
+      askPin: !isValidPin(sessionPin),
+      hint: isValidPin(sessionPin)
+        ? `Enter your ${provider === PROVIDER_OPENAI ? 'OpenAI' : 'xAI'} API key to save it (PIN already unlocked for this session).`
+        : `Enter your ${provider === PROVIDER_OPENAI ? 'OpenAI' : 'xAI'} API key and a 6-digit PIN to save it.`
+    });
     return;
   }
 
@@ -1325,7 +1527,7 @@ async function applyPatch({ isRetry = false } = {}) {
   try {
     const openai = new OpenAI({
       apiKey,
-      baseURL: 'https://api.x.ai/v1',
+      baseURL: baseUrlForProvider(provider),
       dangerouslyAllowBrowser: true  // Enable for Electron renderer; key is user-provided and local
     });
     console.log('OpenAI SDK initialized with browser allowance.');

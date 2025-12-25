@@ -60,11 +60,19 @@
     <!-- Model selector (per-tab state handled in renderer.js) -->
     <label for="modelSelect">Select Model:</label>
     <select id="modelSelect">
-      <option value="grok-4-1-fast-reasoning">grok-4-1-fast-reasoning</option>
-      <option value="grok-4-1-fast-non-reasoning">grok-4-1-fast-non-reasoning</option>
-      <option value="grok-code-fast-1">grok-code-fast-1</option>
-      <option value="grok-4-fast-reasoning">grok-4-fast-reasoning</option>
-      <option value="grok-4-fast-non-reasoning">grok-4-fast-non-reasoning</option>
+      <optgroup label="xAI">
+        <option value="grok-4-1-fast-reasoning">grok-4-1-fast-reasoning</option>
+        <option value="grok-4-1-fast-non-reasoning">grok-4-1-fast-non-reasoning</option>
+        <option value="grok-code-fast-1">grok-code-fast-1</option>
+        <option value="grok-4-fast-reasoning">grok-4-fast-reasoning</option>
+        <option value="grok-4-fast-non-reasoning">grok-4-fast-non-reasoning</option>
+      </optgroup>
+      <optgroup label="OpenAI">
+        <option value="gpt-4.1-mini">gpt-4.1-mini</option>
+        <option value="gpt-4.1-nano">gpt-4.1-nano</option>
+        <option value="gpt-5.2-mini">gpt-5.2-mini</option>
+        <option value="gpt-5.2-nano">gpt-5.2-nano</option>
+      </optgroup>
     </select>
 
     <label for="diff">Diff Patch (paste or load file):</label>
@@ -128,7 +136,7 @@
           <li><b>Select Model</b> (top dropdown).</li>
           <li><b>Paste or load</b> your unified diff patch into <b>Diff Patch</b>.</li>
           <li><b>Paste or load</b> the original file content into <b>File Content</b>.</li>
-          <li>Enter your <b>xAI API Key</b>, click <b>Save</b> (optional; saved locally).</li>
+          <li>Enter your <b>API Key</b> (xAI or OpenAI), click <b>Save</b> (saved locally, encrypted).</li>
           <li>Click <b>Apply Patch</b>.</li>
           <li>Use <b>Copy</b> or <b>Download Modified File</b> once output is generated.</li>
         </ol>
@@ -154,22 +162,44 @@
       </div>
     </div>
   </div>
+  <!-- Key Type overlay (shown ONLY when no keys exist at all) -->
+  <div id="keyTypeOverlay" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="keyTypeTitle">
+    <div class="modal-content modal-sm" role="document">
+      <div class="modal-header">
+        <h2 id="keyTypeTitle">Choose API Key Type</h2>
+      </div>
+
+      <div class="modal-body">
+        <p id="keyTypeIntro">
+          No API keys are saved yet. Choose which provider you want to configure first.
+          You’ll set a <b>6-digit PIN</b> once, and it will be used to encrypt/decrypt keys locally.
+        </p>
+        <div id="keyTypeHint" class="modal-hint"></div>
+      </div>
+
+      <div class="modal-footer" style="justify-content: space-between;">
+        <button id="keyTypeXaiBtn" class="modal-ok" type="button">xAI</button>
+        <button id="keyTypeOpenAiBtn" class="modal-ok" type="button">OpenAI</button>
+      </div>
+    </div>
+  </div>
+
   <!-- API Key overlay (opened from menu, or when required) -->
   <div id="apiKeyOverlay" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="apiKeyTitle">
     <div class="modal-content" role="document">
       <div class="modal-header">
-        <h2 id="apiKeyTitle">xAI API Key</h2>
+        <h2 id="apiKeyTitle">API Key</h2>
         <button id="apiKeyCloseBtn" class="modal-close" aria-label="Close API key dialog">×</button>
       </div>
 
       <div class="modal-body">
-        <p>
-          Enter your <b>xAI API Key</b> and a <b>6-digit PIN</b>. The key is encrypted locally and stored in this app (localStorage).
-          The PIN is not stored — you’ll be asked for it on app launch to unlock the key.
+        <p id="apiKeyModalIntro">
+          Enter your <b>API Key</b> and a <b>6-digit PIN</b>. The key is encrypted locally and stored in this app (localStorage).
+          The PIN is not stored — you’ll be asked for it on app launch to unlock saved keys.
         </p>
 
         <label id="apiKeyModalLabel" for="apiKeyModalInput">API Key</label>
-        <input type="password" id="apiKeyModalInput" placeholder="xai-..." autocomplete="off">
+        <input type="password" id="apiKeyModalInput" placeholder="sk-..." autocomplete="off">
 
         <label id="apiKeyPinLabel">6-digit PIN</label>
         <div id="apiKeyPinBoxes" class="pin-boxes" role="group" aria-labelledby="apiKeyPinLabel">

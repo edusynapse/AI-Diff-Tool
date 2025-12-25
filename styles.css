@@ -676,6 +676,7 @@ body.dark input[type="file"]::-webkit-file-upload-button:hover {
   display: flex;
   gap: 10px;
   align-items: center;
+  justify-content: center; /* horizontally center the 6 PIN boxes in the modal */
   margin: 6px 0 10px;
 }
 

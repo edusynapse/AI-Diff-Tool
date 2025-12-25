@@ -36,7 +36,17 @@ function createAppMenu() {
           click: () => {
             const win = BrowserWindow.getFocusedWindow() || BrowserWindow.getAllWindows()[0];
             if (win && !win.isDestroyed()) {
-              win.webContents.send('apikey:open');
+              win.webContents.send('apikey:open', { provider: 'xai' });
+            }
+          }
+        },
+        {
+          label: 'OpenAI API Key…',
+          accelerator: 'CmdOrCtrl+Shift+K',
+          click: () => {
+            const win = BrowserWindow.getFocusedWindow() || BrowserWindow.getAllWindows()[0];
+            if (win && !win.isDestroyed()) {
+              win.webContents.send('apikey:open', { provider: 'openai' });
             }
           }
         },
