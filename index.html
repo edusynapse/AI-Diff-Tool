@@ -199,19 +199,23 @@
         </p>
 
         <label id="apiKeyModalLabel" for="apiKeyModalInput">API Key</label>
-        <input type="password" id="apiKeyModalInput" placeholder="sk-..." autocomplete="off">
+        <div id="apiKeyInputRow" class="api-key-row">
+          <input type="password" id="apiKeyModalInput" placeholder="sk-..." autocomplete="off">
+          <!-- Same-row Update/Save (state toggled in renderer.js) -->
+          <button id="apiKeyEditBtn" class="modal-ok" type="button">Save</button>
+        </div>
 
         <label id="apiKeyPinLabel">6-digit PIN</label>
         <div id="apiKeyPinBoxes" class="pin-boxes" role="group" aria-labelledby="apiKeyPinLabel">
-          <input class="pin-box" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" aria-label="PIN digit 1" autocomplete="off">
-          <input class="pin-box" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" aria-label="PIN digit 2" autocomplete="off">
-          <input class="pin-box" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" aria-label="PIN digit 3" autocomplete="off">
-          <input class="pin-box" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" aria-label="PIN digit 4" autocomplete="off">
-          <input class="pin-box" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" aria-label="PIN digit 5" autocomplete="off">
-          <input class="pin-box" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" aria-label="PIN digit 6" autocomplete="off">
+          <input class="pin-box" type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="1" aria-label="PIN digit 1" autocomplete="one-time-code">
+          <input class="pin-box" type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="1" aria-label="PIN digit 2" autocomplete="one-time-code">
+          <input class="pin-box" type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="1" aria-label="PIN digit 3" autocomplete="one-time-code">
+          <input class="pin-box" type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="1" aria-label="PIN digit 4" autocomplete="one-time-code">
+          <input class="pin-box" type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="1" aria-label="PIN digit 5" autocomplete="one-time-code">
+          <input class="pin-box" type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="1" aria-label="PIN digit 6" autocomplete="one-time-code">
         </div>
         <!-- hidden aggregator (JS keeps this in sync with the 6 boxes) -->
-        <input type="password" id="apiKeyPinInput" class="hidden" inputmode="numeric" maxlength="6" autocomplete="off">
+        <input type="hidden" id="apiKeyPinInput" inputmode="numeric" maxlength="6" autocomplete="off">
 
         <div id="apiKeyModalHint" class="modal-hint"></div>
       </div>

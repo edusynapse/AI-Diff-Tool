@@ -385,13 +385,22 @@ function setupPinBoxes() {
   boxes.forEach((box, idx) => {
     // typing / input
     box.addEventListener('input', () => {
-      // keep only last digit
+      // Keep only digits; allow multi-digit (mobile autofill / paste into one box)
       const digits = (box.value || '').replace(/\D/g, '');
-      box.value = digits ? digits[digits.length - 1] : '';
-      syncHiddenPinFromBoxes();
 
-      if (box.value && idx < boxes.length - 1) {
-        focusPinBox(idx + 1);
+      if (digits.length <= 1) {
+        box.value = digits;
+        syncHiddenPinFromBoxes();
+        if (digits && idx < boxes.length - 1) focusPinBox(idx + 1);
+      } else {
+        // Spread multi-digit input across remaining boxes starting at idx
+        const spread = digits.split('').slice(0, boxes.length - idx);
+        spread.forEach((ch, j) => {
+          boxes[idx + j].value = ch;
+        });
+        syncHiddenPinFromBoxes();
+        const next = Math.min(idx + spread.length, boxes.length - 1);
+        focusPinBox(next);
       }
 
       // Auto-unlock when full
@@ -530,7 +539,19 @@ function loadEncryptedPayload(provider) {
   } catch {
     return null;
   }
-}
+ }
+
+// Length of stored plaintext key without decrypting (AES-GCM returns ct = pt + 16-byte tag)
+function getEncryptedApiKeyLength(provider) {
+  const payload = loadEncryptedPayload(provider);
+  if (!payload?.ct) return 0;
+  try {
+    const ctBytes = b64ToBytes(payload.ct);
+    return Math.max(0, ctBytes.length - 16);
+  } catch {
+    return 0;
+  }
+ }
 
 function saveEncryptedPayload(provider, payload) {
   localStorage.setItem(LS[provider]?.enc, JSON.stringify(payload));
@@ -913,6 +934,30 @@ function getStoredApiKey(provider) {
   return sessionApiKeys[provider] || '';
 }
 
+function setApiKeyRowLocked(apiInput, editBtn, maskLen) {
+  if (!apiInput || !editBtn) return;
+  apiInput.type = 'text'; // show literal asterisks
+  apiInput.value = '*'.repeat(Math.max(0, maskLen || 0));
+  apiInput.disabled = true; // greyed out via CSS
+  editBtn.textContent = 'Update';
+  editBtn.dataset.mode = 'locked';
+}
+
+function setApiKeyRowEdit(apiInput, editBtn, value = '') {
+  if (!apiInput || !editBtn) return;
+  apiInput.disabled = false;
+  apiInput.type = 'password'; // hide actual key while typing
+  apiInput.value = value || '';
+  editBtn.textContent = 'Save';
+  editBtn.dataset.mode = 'edit';
+  setTimeout(() => {
+    try {
+      apiInput.focus();
+      apiInput.select();
+    } catch {}
+  }, 0);
+}
+
 function openApiKeyModal({ provider = PROVIDER_XAI, mode = 'manage', blocking = false, hint = '', prefillKey = '', askPin = true } = {}) {
   const overlay = document.getElementById('apiKeyOverlay');
   const apiInput = document.getElementById('apiKeyModalInput');
@@ -920,6 +965,8 @@ function openApiKeyModal({ provider = PROVIDER_XAI, mode = 'manage', blocking = 
   const pinBoxesWrap = document.getElementById('apiKeyPinBoxes');
   const pinLabel = document.getElementById('apiKeyPinLabel');
   const primaryBtn = document.getElementById('apiKeyPrimaryBtn');
+  const editBtn = document.getElementById('apiKeyEditBtn');
+  const apiKeyRow = document.getElementById('apiKeyInputRow');
   const cancelBtn = document.getElementById('apiKeyCancelBtn');
   const closeBtn = document.getElementById('apiKeyCloseBtn');
   const hintEl = document.getElementById('apiKeyModalHint');
@@ -956,10 +1003,21 @@ function openApiKeyModal({ provider = PROVIDER_XAI, mode = 'manage', blocking = 
   // show/hide API key field depending on mode
   const showKey = mode !== 'unlock';
   if (apiLabel) apiLabel.classList.toggle('hidden', !showKey);
-  if (apiInput) {
-    apiInput.classList.toggle('hidden', !showKey);
-    apiInput.disabled = !showKey;
-    apiInput.value = showKey ? (prefillKey || '') : '';
+  if (apiKeyRow) apiKeyRow.classList.toggle('hidden', !showKey);
+  if (editBtn) editBtn.classList.toggle('hidden', !showKey);
+  if (apiInput) apiInput.value = '';
+
+  // API key row behavior:
+  // - If key exists: show masked, disabled, button "Update"
+  // - If no key: editable, button "Save"
+  if (showKey && apiInput && editBtn) {
+    const hasKey = hasEncryptedApiKey(apiModalProvider);
+    if (hasKey) {
+      const maskLen = getEncryptedApiKeyLength(apiModalProvider) || 0;
+      setApiKeyRowLocked(apiInput, editBtn, maskLen);
+    } else {
+      setApiKeyRowEdit(apiInput, editBtn, prefillKey || '');
+    }
   }
 
   // PIN UI: show only if askPin=true (or unlock mode)
@@ -970,7 +1028,8 @@ function openApiKeyModal({ provider = PROVIDER_XAI, mode = 'manage', blocking = 
   clearPinBoxes({ focusIndex: 0 });
 
   // button labels
-  primaryBtn.textContent = (mode === 'unlock') ? 'Unlock' : 'Save';
+  primaryBtn.textContent = 'Unlock';
+  primaryBtn.classList.toggle('hidden', mode !== 'unlock');
 
   // non-disposable / blocking behavior
   if (closeBtn) closeBtn.classList.toggle('hidden', apiModalBlocking);
@@ -981,9 +1040,13 @@ function openApiKeyModal({ provider = PROVIDER_XAI, mode = 'manage', blocking = 
     if (mode === 'unlock') {
       // focus first PIN box
       focusPinBox(0);
-    } else if (apiInput) {
-      apiInput.focus();
-      apiInput.select();
+    } else if (apiInput && editBtn) {
+      // If locked, focus the Update button; else focus input
+      if (apiInput.disabled) editBtn.focus();
+      else {
+        apiInput.focus();
+        apiInput.select();
+      }
     } else {
       pinInput.focus();
       pinInput.select();
@@ -1016,6 +1079,12 @@ function closeApiKeyModal({ force = false } = {}) {
 }
 
 async function handleApiKeyPrimaryClick() {
+  // Primary button is ONLY for Unlock mode. If somehow triggered otherwise, treat as Save/Update.
+  if (apiModalMode !== 'unlock') {
+    await handleApiKeyEditBtnClick();
+    return;
+  }
+
   const apiInput = document.getElementById('apiKeyModalInput');
   const pinInput = document.getElementById('apiKeyPinInput'); // hidden aggregator
   const hintEl = document.getElementById('apiKeyModalHint');
@@ -1069,11 +1138,42 @@ async function handleApiKeyPrimaryClick() {
     return;
   }
 
-  // SETUP / MANAGE: encrypt + store new key
+  // Non-unlock paths are handled by the same-row Update/Save button.
+ }
+
+async function handleApiKeyEditBtnClick() {
+  const apiInput = document.getElementById('apiKeyModalInput');
+  const editBtn = document.getElementById('apiKeyEditBtn');
+  const hintEl = document.getElementById('apiKeyModalHint');
+
+  if (!apiInput || !editBtn) return;
+  if (hintEl) hintEl.textContent = '';
+
+  const mode = editBtn.dataset.mode || 'edit';
+
+  // Locked -> enable editing
+  if (mode === 'locked') {
+    setApiKeyRowEdit(apiInput, editBtn, '');
+    return;
+  }
+
+  // Edit -> Save
+  const key = (apiInput.value || '').trim();
   if (!key) {
     if (hintEl) hintEl.textContent = 'API key is required.';
-    apiInput?.focus();
-    apiInput?.select();
+    try { apiInput.focus(); } catch {}
+    return;
+  }
+
+  if (!webCrypto?.subtle) {
+    if (hintEl) hintEl.textContent = 'WebCrypto is not available in this environment.';
+    return;
+  }
+
+  const pin = apiModalAskPin ? getPinFromBoxes() : (sessionPin || '');
+  if (apiModalAskPin && !isValidPin(pin)) {
+    if (hintEl) hintEl.textContent = 'PIN must be exactly 6 digits.';
+    clearPinBoxes({ focusIndex: 0 });
     return;
   }
 
@@ -1090,11 +1190,21 @@ async function handleApiKeyPrimaryClick() {
     sessionApiKeys[provider] = key;
     sessionPin = effectivePin; // keep PIN in RAM for this session
 
-    closeApiKeyModal({ force: true });
+    // If this modal was blocking (startup / apply flow), close immediately after save.
+    if (apiModalBlocking) {
+      closeApiKeyModal({ force: true });
+      return;
+    }
+
+    // Otherwise, lock + mask in-place.
+    setApiKeyRowLocked(apiInput, editBtn, key.length);
+    if (hintEl) hintEl.textContent = 'Saved.';
+    // Clear PIN boxes if shown (optional hygiene)
+    if (apiModalAskPin) clearPinBoxes({ focusIndex: 0 });
   } catch (e) {
     if (hintEl) hintEl.textContent = `Failed to encrypt and save: ${e?.message || e}`;
   }
-}
+ }
 
 function bootstrapApiKeyFlow() {
   // Any encrypted keys exist -> ask once for PIN and decrypt BOTH keys into RAM
@@ -1231,10 +1341,25 @@ window.addEventListener('load', () => {
   const apiCloseBtn = document.getElementById('apiKeyCloseBtn');
   const apiCancelBtn = document.getElementById('apiKeyCancelBtn');
   const apiPrimaryBtn = document.getElementById('apiKeyPrimaryBtn');
+  const apiEditBtn = document.getElementById('apiKeyEditBtn');
+  const apiKeyModalInput = document.getElementById('apiKeyModalInput');
 
   if (apiCloseBtn) apiCloseBtn.addEventListener('click', closeApiKeyModal);
   if (apiCancelBtn) apiCancelBtn.addEventListener('click', closeApiKeyModal);
   if (apiPrimaryBtn) apiPrimaryBtn.addEventListener('click', handleApiKeyPrimaryClick);
+  if (apiEditBtn) apiEditBtn.addEventListener('click', () => { void handleApiKeyEditBtnClick(); });
+  if (apiKeyModalInput) {
+    apiKeyModalInput.addEventListener('keydown', (e) => {
+      if (e.key !== 'Enter') return;
+      if (apiModalMode === 'unlock') return;
+      // Enter triggers Save when in edit mode
+      const btn = document.getElementById('apiKeyEditBtn');
+      if (btn?.dataset?.mode === 'edit') {
+        e.preventDefault();
+        void handleApiKeyEditBtnClick();
+      }
+    });
+  }
 
   // PIN boxes wiring (numbers only + auto-advance + backspace)
   setupPinBoxes();
