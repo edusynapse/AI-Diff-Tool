@@ -10,10 +10,12 @@
 </head>
 <body>
   <h1>AI Diff Tool: Apply Patches with Grok 4</h1>
+
   <div class="theme-switch">
     <label for="darkModeToggle">Dark Mode</label>
     <input type="checkbox" id="darkModeToggle">
   </div>
+
   <label for="modelSelect">Select Model:</label>
   <select id="modelSelect">
     <option value="grok-4-1-fast-reasoning">grok-4-1-fast-reasoning</option>
@@ -22,34 +24,83 @@
     <option value="grok-4-fast-reasoning">grok-4-fast-reasoning</option>
     <option value="grok-4-fast-non-reasoning">grok-4-fast-non-reasoning</option>
   </select>
-  
+
   <label for="diff">Diff Patch (paste or load file):</label>
   <textarea id="diff" rows="10"></textarea>
   <input type="file" id="diffFile">
-  
+
   <label for="model">File Content (paste or load file):</label>
   <textarea id="model" rows="15"></textarea>
   <input type="file" id="modelFile">
-  
+
   <label for="apiKey">xAI API Key:</label>
   <div id="apiKeyContainer">
     <input type="password" id="apiKey">
     <button id="saveKeyBtn">Save</button>
   </div>
-  <div id="key-warning">Warning: Your API key is used locally in this desktop app, but keep it secure and never share this app with untrusted parties. See <a href="https://help.openai.com/en/articles/5112595-best-practices-for-api-key-safety" target="_blank">best practices</a>.</div>
-  
+
+  <!-- removed best practices message -->
+
   <button id="applyBtn">Apply Patch with Grok 4 Fast</button>
   <button id="retryBtn" class="hidden">Retry</button>
-  
+
   <div id="loading" class="hidden"><div class="spinner"></div> Processing...</div>
+
   <div id="output-container">
     <pre id="output"></pre>
     <button id="copyBtn" class="hidden">Copy</button>
   </div>
+
   <button id="download" class="hidden">Download Modified File</button>
   <div id="diffView"></div>
   <div id="error"></div>
-  
+
+  <!-- Help overlay (opened from Help menu) -->
+  <div id="helpOverlay" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="helpTitle">
+    <div class="modal-content" role="document">
+      <div class="modal-header">
+        <h2 id="helpTitle">AI Diff Tool — Usage</h2>
+        <button id="helpCloseBtn" class="modal-close" aria-label="Close help">×</button>
+      </div>
+
+      <div class="modal-body">
+        <p>
+          This app applies a <b>unified diff patch</b> to a file by asking the selected Grok model to produce the patched output.
+          It then shows you the modified file and a side-by-side diff view.
+        </p>
+
+        <h3>Quick steps</h3>
+        <ol>
+          <li><b>Select Model</b> (top dropdown).</li>
+          <li><b>Paste or load</b> your unified diff patch into <b>Diff Patch</b>.</li>
+          <li><b>Paste or load</b> the original file content into <b>File Content</b>.</li>
+          <li>Enter your <b>xAI API Key</b>, click <b>Save</b> (optional; saved locally).</li>
+          <li>Click <b>Apply Patch</b>.</li>
+          <li>Use <b>Copy</b> or <b>Download Modified File</b> once output is generated.</li>
+        </ol>
+
+        <h3>Notes</h3>
+        <ul>
+          <li>The model is instructed to output <b>only the final file contents</b> (no code fences, no commentary).</li>
+          <li>If the file is large, you may get a size warning before sending.</li>
+          <li><b>Dark Mode</b> can be toggled via the checkbox or the <b>View → Dark Mode</b> menu item.</li>
+          <li>You can dismiss this help with <b>ESC</b>, the <b>×</b> button, or by clicking the background.</li>
+        </ul>
+
+        <h3>Keyboard shortcuts</h3>
+        <ul>
+          <li><b>F1</b>: Open Usage Help</li>
+          <li><b>Cmd/Ctrl + D</b>: Toggle Dark Mode</li>
+          <li><b>ESC</b>: Close Help</li>
+        </ul>
+      </div>
+
+      <div class="modal-footer">
+        <button id="helpOkBtn" class="modal-ok">Close</button>
+      </div>
+    </div>
+  </div>
+
   <script src="renderer.js"></script>
 </body>
 </html>

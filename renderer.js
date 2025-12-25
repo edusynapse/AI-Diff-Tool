@@ -8,6 +8,21 @@ const MAX_FILE_SIZE_MB = 5;  // Warn if larger; adjust based on API limits
 let originalFileName = 'file.txt';  // Default for pasted content
 let isKeyEditable = true;  // Moved to top
 
+function openHelp() {
+  const overlay = document.getElementById('helpOverlay');
+  if (!overlay) return;
+  overlay.classList.remove('hidden');
+  document.body.classList.add('modal-open');
+  document.getElementById('helpCloseBtn')?.focus();
+}
+
+function closeHelp() {
+  const overlay = document.getElementById('helpOverlay');
+  if (!overlay) return;
+  overlay.classList.add('hidden');
+  document.body.classList.remove('modal-open');
+}
+
 // Load stored API key and model on app start
 window.addEventListener('load', () => {
   const storedKey = localStorage.getItem('xaiApiKey');
@@ -51,6 +66,24 @@ window.addEventListener('load', () => {
       ipcRenderer.send('theme:state', 'light');
     }
   });
+
+  // --- Help overlay wiring (must be inside load) ---
+  const overlay = document.getElementById('helpOverlay');
+  const closeBtn = document.getElementById('helpCloseBtn');
+  const okBtn = document.getElementById('helpOkBtn');
+
+  if (closeBtn) closeBtn.addEventListener('click', closeHelp);
+  if (okBtn) okBtn.addEventListener('click', closeHelp);
+
+  if (overlay) {
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) closeHelp();
+    });
+  }
+
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeHelp();
+  });
 });
 
 ipcRenderer.on('theme:set', (_evt, theme) => {
@@ -63,6 +96,10 @@ ipcRenderer.on('theme:set', (_evt, theme) => {
 
   // keep the menu checkbox in sync (useful if future changes happen elsewhere)
   ipcRenderer.send('theme:state', shouldDark ? 'dark' : 'light');
+});
+
+ipcRenderer.on('help:open', () => {
+  openHelp();
 });
 
 function toggleSaveKey() {

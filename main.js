@@ -1,4 +1,4 @@
-const { app, BrowserWindow, Menu, ipcMain, shell } = require('electron');
+const { app, BrowserWindow, Menu, ipcMain } = require('electron');
 
 let isDark = false;
 
@@ -108,9 +108,13 @@ function createAppMenu() {
       role: 'help',
       submenu: [
         {
-          label: 'Learn Electron',
-          click: async () => {
-            await shell.openExternal('https://www.electronjs.org');
+          label: 'Usage',
+          accelerator: 'F1',
+          click: () => {
+            const win = BrowserWindow.getFocusedWindow() || BrowserWindow.getAllWindows()[0];
+            if (win && !win.isDestroyed()) {
+              win.webContents.send('help:open');
+            }
           }
         }
       ]
