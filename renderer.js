@@ -2,11 +2,191 @@ const OpenAI = require('openai');  // Loaded via Node integration
 const { createTwoFilesPatch } = require('diff');  // For computing diff
 const Diff2Html = require('diff2html');  // For rendering as HTML
 const { ipcRenderer } = require('electron');
-let retryCount = 0;
 const MAX_RETRIES = 3;
 const MAX_FILE_SIZE_MB = 5;  // Warn if larger; adjust based on API limits
 let originalFileName = 'file.txt';  // Default for pasted content
 let isApiKeyEditable = true;
+
+// -------------------------
+// Tabs: multiple workspaces
+// -------------------------
+let tabs = [];
+let activeTabId = null;
+let tabSeq = 1;
+let renamingTabId = null;
+
+function makeTab(label) {
+  const id = `tab-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  return {
+    id,
+    label,
+    labelCustomized: false,
+    diffText: '',
+    modelText: '',
+    originalFileName: 'file.txt',
+    modifiedText: '',
+    diffHtml: '',
+    errorText: '',
+    retryCount: 0
+  };
+}
+
+function getActiveTab() {
+  return tabs.find(t => t.id === activeTabId) || null;
+}
+
+function saveActiveTabFromDom() {
+  const tab = getActiveTab();
+  if (!tab) return;
+
+  tab.diffText = document.getElementById('diff').value || '';
+  tab.modelText = document.getElementById('model').value || '';
+  tab.modifiedText = document.getElementById('output').textContent || '';
+  tab.diffHtml = document.getElementById('diffView').innerHTML || '';
+  tab.errorText = document.getElementById('error').textContent || '';
+  tab.originalFileName = originalFileName;
+}
+
+function applyTabToDom(tab) {
+  document.getElementById('diff').value = tab.diffText || '';
+  document.getElementById('model').value = tab.modelText || '';
+  document.getElementById('output').textContent = tab.modifiedText || '';
+  document.getElementById('diffView').innerHTML = tab.diffHtml || '';
+  document.getElementById('error').textContent = tab.errorText || '';
+
+  originalFileName = tab.originalFileName || 'file.txt';
+
+  // reset file inputs (cannot be set programmatically; safest is to clear)
+  const diffFile = document.getElementById('diffFile');
+  const modelFile = document.getElementById('modelFile');
+  if (diffFile) diffFile.value = '';
+  if (modelFile) modelFile.value = '';
+
+  // buttons visibility
+  const downloadBtn = document.getElementById('download');
+  const copyBtn = document.getElementById('copyBtn');
+  const retryBtn = document.getElementById('retryBtn');
+
+  const hasOutput = !!(tab.modifiedText && tab.modifiedText.trim());
+  downloadBtn.classList.toggle('hidden', !hasOutput);
+  copyBtn.classList.toggle('hidden', !hasOutput);
+
+  const canRetry = !!(tab.errorText && tab.retryCount > 0 && tab.retryCount < MAX_RETRIES);
+  retryBtn.classList.toggle('hidden', !canRetry);
+}
+
+function renderTabs() {
+  const list = document.getElementById('tabsList');
+  if (!list) return;
+
+  list.innerHTML = '';
+  tabs.forEach((t, idx) => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'tab-item' + (t.id === activeTabId ? ' active' : '');
+    btn.setAttribute('role', 'tab');
+    btn.setAttribute('aria-selected', t.id === activeTabId ? 'true' : 'false');
+    btn.dataset.tabId = t.id;
+
+    const label = document.createElement('div');
+    label.className = 'tab-label';
+    label.textContent = t.label;
+
+    const meta = document.createElement('div');
+    meta.className = 'tab-meta';
+    meta.textContent = String(idx + 1);
+
+    btn.appendChild(label);
+    btn.appendChild(meta);
+
+    // click = select
+    btn.addEventListener('click', () => selectTab(t.id));
+
+    // dblclick = rename
+    btn.addEventListener('dblclick', () => {
+      openTabRenameModal(t.id);
+    });
+
+    list.appendChild(btn);
+  });
+}
+
+function selectTab(tabId) {
+  if (tabId === activeTabId) return;
+  saveActiveTabFromDom();
+  activeTabId = tabId;
+  const tab = getActiveTab();
+  if (tab) applyTabToDom(tab);
+  renderTabs();
+}
+
+function newTab() {
+  saveActiveTabFromDom();
+  const tab = makeTab(`Tab ${tabSeq++}`);
+  tabs.push(tab);
+  activeTabId = tab.id;
+  applyTabToDom(tab);
+  renderTabs();
+}
+
+function initTabs() {
+  tabs = [makeTab('Tab 1')];
+  tabSeq = 2;
+  activeTabId = tabs[0].id;
+  applyTabToDom(tabs[0]);
+  renderTabs();
+}
+
+function openTabRenameModal(tabId) {
+  const overlay = document.getElementById('tabRenameOverlay');
+  const input = document.getElementById('tabRenameInput');
+  const tab = tabs.find(t => t.id === tabId);
+  if (!overlay || !input || !tab) return;
+
+  renamingTabId = tabId;
+  overlay.classList.remove('hidden');
+  document.body.classList.add('modal-open');
+
+  input.value = tab.label || '';
+  input.disabled = false;
+  setTimeout(() => {
+    input.focus();
+    input.select();
+  }, 0);
+}
+
+function closeTabRenameModal() {
+  const overlay = document.getElementById('tabRenameOverlay');
+  if (!overlay) return;
+  overlay.classList.add('hidden');
+
+  // Only remove modal-open if *no* other modal is open
+  const helpOpen = !document.getElementById('helpOverlay')?.classList.contains('hidden');
+  const apiOpen = !document.getElementById('apiKeyOverlay')?.classList.contains('hidden');
+  const renameOpen = !overlay.classList.contains('hidden');
+
+  if (!helpOpen && !apiOpen && !renameOpen) {
+    document.body.classList.remove('modal-open');
+  }
+
+  renamingTabId = null;
+}
+
+function saveTabRename() {
+  const input = document.getElementById('tabRenameInput');
+  if (!input || !renamingTabId) return;
+
+  const next = (input.value || '').trim();
+  if (!next) return;
+
+  const tab = tabs.find(t => t.id === renamingTabId);
+  if (!tab) return;
+
+  tab.label = next;
+  tab.labelCustomized = true;
+  renderTabs();
+  closeTabRenameModal();
+}
 
 function getStoredApiKey() {
   return localStorage.getItem('xaiApiKey') || '';
@@ -117,8 +297,8 @@ window.addEventListener('load', () => {
   // Setup context menu
   document.body.addEventListener('contextmenu', handleContextMenu);
   // Add event listeners for buttons
-  document.getElementById('applyBtn').addEventListener('click', applyPatch);
-  document.getElementById('retryBtn').addEventListener('click', applyPatch);
+  document.getElementById('applyBtn').addEventListener('click', () => applyPatch({ isRetry: false }));
+  document.getElementById('retryBtn').addEventListener('click', () => applyPatch({ isRetry: true }));
   document.getElementById('copyBtn').addEventListener('click', copyOutput);
   document.getElementById('download').addEventListener('click', downloadResult);
   document.getElementById('modelSelect').addEventListener('change', (e) => {
@@ -135,6 +315,10 @@ window.addEventListener('load', () => {
       ipcRenderer.send('theme:state', 'light');
     }
   });
+
+  // Tabs
+  initTabs();
+  document.getElementById('newTabBtn')?.addEventListener('click', newTab);
 
   // --- Help overlay wiring (must be inside load) ---
   const overlay = document.getElementById('helpOverlay');
@@ -166,14 +350,39 @@ window.addEventListener('load', () => {
     });
   }
 
+  // --- Tab rename modal wiring ---
+  const renameOverlay = document.getElementById('tabRenameOverlay');
+  const renameCloseBtn = document.getElementById('tabRenameCloseBtn');
+  const renameCancelBtn = document.getElementById('tabRenameCancelBtn');
+  const renameSaveBtn = document.getElementById('tabRenameSaveBtn');
+  const renameInput = document.getElementById('tabRenameInput');
+
+  if (renameCloseBtn) renameCloseBtn.addEventListener('click', closeTabRenameModal);
+  if (renameCancelBtn) renameCancelBtn.addEventListener('click', closeTabRenameModal);
+  if (renameSaveBtn) renameSaveBtn.addEventListener('click', saveTabRename);
+
+  if (renameOverlay) {
+    renameOverlay.addEventListener('click', (e) => {
+      if (e.target === renameOverlay) closeTabRenameModal();
+    });
+  }
+
+  if (renameInput) {
+    renameInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') saveTabRename();
+    });
+  }
+
   // ESC should close whichever modal is open
   window.addEventListener('keydown', (e) => {
     if (e.key !== 'Escape') return;
 
+    const renameOpen = renameOverlay && !renameOverlay.classList.contains('hidden');
     const apiOpen = apiOverlay && !apiOverlay.classList.contains('hidden');
     const helpOpen = overlay && !overlay.classList.contains('hidden');
 
-    if (apiOpen) closeApiKeyModal();
+    if (renameOpen) closeTabRenameModal();
+    else if (apiOpen) closeApiKeyModal();
     else if (helpOpen) closeHelp();
   });
 });
@@ -198,7 +407,10 @@ ipcRenderer.on('apikey:open', () => {
   openApiKeyModal({ forceEdit: false, hint: '' });
 });
 
-async function applyPatch() {
+async function applyPatch({ isRetry = false } = {}) {
+  const tab = getActiveTab();
+  if (!tab) return;
+
   const diffText = document.getElementById('diff').value;
   const modelContent = document.getElementById('model').value;
   const apiKey = getStoredApiKey();
@@ -218,6 +430,8 @@ async function applyPatch() {
   downloadBtn.classList.add('hidden');
   copyBtn.classList.add('hidden');
   retryBtn.classList.add('hidden');
+
+  if (!isRetry) tab.retryCount = 0;
 
   if (!diffText || !modelContent) {
     errorEl.textContent = 'Please fill Diff Patch and File Content.';
@@ -273,8 +487,6 @@ async function applyPatch() {
     outputEl.textContent = modified;
     downloadBtn.classList.remove('hidden');
     copyBtn.classList.remove('hidden');
-    window.modifiedBlob = new Blob([modified], { type: 'text/plain' });
-    retryCount = 0;
 
     // Compute and display diff view with full context
     const unifiedDiff = createTwoFilesPatch('original', 'modified', modelContent, modified, '', '', { context: Number.MAX_SAFE_INTEGER });
@@ -286,15 +498,21 @@ async function applyPatch() {
     });
     diffViewEl.innerHTML = html;
 
+    tab.retryCount = 0;
+    tab.modifiedText = modified;
+    tab.diffHtml = html;
+    tab.errorText = '';
+
   } catch (error) {
-    errorEl.textContent = `Error: ${error.message}. `;
-    if (retryCount < MAX_RETRIES) {
-      retryCount++;
-      errorEl.textContent += `Retry ${retryCount}/${MAX_RETRIES} available.`;
+    tab.errorText = `Error: ${error.message}. `;
+    if (tab.retryCount < MAX_RETRIES) {
+      tab.retryCount++;
+      tab.errorText += `Retry ${tab.retryCount}/${MAX_RETRIES} available.`;
       retryBtn.classList.remove('hidden');
     } else {
-      errorEl.textContent += 'Max retries reached.';
+      tab.errorText += 'Max retries reached.';
     }
+    errorEl.textContent = tab.errorText;
     console.error(error);
   } finally {
     loadingEl.classList.add('hidden');
@@ -303,9 +521,12 @@ async function applyPatch() {
 }
 
 function downloadResult() {
+  const tab = getActiveTab();
+  if (!tab || !tab.modifiedText) return;
   const a = document.createElement('a');
-  a.href = URL.createObjectURL(window.modifiedBlob);
-  a.download = 'modified_' + originalFileName;
+  const blob = new Blob([tab.modifiedText], { type: 'text/plain' });
+  a.href = URL.createObjectURL(blob);
+  a.download = 'modified_' + (tab.originalFileName || originalFileName || 'file.txt');
   a.click();
 }
 
@@ -324,6 +545,8 @@ function copyOutput() {
 document.getElementById('diffFile').addEventListener('change', async (e) => {
   const text = await e.target.files[0].text();
   document.getElementById('diff').value = text;
+  const tab = getActiveTab();
+  if (tab) tab.diffText = text;
 });
 
 // Load model from file
@@ -332,6 +555,15 @@ document.getElementById('modelFile').addEventListener('change', async (e) => {
   const text = await file.text();
   document.getElementById('model').value = text;
   originalFileName = file.name;
+  const tab = getActiveTab();
+  if (tab) {
+    tab.modelText = text;
+    tab.originalFileName = file.name;
+    if (!tab.labelCustomized && /^Tab\s+\d+$/i.test(tab.label)) {
+      tab.label = file.name;
+      renderTabs();
+    }
+  }
 });
 
 // Custom context menu for text elements

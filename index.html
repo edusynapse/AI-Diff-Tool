@@ -9,45 +9,60 @@
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <h1>AI Diff Tool: Apply Patches with Grok 4</h1>
+  <div class="app-shell">
+    <aside class="sidebar" aria-label="Workspaces">
+      <div class="sidebar-header">
+        <div class="sidebar-title">Workspaces</div>
+        <button id="newTabBtn" class="icon-btn" type="button" title="New tab" aria-label="New tab">+</button>
+      </div>
 
-  <div class="theme-switch">
-    <label for="darkModeToggle">Dark Mode</label>
-    <input type="checkbox" id="darkModeToggle">
+      <div id="tabsList" class="tabs-list" role="tablist" aria-orientation="vertical"></div>
+
+      <div class="sidebar-footer">
+        <div class="sidebar-hint">Double-click a tab to rename</div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <h1>AI Diff Tool: Apply Patches with Grok 4</h1>
+
+      <div class="theme-switch">
+        <label for="darkModeToggle">Dark Mode</label>
+        <input type="checkbox" id="darkModeToggle">
+      </div>
+
+      <label for="modelSelect">Select Model:</label>
+      <select id="modelSelect">
+        <option value="grok-4-1-fast-reasoning">grok-4-1-fast-reasoning</option>
+        <option value="grok-4-1-fast-non-reasoning">grok-4-1-fast-non-reasoning</option>
+        <option value="grok-code-fast-1">grok-code-fast-1</option>
+        <option value="grok-4-fast-reasoning">grok-4-fast-reasoning</option>
+        <option value="grok-4-fast-non-reasoning">grok-4-fast-non-reasoning</option>
+      </select>
+
+      <label for="diff">Diff Patch (paste or load file):</label>
+      <textarea id="diff" rows="10"></textarea>
+      <input type="file" id="diffFile">
+
+      <label for="model">File Content (paste or load file):</label>
+      <textarea id="model" rows="15"></textarea>
+      <input type="file" id="modelFile">
+
+      <button id="applyBtn">Apply Patch with Grok 4 Fast</button>
+      <button id="retryBtn" class="hidden">Retry</button>
+
+      <div id="loading" class="hidden"><div class="spinner"></div> Processing...</div>
+
+      <div id="output-container">
+        <pre id="output"></pre>
+        <button id="copyBtn" class="hidden">Copy</button>
+      </div>
+
+      <button id="download" class="hidden">Download Modified File</button>
+      <div id="diffView"></div>
+      <div id="error"></div>
+    </main>
   </div>
-
-  <label for="modelSelect">Select Model:</label>
-  <select id="modelSelect">
-    <option value="grok-4-1-fast-reasoning">grok-4-1-fast-reasoning</option>
-    <option value="grok-4-1-fast-non-reasoning">grok-4-1-fast-non-reasoning</option>
-    <option value="grok-code-fast-1">grok-code-fast-1</option>
-    <option value="grok-4-fast-reasoning">grok-4-fast-reasoning</option>
-    <option value="grok-4-fast-non-reasoning">grok-4-fast-non-reasoning</option>
-  </select>
-
-  <label for="diff">Diff Patch (paste or load file):</label>
-  <textarea id="diff" rows="10"></textarea>
-  <input type="file" id="diffFile">
-
-  <label for="model">File Content (paste or load file):</label>
-  <textarea id="model" rows="15"></textarea>
-  <input type="file" id="modelFile">
-
-  <!-- removed best practices message -->
-
-  <button id="applyBtn">Apply Patch with Grok 4 Fast</button>
-  <button id="retryBtn" class="hidden">Retry</button>
-
-  <div id="loading" class="hidden"><div class="spinner"></div> Processing...</div>
-
-  <div id="output-container">
-    <pre id="output"></pre>
-    <button id="copyBtn" class="hidden">Copy</button>
-  </div>
-
-  <button id="download" class="hidden">Download Modified File</button>
-  <div id="diffView"></div>
-  <div id="error"></div>
 
   <!-- Help overlay (opened from Help menu) -->
   <div id="helpOverlay" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="helpTitle">
@@ -119,6 +134,26 @@
       </div>
     </div>
   </div>
+<!-- Tab Rename overlay -->
+<div id="tabRenameOverlay" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="tabRenameTitle">
+  <div class="modal-content modal-sm" role="document">
+    <div class="modal-header">
+      <h2 id="tabRenameTitle">Rename tab</h2>
+      <button id="tabRenameCloseBtn" class="modal-close" aria-label="Close rename dialog">×</button>
+    </div>
+
+    <div class="modal-body">
+      <label for="tabRenameInput">Tab name</label>
+      <input type="text" id="tabRenameInput" placeholder="e.g. auth.js patch" autocomplete="off">
+      <div class="modal-hint">Press Enter to save</div>
+    </div>
+
+    <div class="modal-footer">
+      <button id="tabRenameSaveBtn" class="modal-ok">Save</button>
+      <button id="tabRenameCancelBtn" class="modal-ok">Cancel</button>
+    </div>
+  </div>
+</div>
 
   <script src="renderer.js"></script>
 </body>
