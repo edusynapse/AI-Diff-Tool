@@ -1,13 +1,24 @@
 /* ---- Layout sanity: prevents 100% width + padding overflow ---- */
 html { box-sizing: border-box; }
 *, *::before, *::after { box-sizing: inherit; }
+html, body {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  padding: 0;              /* important: remove page padding */
+  overflow: hidden;        /* important: prevent body/page scroll */
+  overflow-x: hidden;
+}
 /* -------------------------
    App layout: sidebar + main
    ------------------------- */
 body { padding: 0; }                 /* move padding to .main so layout is even */
 .app-shell {
   display: flex;
-  min-height: 100vh;
+  height: 100vh;           /* lock to viewport */
+  min-height: 0;           /* allow children to shrink/scroll */
 }
 
 .sidebar {
@@ -18,6 +29,7 @@ body { padding: 0; }                 /* move padding to .main so layout is even 
   background: #fafafa;
   box-sizing: border-box;
   overflow-y: auto;
+  min-height: 0;           /* key flexbox rule for overflow scrolling */
 }
 
 .main {
@@ -26,6 +38,7 @@ body { padding: 0; }                 /* move padding to .main so layout is even 
   padding: 20px;
   box-sizing: border-box;
   overflow-y: auto;
+  min-height: 0;           /* key flexbox rule for overflow scrolling */
 }
 
 .sidebar-header {
@@ -65,6 +78,7 @@ body { padding: 0; }                 /* move padding to .main so layout is even 
 }
 .icon-btn:hover { background: #0056b3; }
 
+
 .tabs-list {
   display: flex;
   flex-direction: column;
@@ -103,6 +117,28 @@ body { padding: 0; }                 /* move padding to .main so layout is even 
   opacity: 0.65;
 }
 
+/* --- Tab busy spinner (sidebar) --- */
+.tab-spinner {
+  width: 12px;
+  height: 12px;
+  border: 2px solid rgba(0, 0, 0, 0.18);
+  border-top-color: #007bff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  flex: 0 0 auto;
+}
+
+body.dark .tab-spinner {
+  border-color: rgba(255, 255, 255, 0.18);
+  border-top-color: #2d6cdf;
+}
+
+/* Optional: slightly emphasize busy tabs */
+.tab-item.busy .tab-meta {
+  opacity: 0.85;
+}
+
+
 /* Dark mode sidebar/tabs */
 body.dark .sidebar {
   background: #151515;
@@ -120,7 +156,7 @@ body.dark .tab-item.active {
 }
 body.dark .icon-btn { background: #2d6cdf; }
 body.dark .icon-btn:hover { background: #2456ad; }
-body { font-family: Arial, sans-serif; padding: 20px; margin: 0; background: #f4f4f4; overflow-x: hidden; }
+body { font-family: Arial, sans-serif; padding: 0; margin: 0; background: #f4f4f4; overflow-x: hidden; }
 h1, label, #error { transition: color 150ms ease; }
 body { color: #111; transition: background 150ms ease, color 150ms ease; }
 h1 { text-align: center; color: #333; }

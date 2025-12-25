@@ -26,11 +26,6 @@
     <main class="main">
       <h1>AI Diff Tool: Apply Patches with Grok 4</h1>
 
-      <div class="theme-switch">
-        <label for="darkModeToggle">Dark Mode</label>
-        <input type="checkbox" id="darkModeToggle">
-      </div>
-
       <label for="modelSelect">Select Model:</label>
       <select id="modelSelect">
         <option value="grok-4-1-fast-reasoning">grok-4-1-fast-reasoning</option>
@@ -92,7 +87,7 @@
         <ul>
           <li>The model is instructed to output <b>only the final file contents</b> (no code fences, no commentary).</li>
           <li>If the file is large, you may get a size warning before sending.</li>
-          <li><b>Dark Mode</b> can be toggled via the checkbox or the <b>View → Dark Mode</b> menu item.</li>
+          <li><b>Dark Mode</b> can be toggled via the <b>View → Dark Mode</b> menu item (or <b>Cmd/Ctrl + D</b>).</li>
           <li>You can dismiss this help with <b>ESC</b>, the <b>×</b> button, or by clicking the background.</li>
         </ul>
 
@@ -119,11 +114,22 @@
 
       <div class="modal-body">
         <p>
-          Enter your <b>xAI API Key</b>. It will be stored locally in this app (localStorage).
+          Enter your <b>xAI API Key</b> and a <b>6-digit PIN</b>. The key is encrypted locally and stored in this app (localStorage).
+          The PIN is not stored — you’ll be asked for it on app launch to unlock the key.
         </p>
 
-        <label for="apiKeyModalInput">API Key</label>
+        <label id="apiKeyModalLabel" for="apiKeyModalInput">API Key</label>
         <input type="password" id="apiKeyModalInput" placeholder="xai-..." autocomplete="off">
+
+        <label id="apiKeyPinLabel" for="apiKeyPinInput">PIN (6 digits)</label>
+        <input
+          type="password"
+          id="apiKeyPinInput"
+          placeholder="123456"
+          inputmode="numeric"
+          maxlength="6"
+          autocomplete="off"
+        >
 
         <div id="apiKeyModalHint" class="modal-hint"></div>
       </div>

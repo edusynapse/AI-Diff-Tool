@@ -6,6 +6,111 @@ const MAX_RETRIES = 3;
 const MAX_FILE_SIZE_MB = 5;  // Warn if larger; adjust based on API limits
 let originalFileName = 'file.txt';  // Default for pasted content
 let isApiKeyEditable = true;
+// -------------------------
+// Encrypted API key storage (PIN-based)
+// -------------------------
+const LS_ENC_KEY = 'xaiApiKeyEnc';  // JSON payload
+const LS_PLAIN_KEY = 'xaiApiKey';   // legacy plaintext (migration only)
+
+const ENC_VERSION = 1;
+const PBKDF2_ITERS = 120000;
+const SALT_BYTES = 16;
+const AES_GCM_IV_BYTES = 12;
+
+let sessionApiKey = '';        // decrypted API key (memory only)
+let apiModalMode = 'setup';    // 'setup' | 'unlock' | 'manage'
+let apiModalBlocking = false;
+
+const webCrypto = (typeof window !== 'undefined' && window.crypto) ? window.crypto : globalThis.crypto;
+
+function isValidPin(pin) {
+  return /^\d{6}$/.test((pin || '').trim());
+}
+
+function bytesToB64(u8) {
+  let bin = '';
+  for (let i = 0; i < u8.length; i++) bin += String.fromCharCode(u8[i]);
+  return btoa(bin);
+}
+
+function b64ToBytes(b64) {
+  const bin = atob(b64);
+  const u8 = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+  return u8;
+}
+
+async function deriveAesKeyFromPin(pin, saltBytes, iterations) {
+  const enc = new TextEncoder();
+  const baseKey = await webCrypto.subtle.importKey(
+    'raw',
+    enc.encode(pin),
+    { name: 'PBKDF2' },
+    false,
+    ['deriveKey']
+  );
+
+  return webCrypto.subtle.deriveKey(
+    { name: 'PBKDF2', salt: saltBytes, iterations, hash: 'SHA-256' },
+    baseKey,
+    { name: 'AES-GCM', length: 256 },
+    false,
+    ['encrypt', 'decrypt']
+  );
+}
+
+async function encryptApiKeyWithPin(apiKey, pin) {
+  const salt = webCrypto.getRandomValues(new Uint8Array(SALT_BYTES));
+  const iv = webCrypto.getRandomValues(new Uint8Array(AES_GCM_IV_BYTES));
+  const key = await deriveAesKeyFromPin(pin, salt, PBKDF2_ITERS);
+
+  const pt = new TextEncoder().encode(apiKey);
+  const ctBuf = await webCrypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, pt);
+  const ct = new Uint8Array(ctBuf);
+
+  return {
+    v: ENC_VERSION,
+    alg: 'AES-GCM',
+    kdf: 'PBKDF2',
+    hash: 'SHA-256',
+    iter: PBKDF2_ITERS,
+    salt: bytesToB64(salt),
+    iv: bytesToB64(iv),
+    ct: bytesToB64(ct)
+  };
+}
+
+async function decryptApiKeyWithPin(payload, pin) {
+  const iv = b64ToBytes(payload.iv);
+  const salt = b64ToBytes(payload.salt);
+  const ct = b64ToBytes(payload.ct);
+  const key = await deriveAesKeyFromPin(pin, salt, payload.iter || PBKDF2_ITERS);
+
+  const ptBuf = await webCrypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, ct);
+  return new TextDecoder().decode(new Uint8Array(ptBuf));
+}
+
+function hasEncryptedApiKey() {
+  return !!localStorage.getItem(LS_ENC_KEY);
+}
+
+function loadEncryptedPayload() {
+  const raw = localStorage.getItem(LS_ENC_KEY);
+  if (!raw) return null;
+  try {
+    const obj = JSON.parse(raw);
+    if (!obj || obj.v !== ENC_VERSION || !obj.iv || !obj.salt || !obj.ct) return null;
+    return obj;
+  } catch {
+    return null;
+  }
+}
+
+function saveEncryptedPayload(payload) {
+  localStorage.setItem(LS_ENC_KEY, JSON.stringify(payload));
+  // remove legacy plaintext if present
+  localStorage.removeItem(LS_PLAIN_KEY);
+}
 
 // -------------------------
 // Tabs: multiple workspaces
@@ -27,7 +132,11 @@ function makeTab(label) {
     modifiedText: '',
     diffHtml: '',
     errorText: '',
-    retryCount: 0
+    retryCount: 0,
+    // NEW
+    requestSeq: 0,
+    inFlightToken: null,
+    inFlight: false
   };
 }
 
@@ -73,6 +182,12 @@ function applyTabToDom(tab) {
 
   const canRetry = !!(tab.errorText && tab.retryCount > 0 && tab.retryCount < MAX_RETRIES);
   retryBtn.classList.toggle('hidden', !canRetry);
+
+  const applyBtn = document.getElementById('applyBtn');
+  const loadingEl = document.getElementById('loading');
+
+  if (applyBtn) applyBtn.disabled = !!tab.inFlight;
+  if (loadingEl) loadingEl.classList.toggle('hidden', !tab.inFlight);
 }
 
 function renderTabs() {
@@ -81,31 +196,47 @@ function renderTabs() {
 
   list.innerHTML = '';
   tabs.forEach((t, idx) => {
+    const isActive = t.id === activeTabId;
+    const isBusy = !!t.inFlight;
+
     const btn = document.createElement('button');
     btn.type = 'button';
-    btn.className = 'tab-item' + (t.id === activeTabId ? ' active' : '');
+    btn.className =
+      'tab-item' +
+      (isActive ? ' active' : '') +
+      (isBusy ? ' busy' : '');
+
     btn.setAttribute('role', 'tab');
-    btn.setAttribute('aria-selected', t.id === activeTabId ? 'true' : 'false');
+    btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
+    btn.setAttribute('aria-busy', isBusy ? 'true' : 'false');
     btn.dataset.tabId = t.id;
 
     const label = document.createElement('div');
     label.className = 'tab-label';
     label.textContent = t.label;
 
+    // Optional tooltip
+    if (isBusy) btn.title = 'Processing…';
+    else btn.removeAttribute('title');
+
     const meta = document.createElement('div');
     meta.className = 'tab-meta';
     meta.textContent = String(idx + 1);
 
     btn.appendChild(label);
+
+    // NEW: spinner badge when this tab has a request in flight
+    if (isBusy) {
+      const spin = document.createElement('span');
+      spin.className = 'tab-spinner';
+      spin.setAttribute('aria-hidden', 'true');
+      btn.appendChild(spin);
+    }
+
     btn.appendChild(meta);
 
-    // click = select
     btn.addEventListener('click', () => selectTab(t.id));
-
-    // dblclick = rename
-    btn.addEventListener('dblclick', () => {
-      openTabRenameModal(t.id);
-    });
+    btn.addEventListener('dblclick', () => openTabRenameModal(t.id));
 
     list.appendChild(btn);
   });
@@ -189,81 +320,177 @@ function saveTabRename() {
 }
 
 function getStoredApiKey() {
-  return localStorage.getItem('xaiApiKey') || '';
+  return sessionApiKey || '';
 }
 
-function openApiKeyModal({ forceEdit = false, hint = '' } = {}) {
+function openApiKeyModal({ mode = 'manage', blocking = false, hint = '', prefillKey = '' } = {}) {
   const overlay = document.getElementById('apiKeyOverlay');
-  const input = document.getElementById('apiKeyModalInput');
+  const apiInput = document.getElementById('apiKeyModalInput');
+  const pinInput = document.getElementById('apiKeyPinInput');
   const primaryBtn = document.getElementById('apiKeyPrimaryBtn');
+  const cancelBtn = document.getElementById('apiKeyCancelBtn');
+  const closeBtn = document.getElementById('apiKeyCloseBtn');
   const hintEl = document.getElementById('apiKeyModalHint');
+  const apiLabel = document.getElementById('apiKeyModalLabel');
 
-  if (!overlay || !input || !primaryBtn) return;
+  if (!overlay || !pinInput || !primaryBtn) return;
 
-  const storedKey = getStoredApiKey();
+  apiModalMode = mode;
+  apiModalBlocking = !!blocking;
 
-  // show hint if any
   if (hintEl) hintEl.textContent = hint || '';
 
   overlay.classList.remove('hidden');
   document.body.classList.add('modal-open');
 
-  if (storedKey && !forceEdit) {
-    // locked display mode
-    input.value = storedKey;
-    input.disabled = true;
-    primaryBtn.textContent = 'Update';
-    isApiKeyEditable = false;
-    document.getElementById('apiKeyCloseBtn')?.focus();
-  } else {
-    // editable mode
-    input.value = storedKey || '';
-    input.disabled = false;
-    primaryBtn.textContent = storedKey ? 'Save' : 'Save';
-    isApiKeyEditable = true;
-    setTimeout(() => input.focus(), 0);
+  // show/hide API key field depending on mode
+  const showKey = mode !== 'unlock';
+  if (apiLabel) apiLabel.classList.toggle('hidden', !showKey);
+  if (apiInput) {
+    apiInput.classList.toggle('hidden', !showKey);
+    apiInput.disabled = !showKey;
+    apiInput.value = showKey ? (prefillKey || '') : '';
   }
+
+  // always show PIN field (needed for unlock + save)
+  pinInput.value = '';
+
+  // button labels
+  primaryBtn.textContent = (mode === 'unlock') ? 'Unlock' : 'Save';
+
+  // non-disposable / blocking behavior
+  if (closeBtn) closeBtn.classList.toggle('hidden', apiModalBlocking);
+  if (cancelBtn) cancelBtn.classList.toggle('hidden', apiModalBlocking);
+
+  // focus
+  setTimeout(() => {
+    if (mode === 'unlock') {
+      pinInput.focus();
+      pinInput.select();
+    } else if (apiInput) {
+      apiInput.focus();
+      apiInput.select();
+    } else {
+      pinInput.focus();
+      pinInput.select();
+    }
+  }, 0);
 }
 
-function closeApiKeyModal() {
+function closeApiKeyModal({ force = false } = {}) {
+  if (apiModalBlocking && !force) return;
+
   const overlay = document.getElementById('apiKeyOverlay');
   if (!overlay) return;
   overlay.classList.add('hidden');
-  document.body.classList.remove('modal-open');
+
+  // Only remove modal-open if *no* other modal is open
+  const helpOpen = !document.getElementById('helpOverlay')?.classList.contains('hidden');
+  const renameOpen = !document.getElementById('tabRenameOverlay')?.classList.contains('hidden');
+  const apiOpen = !overlay.classList.contains('hidden');
+
+  if (!helpOpen && !renameOpen && !apiOpen) {
+    document.body.classList.remove('modal-open');
+  }
+
+  // reset
+  apiModalBlocking = false;
+  apiModalMode = 'manage';
 }
 
-function handleApiKeyPrimaryClick() {
-  const input = document.getElementById('apiKeyModalInput');
-  const primaryBtn = document.getElementById('apiKeyPrimaryBtn');
-  if (!input || !primaryBtn) return;
+async function handleApiKeyPrimaryClick() {
+  const apiInput = document.getElementById('apiKeyModalInput');
+  const pinInput = document.getElementById('apiKeyPinInput');
+  const hintEl = document.getElementById('apiKeyModalHint');
 
-  if (isApiKeyEditable) {
-    // Save
-    const val = (input.value || '').trim();
-    if (!val) {
-      // treat empty as "no key"
-      localStorage.removeItem('xaiApiKey');
-      closeApiKeyModal();
+  const pin = (pinInput?.value || '').trim();
+  const key = (apiInput?.value || '').trim();
+
+  if (hintEl) hintEl.textContent = '';
+
+  if (!webCrypto?.subtle) {
+    if (hintEl) hintEl.textContent = 'WebCrypto is not available in this environment.';
+    return;
+  }
+
+  if (!isValidPin(pin)) {
+    if (hintEl) hintEl.textContent = 'PIN must be exactly 6 digits.';
+    pinInput?.focus();
+    pinInput?.select();
+    return;
+  }
+
+  // UNLOCK MODE: decrypt existing encrypted key
+  if (apiModalMode === 'unlock') {
+    const payload = loadEncryptedPayload();
+    if (!payload) {
+      if (hintEl) hintEl.textContent = 'No encrypted API key found (or data is corrupted).';
       return;
     }
 
-    localStorage.setItem('xaiApiKey', val);
+    try {
+      const dec = await decryptApiKeyWithPin(payload, pin);
+      if (!dec || !dec.trim()) throw new Error('Decryption produced empty key');
+      sessionApiKey = dec.trim();
 
-    // lock it after save
-    input.disabled = true;
-    primaryBtn.textContent = 'Update';
-    isApiKeyEditable = false;
-
-    // close after save (you asked for save/update flow from menu)
-    closeApiKeyModal();
-  } else {
-    // Update mode: unlock for editing
-    input.disabled = false;
-    isApiKeyEditable = true;
-    primaryBtn.textContent = 'Save';
-    input.focus();
-    input.select();
+      // close even if blocking (success path)
+      closeApiKeyModal({ force: true });
+    } catch {
+      if (hintEl) hintEl.textContent = 'Invalid PIN (or corrupted stored key). Try again.';
+      pinInput?.focus();
+      pinInput?.select();
+    }
+    return;
   }
+
+  // SETUP / MANAGE: encrypt + store new key
+  if (!key) {
+    if (hintEl) hintEl.textContent = 'API key is required.';
+    apiInput?.focus();
+    apiInput?.select();
+    return;
+  }
+
+  try {
+    const payload = await encryptApiKeyWithPin(key, pin);
+    saveEncryptedPayload(payload);
+    sessionApiKey = key;
+
+    closeApiKeyModal({ force: true });
+  } catch (e) {
+    if (hintEl) hintEl.textContent = `Failed to encrypt and save: ${e?.message || e}`;
+  }
+}
+
+function bootstrapApiKeyFlow() {
+  // Encrypted key exists -> ask for PIN to unlock
+  if (hasEncryptedApiKey()) {
+    openApiKeyModal({
+      mode: 'unlock',
+      blocking: true,
+      hint: 'Enter your 6-digit PIN to unlock the saved API key.'
+    });
+    return;
+  }
+
+  // Legacy plaintext exists -> force PIN setup to encrypt it
+  const legacy = localStorage.getItem(LS_PLAIN_KEY) || '';
+  if (legacy.trim()) {
+    openApiKeyModal({
+      mode: 'setup',
+      blocking: true,
+      hint: 'Set a 6-digit PIN to encrypt your existing saved API key.',
+      prefillKey: legacy.trim()
+    });
+    return;
+  }
+
+  // No key -> force setup (non-disposable)
+  openApiKeyModal({
+    mode: 'setup',
+    blocking: true,
+    hint: 'API key + 6-digit PIN are required before you can use Apply Patch.'
+  });
 }
 
 function openHelp() {
@@ -287,11 +514,7 @@ window.addEventListener('load', () => {
   document.getElementById('modelSelect').value = storedModel;
 
   const storedTheme = localStorage.getItem('theme') || 'light';
-  const toggle = document.getElementById('darkModeToggle');
-  if (storedTheme === 'dark') {
-    document.body.classList.add('dark');
-    toggle.checked = true;
-  }
+  document.body.classList.toggle('dark', storedTheme === 'dark');
   ipcRenderer.send('theme:state', storedTheme);
 
   // Setup context menu
@@ -303,17 +526,6 @@ window.addEventListener('load', () => {
   document.getElementById('download').addEventListener('click', downloadResult);
   document.getElementById('modelSelect').addEventListener('change', (e) => {
     localStorage.setItem('selectedModel', e.target.value);
-  });
-  toggle.addEventListener('change', (e) => {
-    if (e.target.checked) {
-      document.body.classList.add('dark');
-      localStorage.setItem('theme', 'dark');
-      ipcRenderer.send('theme:state', 'dark');
-    } else {
-      document.body.classList.remove('dark');
-      localStorage.setItem('theme', 'light');
-      ipcRenderer.send('theme:state', 'light');
-    }
   });
 
   // Tabs
@@ -350,6 +562,9 @@ window.addEventListener('load', () => {
     });
   }
 
+  // --- API key bootstrap (PIN unlock/setup on startup) ---
+  bootstrapApiKeyFlow();
+
   // --- Tab rename modal wiring ---
   const renameOverlay = document.getElementById('tabRenameOverlay');
   const renameCloseBtn = document.getElementById('tabRenameCloseBtn');
@@ -382,20 +597,20 @@ window.addEventListener('load', () => {
     const helpOpen = overlay && !overlay.classList.contains('hidden');
 
     if (renameOpen) closeTabRenameModal();
-    else if (apiOpen) closeApiKeyModal();
+    else if (apiOpen) {
+      if (!apiModalBlocking) closeApiKeyModal();
+    }
     else if (helpOpen) closeHelp();
   });
 });
 
 ipcRenderer.on('theme:set', (_evt, theme) => {
-  const toggle = document.getElementById('darkModeToggle');
   const shouldDark = theme === 'dark';
 
   document.body.classList.toggle('dark', shouldDark);
-  toggle.checked = shouldDark;
   localStorage.setItem('theme', shouldDark ? 'dark' : 'light');
 
-  // keep the menu checkbox in sync (useful if future changes happen elsewhere)
+  // keep the menu checkbox in sync
   ipcRenderer.send('theme:state', shouldDark ? 'dark' : 'light');
 });
 
@@ -404,12 +619,25 @@ ipcRenderer.on('help:open', () => {
 });
 
 ipcRenderer.on('apikey:open', () => {
-  openApiKeyModal({ forceEdit: false, hint: '' });
+  openApiKeyModal({
+    mode: 'manage',
+    blocking: false,
+    hint: 'Enter a new API key and 6-digit PIN to re-encrypt and save.'
+  });
 });
 
 async function applyPatch({ isRetry = false } = {}) {
   const tab = getActiveTab();
   if (!tab) return;
+
+  const tabId = tab.id;
+
+  // Prevent double-submit for same tab
+  if (tab.inFlight) {
+    const errorEl = document.getElementById('error');
+    if (errorEl) errorEl.textContent = 'This tab already has a request running.';
+    return;
+  }
 
   const diffText = document.getElementById('diff').value;
   const modelContent = document.getElementById('model').value;
@@ -439,11 +667,19 @@ async function applyPatch({ isRetry = false } = {}) {
   }
 
   if (!apiKey) {
-    // requirement: clicking Apply when key missing opens modal
-    openApiKeyModal({
-      forceEdit: true,
-      hint: 'API key is required before you can apply a patch.'
-    });
+    if (hasEncryptedApiKey()) {
+      openApiKeyModal({
+        mode: 'unlock',
+        blocking: true,
+        hint: 'Enter your 6-digit PIN to unlock the saved API key.'
+      });
+    } else {
+      openApiKeyModal({
+        mode: 'setup',
+        blocking: true,
+        hint: 'API key + 6-digit PIN are required before you can apply a patch.'
+      });
+    }
     return;
   }
 
@@ -455,8 +691,24 @@ async function applyPatch({ isRetry = false } = {}) {
     }
   }
 
-  applyBtn.disabled = true;
-  loadingEl.classList.remove('hidden');
+  // Snapshot inputs at the time you clicked Apply
+  const diffTextSnapshot = diffText;
+  const modelContentSnapshot = modelContent;
+
+  // Mark tab as in-flight with a unique token
+  const token = `${tabId}:${++tab.requestSeq}:${Date.now()}`;
+  tab.inFlightToken = token;
+  tab.inFlight = true;
+  renderTabs(); // NEW: show spinner on the tab immediately
+
+  // Keep tab state consistent even if user switches tabs
+  tab.diffText = diffTextSnapshot || '';
+  tab.modelText = modelContentSnapshot || '';
+
+  if (activeTabId === tabId) {
+    applyBtn.disabled = true;
+    loadingEl.classList.remove('hidden');
+  }
 
   try {
     const openai = new OpenAI({
@@ -466,9 +718,25 @@ async function applyPatch({ isRetry = false } = {}) {
     });
     console.log('OpenAI SDK initialized with browser allowance.');
 
-    const systemPrompt = 'You are an expert at applying unified diff patches to files accurately. Output ONLY the full modified file content after applying the patch. No explanations, extra text, or code fences. Do not wrap in code blocks.';
+    const systemPrompt = [
+      'You are an expert at applying unified diff patches to files accurately.',
+      'The diff maybe a git style diff patch or a set of instructions with places to change in the target file code with micro diffs.',
+      'It also may be general instruction set - like for example to replace something everywhere in the file.',
+      '',
+      'CRITICAL RULE:',
+      'If the diff patch is not applicable with the provided original file content , DO NOT guess and DO NOT fabricate output.',
+      'Do this if the target file is wrong, or the diff refers to a different file, or some other file is pasted instead of diff etc.',
+      '',
+      'In that case, output an error commentary ONLY using this exact format:',
+      'ERROR: <one-line reason>',
+      '- <optional hint 1>',
+      '- <optional hint 2>',
+      '',
+      'Otherwise, output ONLY the full modified file content after applying the patch.',
+      'No explanations, no extra text, and no code fences.'
+    ].join('\n');
 
-    const userPrompt = `Original file content:\n\n${modelContent}\n\nDiff patch to apply:\n\n${diffText}\n\nApply the patch and output the exact resulting file.`;
+    const userPrompt = `Original file content:\n\n${modelContentSnapshot}\n\nDiff patch to apply:\n\n${diffTextSnapshot}\n\nApply the patch and output the exact resulting file.`;
 
     const completion = await openai.chat.completions.create({
       model: selectedModel,
@@ -484,39 +752,91 @@ async function applyPatch({ isRetry = false } = {}) {
     // Strip any potential code fences
     modified = modified.replace(/^```[\w]*\n?|\n?```$/g, '').trim();
 
-    outputEl.textContent = modified;
-    downloadBtn.classList.remove('hidden');
-    copyBtn.classList.remove('hidden');
+    // If this response is stale (user started a newer run), ignore it
+    if (tab.inFlightToken !== token) {
+      return;
+    }
 
-    // Compute and display diff view with full context
-    const unifiedDiff = createTwoFilesPatch('original', 'modified', modelContent, modified, '', '', { context: Number.MAX_SAFE_INTEGER });
+    // If model returned a congruency error, show it as an app error (not as file output)
+    if (/^ERROR:/i.test(modified)) {
+      tab.modifiedText = '';
+      tab.diffHtml = '';
+      tab.errorText = modified;
+      tab.retryCount = 0;
+
+      if (activeTabId === tabId) {
+        outputEl.textContent = '';
+        diffViewEl.innerHTML = '';
+        downloadBtn.classList.add('hidden');
+        copyBtn.classList.add('hidden');
+        retryBtn.classList.add('hidden');
+        errorEl.textContent = modified;
+      }
+      return;
+    }
+
+    // Build diff HTML
+    const unifiedDiff = createTwoFilesPatch(
+      'original',
+      'modified',
+      modelContentSnapshot,
+      modified,
+      '',
+      '',
+      { context: Number.MAX_SAFE_INTEGER }
+    );
+
     const html = Diff2Html.html(unifiedDiff, {
       drawFileList: false,
-      matching: 'none',  // Disable matching to show all lines
+      matching: 'none',
       outputFormat: 'side-by-side',
       synchronisedScroll: true
     });
-    diffViewEl.innerHTML = html;
 
-    tab.retryCount = 0;
+    // Save into the originating tab
     tab.modifiedText = modified;
     tab.diffHtml = html;
     tab.errorText = '';
+    tab.retryCount = 0;
+
+    // Only paint UI if user is still viewing that tab
+    if (activeTabId === tabId) {
+      outputEl.textContent = modified;
+      diffViewEl.innerHTML = html;
+      errorEl.textContent = '';
+      downloadBtn.classList.remove('hidden');
+      copyBtn.classList.remove('hidden');
+    }
 
   } catch (error) {
+    if (tab.inFlightToken !== token) return;
+
     tab.errorText = `Error: ${error.message}. `;
     if (tab.retryCount < MAX_RETRIES) {
       tab.retryCount++;
       tab.errorText += `Retry ${tab.retryCount}/${MAX_RETRIES} available.`;
-      retryBtn.classList.remove('hidden');
     } else {
       tab.errorText += 'Max retries reached.';
     }
-    errorEl.textContent = tab.errorText;
+
+    if (activeTabId === tabId) {
+      errorEl.textContent = tab.errorText;
+      if (tab.retryCount > 0 && tab.retryCount < MAX_RETRIES) retryBtn.classList.remove('hidden');
+    }
+
     console.error(error);
   } finally {
-    loadingEl.classList.add('hidden');
-    applyBtn.disabled = false;
+    // Only clear inFlight if this is still the current request for that tab
+    if (tab.inFlightToken === token) {
+      tab.inFlightToken = null;
+      tab.inFlight = false;
+      renderTabs(); // NEW: remove spinner when done
+    }
+
+    if (activeTabId === tabId) {
+      loadingEl.classList.add('hidden');
+      applyBtn.disabled = false;
+    }
   }
 }
 
@@ -559,7 +879,8 @@ document.getElementById('modelFile').addEventListener('change', async (e) => {
   if (tab) {
     tab.modelText = text;
     tab.originalFileName = file.name;
-    if (!tab.labelCustomized && /^Tab\s+\d+$/i.test(tab.label)) {
+    if (!tab.labelCustomized) {
+      // CSS ellipsis will truncate visually to fit the sidebar
       tab.label = file.name;
       renderTabs();
     }
