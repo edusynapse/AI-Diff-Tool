@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; script-src 'self' 'unsafe-eval';">
   <title>AI Diff Tool - Grok 4 Patch Applier</title>
-  <link rel="stylesheet" href="node_modules/diff2html/bundles/css/diff2html.min.css">
   <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="node_modules/diff2html/bundles/css/diff2html.min.css">
 </head>
 <body>
   <div class="app-shell">
@@ -121,15 +121,17 @@
         <label id="apiKeyModalLabel" for="apiKeyModalInput">API Key</label>
         <input type="password" id="apiKeyModalInput" placeholder="xai-..." autocomplete="off">
 
-        <label id="apiKeyPinLabel" for="apiKeyPinInput">PIN (6 digits)</label>
-        <input
-          type="password"
-          id="apiKeyPinInput"
-          placeholder="123456"
-          inputmode="numeric"
-          maxlength="6"
-          autocomplete="off"
-        >
+        <label id="apiKeyPinLabel">6-digit PIN</label>
+        <div id="apiKeyPinBoxes" class="pin-boxes" role="group" aria-labelledby="apiKeyPinLabel">
+          <input class="pin-box" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" aria-label="PIN digit 1" autocomplete="off">
+          <input class="pin-box" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" aria-label="PIN digit 2" autocomplete="off">
+          <input class="pin-box" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" aria-label="PIN digit 3" autocomplete="off">
+          <input class="pin-box" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" aria-label="PIN digit 4" autocomplete="off">
+          <input class="pin-box" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" aria-label="PIN digit 5" autocomplete="off">
+          <input class="pin-box" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" aria-label="PIN digit 6" autocomplete="off">
+        </div>
+        <!-- hidden aggregator (JS keeps this in sync with the 6 boxes) -->
+        <input type="password" id="apiKeyPinInput" class="hidden" inputmode="numeric" maxlength="6" autocomplete="off">
 
         <div id="apiKeyModalHint" class="modal-hint"></div>
       </div>

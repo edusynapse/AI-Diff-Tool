@@ -209,7 +209,7 @@ button:disabled { background: #ccc; cursor: not-allowed; }
 .d2h-wrapper { width: 100%; overflow-x: auto; }
 .d2h-file-side-by-side { table-layout: fixed; width: 100%; border-collapse: collapse; }
 .d2h-file-side-by-side .d2h-code-wrapper { position: relative; height: auto; overflow-y: visible; }
-.d2h-file-side-by-side .d2h-code-side { width: 50%; float: left; box-sizing: border-box; }
+.d2h-file-side-by-side .d2h-code-side { width: auto; float: none; box-sizing: border-box; }
 .d2h-code-linenumber { position: relative !important; width: 50px; text-align: right; padding: 0 5px; }
 .d2h-code-line { white-space: pre-wrap; word-wrap: break-word; }
 .diff { font-family: monospace; font-size: 14px; }
@@ -249,222 +249,6 @@ body.dark #apiKey:disabled { background: #2a2a2a; color: #bdbdbd; }
 body.dark button { background: #2d6cdf; }
 body.dark button:hover { background: #2456ad; }
 body.dark button:disabled { background: #444; }
-
-/* Diff view (basic dark styling) */
-body.dark #diffView {
-  background: #1a1a1a;
-  border-color: #3a3a3a;
-}
-body.dark .d2h-wrapper { background: #1a1a1a; color: #e6e6e6; }
-body.dark .d2h-code-linenumber { color: #a0a0a0; }
-
-/* -------------------------
-   Diff2Html dark mode
-   ------------------------- */
-body.dark .d2h-wrapper,
-body.dark .d2h-file-diff,
-body.dark .d2h-diff-table,
-body.dark .d2h-diff-tbody,
-body.dark .d2h-files-diff,
-body.dark .d2h-code-wrapper {
-  background: #1a1a1a;
-  color: #e6e6e6;
-}
-
-body.dark .d2h-diff-table,
-body.dark .d2h-diff-tbody td {
-  border-color: #333;
-}
-
-/* Unchanged lines + code cells */
-body.dark .d2h-code-side-line,
-body.dark .d2h-code-line,
-body.dark .d2h-code-line-ctn {
-  background: #1a1a1a;
-  color: #e6e6e6;
-}
-
-/* Line number gutters (left, middle, right) */
-body.dark td.d2h-code-linenumber,
-body.dark .d2h-code-linenumber {
-  background: #161616;
-  color: #a0a0a0;
-  border-color: #333;
-}
-
-/* Hunk headers (@@ ... @@) */
-body.dark .d2h-info,
-body.dark tr.d2h-info td {
-  background: #202020;
-  color: #cfcfcf;
-}
-
-/* Added / removed blocks */
-body.dark .d2h-ins,
-body.dark tr.d2h-ins td {
-  background: rgba(46, 160, 67, 0.18);
-}
-body.dark .d2h-del,
-body.dark tr.d2h-del td {
-  background: rgba(248, 81, 73, 0.18);
-}
-
-/* The little +/- markers (if present) */
-body.dark .d2h-code-line-prefix {
-  color: #a0a0a0;
-}
-
-/* Optional: file-name/header bits if you ever enable them */
-body.dark .d2h-file-name-wrapper,
-body.dark .d2h-file-wrapper {
-  background: #1a1a1a;
-  border-color: #333;
-}
-/* =========================
-   Diff2Html DARK (strong overrides)
-   Put this at END of styles.css
-   ========================= */
-
-/* Base: force all diff table cells dark */
-body.dark #diffView .d2h-diff-table,
-body.dark #diffView .d2h-diff-tbody {
-  background-color: #1a1a1a !important;
-  color: #e6e6e6 !important;
-}
-
-body.dark #diffView .d2h-diff-table tr:not(.d2h-ins):not(.d2h-del) td,
-body.dark #diffView .d2h-diff-table tr:not(.d2h-ins):not(.d2h-del) th {
-  background-color: #1a1a1a !important;
-  color: #e6e6e6 !important;
-  border-color: #333 !important;
-}
-
-/* Line-number boxes (left, center, right gutters) */
-body.dark #diffView td.d2h-code-linenumber,
-body.dark #diffView td.d2h-code-side-linenumber,
-body.dark #diffView .d2h-code-linenumber {
-  background-color: #161616 !important;
-  color: #a0a0a0 !important;
-  border-color: #333 !important;
-}
-
-/* Code text cells */
-body.dark #diffView td.d2h-code-line,
-body.dark #diffView .d2h-code-line,
-body.dark #diffView .d2h-code-line-ctn,
-body.dark #diffView .d2h-code-side-line {
-  background-color: #1a1a1a !important;
-  color: #e6e6e6 !important;
-}
-
-/* Context (unchanged) rows */
-body.dark #diffView tr.d2h-cntx td {
-  background-color: #1a1a1a !important;
-  color: #e6e6e6 !important;
-}
-
-/* Hunk header rows (@@ ... @@) */
-body.dark #diffView tr.d2h-info td,
-body.dark #diffView .d2h-info {
-  background-color: #202020 !important;
-  color: #cfcfcf !important;
-}
-
-/* Added / removed rows (apply to TDs, not just TR) */
-body.dark #diffView tr.d2h-ins td {
-  background-color: rgba(46, 160, 67, 0.22) !important;
-}
-body.dark #diffView tr.d2h-del td {
-  background-color: rgba(248, 81, 73, 0.22) !important;
-}
-
-/* Empty placeholder cells (side-by-side sometimes has these) */
-body.dark #diffView .d2h-emptyplaceholder {
-  background-color: #1a1a1a !important;
-  color: #777 !important;
-}
-
-/* If any header/name wrappers appear */
-body.dark #diffView .d2h-file-wrapper,
-body.dark #diffView .d2h-file-name-wrapper {
-  background-color: #1a1a1a !important;
-  border-color: #333 !important;
-}
-/* =========================
-   Fix diff highlighting in DARK mode
-   (put at END of styles.css)
-   ========================= */
-
-/* Added lines: tint BOTH line-number cells + code cells */
-body.dark #diffView tr.d2h-ins td.d2h-code-linenumber,
-body.dark #diffView tr.d2h-ins td.d2h-code-side-linenumber {
-  background-color: rgba(46, 160, 67, 0.35) !important;   /* darker green */
-  color: #e6e6e6 !important;
-}
-
-body.dark #diffView tr.d2h-ins td.d2h-code-line,
-body.dark #diffView tr.d2h-ins td.d2h-code-side-line,
-body.dark #diffView tr.d2h-ins td .d2h-code-line-ctn {
-  background-color: rgba(46, 160, 67, 0.22) !important;   /* green tint on code area */
-  color: #e6e6e6 !important;
-}
-
-/* Removed lines: tint BOTH line-number cells + code cells */
-body.dark #diffView tr.d2h-del td.d2h-code-linenumber,
-body.dark #diffView tr.d2h-del td.d2h-code-side-linenumber {
-  background-color: rgba(248, 81, 73, 0.35) !important;   /* darker red */
-  color: #e6e6e6 !important;
-}
-
-body.dark #diffView tr.d2h-del td.d2h-code-line,
-body.dark #diffView tr.d2h-del td.d2h-code-side-line,
-body.dark #diffView tr.d2h-del td .d2h-code-line-ctn {
-  background-color: rgba(248, 81, 73, 0.22) !important;   /* red tint on code area */
-  color: #e6e6e6 !important;
-}
-
-/* If diff2html marks inline/word changes, make them visible too (safe even if unused) */
-body.dark #diffView .d2h-change,
-body.dark #diffView .d2h-chg {
-  background-color: rgba(255, 193, 7, 0.22) !important;
-  color: #e6e6e6 !important;
-}
-
-/* --- FINAL: make added/removed visible even if class is on td/span --- */
-
-/* Removed */
-body.dark #diffView .d2h-del,
-body.dark #diffView tr.d2h-del td,
-body.dark #diffView td.d2h-del,
-body.dark #diffView .d2h-del .d2h-code-line,
-body.dark #diffView .d2h-del .d2h-code-side-line,
-body.dark #diffView .d2h-del .d2h-code-line-ctn {
-  background-color: rgba(248, 81, 73, 0.22) !important;
-  color: #e6e6e6 !important;
-}
-
-/* Added */
-body.dark #diffView .d2h-ins,
-body.dark #diffView tr.d2h-ins td,
-body.dark #diffView td.d2h-ins,
-body.dark #diffView .d2h-ins .d2h-code-line,
-body.dark #diffView .d2h-ins .d2h-code-side-line,
-body.dark #diffView .d2h-ins .d2h-code-line-ctn {
-  background-color: rgba(46, 160, 67, 0.22) !important;
-  color: #e6e6e6 !important;
-}
-
-/* Line number boxes in changed rows */
-body.dark #diffView tr.d2h-del td.d2h-code-linenumber,
-body.dark #diffView tr.d2h-del td.d2h-code-side-linenumber,
-body.dark #diffView tr.d2h-ins td.d2h-code-linenumber,
-body.dark #diffView tr.d2h-ins td.d2h-code-side-linenumber,
-body.dark #diffView td.d2h-del.d2h-code-linenumber,
-body.dark #diffView td.d2h-ins.d2h-code-linenumber {
-  background-color: rgba(255, 255, 255, 0.06) !important;
-  color: #e6e6e6 !important;
-}
-
 /* -------------------------
    Help modal
    ------------------------- */
@@ -690,4 +474,131 @@ body.dark input[type="file"]::-webkit-file-upload-button:hover {
 /* Small modal variant */
 .modal-content.modal-sm {
   width: min(520px, 100%);
+}
+
+/* -------------------------
+   PIN boxes (6-digit)
+   ------------------------- */
+.pin-boxes {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin: 6px 0 10px;
+}
+
+.pin-boxes .pin-box {
+  width: 44px;
+  height: 48px;
+  border-radius: 10px;
+  border: 1px solid #ccc;
+  background: #fff;
+  color: #111;
+  font-size: 20px;
+  text-align: center;
+  line-height: 48px;
+}
+
+.pin-boxes .pin-box:focus {
+  outline: 2px solid #007bff;
+  outline-offset: 2px;
+  border-color: #007bff;
+}
+
+body.dark .pin-boxes .pin-box {
+  background: #1e1e1e;
+  color: #e6e6e6;
+  border-color: #3a3a3a;
+}
+
+body.dark .pin-boxes .pin-box:focus {
+  outline-color: #2d6cdf;
+  border-color: #2d6cdf;
+}
+
+@media (max-width: 520px) {
+  .pin-boxes { gap: 8px; }
+  .pin-boxes .pin-box { width: 38px; height: 44px; font-size: 18px; line-height: 44px; }
+}
+
+/* -------------------------
+   Diff line numbers: force visible (light + dark)
+   ------------------------- */
+#diffView td.d2h-code-linenumber,
+#diffView td.d2h-code-side-linenumber {
+  display: table-cell !important;
+  width: 4.5em !important;
+  min-width: 4.5em !important;
+  max-width: 4.5em !important;
+  padding: 0 8px !important;
+  text-align: right !important;
+  vertical-align: top !important;
+  white-space: nowrap !important;
+  font-variant-numeric: tabular-nums;
+  color: #666 !important;
+  background: #f7f7f7 !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+#diffView .d2h-code-linenumber,
+#diffView .d2h-code-linenumber:before {
+  color: inherit !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+body.dark #diffView td.d2h-code-linenumber,
+body.dark #diffView td.d2h-code-side-linenumber {
+  color: #a0a0a0 !important;
+  background: #161616 !important;
+}
+
+/* Let Diff2Html size columns naturally; fixes “missing” gutters in some Chromium builds */
+#diffView .d2h-diff-table {
+  table-layout: auto !important;
+  width: 100% !important;
+}
+
+/* =========================
+   Diff2Html line numbers (side-by-side): FORCE VISIBLE
+   Put this at END of styles.css
+   ========================= */
+
+#diffView .d2h-diff-table {
+  table-layout: auto !important;   /* don’t crush gutters */
+  width: 100% !important;
+}
+
+/* The line-number cells MUST stay as table-cells (not absolute) */
+#diffView td.d2h-code-linenumber,
+#diffView td.d2h-code-side-linenumber {
+  display: table-cell !important;
+  position: relative !important;   /* NOT absolute */
+  width: 4.5em !important;
+  min-width: 4.5em !important;
+  max-width: 4.5em !important;
+
+  padding: 0 0.75em !important;
+  text-align: right !important;
+  vertical-align: top !important;
+  white-space: nowrap !important;
+
+  font-variant-numeric: tabular-nums;
+  opacity: 1 !important;
+  visibility: visible !important;
+
+  color: #666 !important;
+  background: #f7f7f7 !important;
+}
+
+/* Keep code cells from overlapping the gutter */
+#diffView td.d2h-code-line,
+#diffView td.d2h-code-side-line {
+  padding-left: 0.75em !important;
+}
+
+body.dark #diffView td.d2h-code-linenumber,
+body.dark #diffView td.d2h-code-side-linenumber {
+  color: #a0a0a0 !important;
+  background: #161616 !important;
 }

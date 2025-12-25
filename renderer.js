@@ -14,6 +14,8 @@ const LS_PLAIN_KEY = 'xaiApiKey';   // legacy plaintext (migration only)
 
 const ENC_VERSION = 1;
 const PBKDF2_ITERS = 120000;
+const PIN_LEN = 6;
+let autoUnlockBusy = false;
 const SALT_BYTES = 16;
 const AES_GCM_IV_BYTES = 12;
 
@@ -23,8 +25,158 @@ let apiModalBlocking = false;
 
 const webCrypto = (typeof window !== 'undefined' && window.crypto) ? window.crypto : globalThis.crypto;
 
+// Keep diff2html scheme class in sync when user toggles app theme
+function syncDiff2HtmlTheme() {
+  const wrap = document.querySelector('#diffView .d2h-wrapper');
+  if (!wrap) return;
+  const isDark = document.body.classList.contains('dark');
+  wrap.classList.toggle('d2h-dark-color-scheme', isDark);
+  wrap.classList.toggle('d2h-light-color-scheme', !isDark);
+  wrap.classList.remove('d2h-auto-color-scheme');
+}
+
 function isValidPin(pin) {
   return /^\d{6}$/.test((pin || '').trim());
+}
+
+function getPinBoxes() {
+  const wrap = document.getElementById('apiKeyPinBoxes');
+  if (!wrap) return [];
+  return Array.from(wrap.querySelectorAll('input.pin-box'));
+}
+
+function setHiddenPin(pin) {
+  const hidden = document.getElementById('apiKeyPinInput');
+  if (hidden) hidden.value = (pin || '').slice(0, PIN_LEN);
+}
+
+function getPinFromBoxes() {
+  const boxes = getPinBoxes();
+  if (!boxes.length) {
+    return (document.getElementById('apiKeyPinInput')?.value || '').trim();
+  }
+  return boxes.map(b => (b.value || '').replace(/\D/g, '')).join('');
+}
+
+function focusPinBox(idx) {
+  const boxes = getPinBoxes();
+  const el = boxes[idx];
+  if (!el) return;
+  el.focus();
+  // select if possible
+  try { el.setSelectionRange(0, el.value.length); } catch {}
+}
+
+function clearPinBoxes({ focusIndex = 0 } = {}) {
+  const boxes = getPinBoxes();
+  boxes.forEach(b => { b.value = ''; });
+  setHiddenPin('');
+  if (boxes.length) focusPinBox(Math.min(Math.max(focusIndex, 0), boxes.length - 1));
+}
+
+function setPinBoxesFromString(pin) {
+  const clean = (pin || '').replace(/\D/g, '').slice(0, PIN_LEN);
+  const boxes = getPinBoxes();
+  for (let i = 0; i < boxes.length; i++) {
+    boxes[i].value = clean[i] || '';
+  }
+  setHiddenPin(clean);
+  const nextIdx = Math.min(clean.length, boxes.length - 1);
+  focusPinBox(nextIdx);
+}
+
+function syncHiddenPinFromBoxes() {
+  setHiddenPin(getPinFromBoxes());
+}
+
+function isPinComplete() {
+  const pin = getPinFromBoxes();
+  return /^\d{6}$/.test(pin);
+}
+
+async function maybeAutoUnlock() {
+  // Only auto-submit when unlocking (no API key field) and 6 digits are present
+  if (apiModalMode !== 'unlock') return;
+  if (!isPinComplete()) return;
+  if (autoUnlockBusy) return;
+
+  autoUnlockBusy = true;
+  try {
+    await handleApiKeyPrimaryClick();
+  } finally {
+    autoUnlockBusy = false;
+  }
+}
+
+function setupPinBoxes() {
+  const boxes = getPinBoxes();
+  if (!boxes.length) return;
+
+  boxes.forEach((box, idx) => {
+    // typing / input
+    box.addEventListener('input', () => {
+      // keep only last digit
+      const digits = (box.value || '').replace(/\D/g, '');
+      box.value = digits ? digits[digits.length - 1] : '';
+      syncHiddenPinFromBoxes();
+
+      if (box.value && idx < boxes.length - 1) {
+        focusPinBox(idx + 1);
+      }
+
+      // Auto-unlock when full
+      void maybeAutoUnlock();
+    });
+
+    // key navigation + backspace behavior
+    box.addEventListener('keydown', (e) => {
+      const key = e.key;
+
+      if (key === 'Backspace') {
+        e.preventDefault();
+        if (box.value) {
+          // clear current box first
+          box.value = '';
+          syncHiddenPinFromBoxes();
+          return;
+        }
+        // if empty, clear previous and move cursor there
+        if (idx > 0) {
+          boxes[idx - 1].value = '';
+          syncHiddenPinFromBoxes();
+          focusPinBox(idx - 1);
+        }
+        return;
+      }
+
+      if (key === 'ArrowLeft') {
+        e.preventDefault();
+        if (idx > 0) focusPinBox(idx - 1);
+        return;
+      }
+
+      if (key === 'ArrowRight') {
+        e.preventDefault();
+        if (idx < boxes.length - 1) focusPinBox(idx + 1);
+        return;
+      }
+
+      // block non-digit single-character keys
+      if (key.length === 1 && !/\d/.test(key)) {
+        e.preventDefault();
+      }
+    });
+
+    // paste support (paste 6 digits anywhere)
+    box.addEventListener('paste', (e) => {
+      const txt = (e.clipboardData?.getData('text') || '').trim();
+      const clean = txt.replace(/\D/g, '');
+      if (!clean) return;
+      e.preventDefault();
+      setPinBoxesFromString(clean);
+      void maybeAutoUnlock();
+    });
+  });
 }
 
 function bytesToB64(u8) {
@@ -161,6 +313,8 @@ function applyTabToDom(tab) {
   document.getElementById('model').value = tab.modelText || '';
   document.getElementById('output').textContent = tab.modifiedText || '';
   document.getElementById('diffView').innerHTML = tab.diffHtml || '';
+  // If the diff HTML was saved under a different theme, fix its wrapper class now
+  syncDiff2HtmlTheme();
   document.getElementById('error').textContent = tab.errorText || '';
 
   originalFileName = tab.originalFileName || 'file.txt';
@@ -326,14 +480,15 @@ function getStoredApiKey() {
 function openApiKeyModal({ mode = 'manage', blocking = false, hint = '', prefillKey = '' } = {}) {
   const overlay = document.getElementById('apiKeyOverlay');
   const apiInput = document.getElementById('apiKeyModalInput');
-  const pinInput = document.getElementById('apiKeyPinInput');
+  const pinInput = document.getElementById('apiKeyPinInput'); // hidden aggregator
+  const pinBoxesWrap = document.getElementById('apiKeyPinBoxes');
   const primaryBtn = document.getElementById('apiKeyPrimaryBtn');
   const cancelBtn = document.getElementById('apiKeyCancelBtn');
   const closeBtn = document.getElementById('apiKeyCloseBtn');
   const hintEl = document.getElementById('apiKeyModalHint');
   const apiLabel = document.getElementById('apiKeyModalLabel');
 
-  if (!overlay || !pinInput || !primaryBtn) return;
+  if (!overlay || !primaryBtn || !pinBoxesWrap || !pinInput) return;
 
   apiModalMode = mode;
   apiModalBlocking = !!blocking;
@@ -353,7 +508,9 @@ function openApiKeyModal({ mode = 'manage', blocking = false, hint = '', prefill
   }
 
   // always show PIN field (needed for unlock + save)
-  pinInput.value = '';
+  if (pinInput) pinInput.value = '';
+  // clear + focus PIN boxes
+  clearPinBoxes({ focusIndex: 0 });
 
   // button labels
   primaryBtn.textContent = (mode === 'unlock') ? 'Unlock' : 'Save';
@@ -365,8 +522,8 @@ function openApiKeyModal({ mode = 'manage', blocking = false, hint = '', prefill
   // focus
   setTimeout(() => {
     if (mode === 'unlock') {
-      pinInput.focus();
-      pinInput.select();
+      // focus first PIN box
+      focusPinBox(0);
     } else if (apiInput) {
       apiInput.focus();
       apiInput.select();
@@ -396,14 +553,16 @@ function closeApiKeyModal({ force = false } = {}) {
   // reset
   apiModalBlocking = false;
   apiModalMode = 'manage';
+  // clear PIN UI on close
+  clearPinBoxes({ focusIndex: 0 });
 }
 
 async function handleApiKeyPrimaryClick() {
   const apiInput = document.getElementById('apiKeyModalInput');
-  const pinInput = document.getElementById('apiKeyPinInput');
+  const pinInput = document.getElementById('apiKeyPinInput'); // hidden aggregator
   const hintEl = document.getElementById('apiKeyModalHint');
 
-  const pin = (pinInput?.value || '').trim();
+  const pin = getPinFromBoxes();
   const key = (apiInput?.value || '').trim();
 
   if (hintEl) hintEl.textContent = '';
@@ -415,8 +574,7 @@ async function handleApiKeyPrimaryClick() {
 
   if (!isValidPin(pin)) {
     if (hintEl) hintEl.textContent = 'PIN must be exactly 6 digits.';
-    pinInput?.focus();
-    pinInput?.select();
+    clearPinBoxes({ focusIndex: 0 });
     return;
   }
 
@@ -437,8 +595,7 @@ async function handleApiKeyPrimaryClick() {
       closeApiKeyModal({ force: true });
     } catch {
       if (hintEl) hintEl.textContent = 'Invalid PIN (or corrupted stored key). Try again.';
-      pinInput?.focus();
-      pinInput?.select();
+      clearPinBoxes({ focusIndex: 0 });
     }
     return;
   }
@@ -556,6 +713,9 @@ window.addEventListener('load', () => {
   if (apiCancelBtn) apiCancelBtn.addEventListener('click', closeApiKeyModal);
   if (apiPrimaryBtn) apiPrimaryBtn.addEventListener('click', handleApiKeyPrimaryClick);
 
+  // PIN boxes wiring (numbers only + auto-advance + backspace)
+  setupPinBoxes();
+
   if (apiOverlay) {
     apiOverlay.addEventListener('click', (e) => {
       if (e.target === apiOverlay) closeApiKeyModal();
@@ -609,6 +769,9 @@ ipcRenderer.on('theme:set', (_evt, theme) => {
 
   document.body.classList.toggle('dark', shouldDark);
   localStorage.setItem('theme', shouldDark ? 'dark' : 'light');
+
+  // Re-theme an already-rendered diff without regenerating HTML
+  syncDiff2HtmlTheme();
 
   // keep the menu checkbox in sync
   ipcRenderer.send('theme:state', shouldDark ? 'dark' : 'light');
@@ -790,7 +953,8 @@ async function applyPatch({ isRetry = false } = {}) {
       drawFileList: false,
       matching: 'none',
       outputFormat: 'side-by-side',
-      synchronisedScroll: true
+      synchronisedScroll: true,
+      colorScheme: document.body.classList.contains('dark') ? 'dark' : 'light'
     });
 
     // Save into the originating tab
@@ -803,6 +967,7 @@ async function applyPatch({ isRetry = false } = {}) {
     if (activeTabId === tabId) {
       outputEl.textContent = modified;
       diffViewEl.innerHTML = html;
+      syncDiff2HtmlTheme();
       errorEl.textContent = '';
       downloadBtn.classList.remove('hidden');
       copyBtn.classList.remove('hidden');
