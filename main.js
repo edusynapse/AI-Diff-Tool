@@ -106,6 +106,27 @@ function createAppMenu() {
           }
         },
         { type: 'separator' },
+        {
+          label: 'Previous Change',
+          accelerator: 'F7',
+          click: () => {
+            const win = BrowserWindow.getFocusedWindow() || BrowserWindow.getAllWindows()[0];
+            if (win && !win.isDestroyed()) {
+              win.webContents.send('diffnav:prev');
+            }
+          }
+        },
+        {
+          label: 'Next Change',
+          accelerator: 'F8',
+          click: () => {
+            const win = BrowserWindow.getFocusedWindow() || BrowserWindow.getAllWindows()[0];
+            if (win && !win.isDestroyed()) {
+              win.webContents.send('diffnav:next');
+            }
+          }
+        },
+        { type: 'separator' },
         { role: 'reload' },
         { role: 'forceReload' },
         { role: 'toggleDevTools' },

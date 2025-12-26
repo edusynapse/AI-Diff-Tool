@@ -359,6 +359,19 @@ select {
   border: 1px solid #ccc;
   border-radius: 4px;
 }
+
+/* File picker rows: don't stretch across the full width.
+   Keep a small default width when no file is chosen, and expand to fit filename (up to container). */
+input[type="file"] {
+  display: inline-block;
+  width: fit-content;
+  max-width: 100%;
+  min-width: 260px;
+}
+
+/* Time / token display stays compact */
+#modelTime { white-space: nowrap; font-variant-numeric: tabular-nums; }
+
 /* Fixed width, flexible height (user can resize only vertically) */
 textarea { resize: vertical; }
 textarea { transition: height 180ms ease; }

@@ -177,12 +177,49 @@ function formatDurationMs(ms) {
   return `${mins} mins and ${secs} seconds`;
 }
 
+// -------------------------
+// Token estimation (best-effort)
+// - Uses API-reported usage when available
+// - Falls back to a lightweight heuristic when usage is absent
+// -------------------------
+function estimateTokensForText(text) {
+  const s = (text || '');
+  if (!s) return 0;
+  // Simple heuristic: ~4 chars per token (works reasonably for English/code mixed).
+  return Math.max(1, Math.ceil(s.length / 4));
+}
+
+function estimateChatTokens(messages) {
+  const msgs = Array.isArray(messages) ? messages : [];
+  // Rough structural overhead per message (role/formatting). Not exact, but stable.
+  const OVERHEAD_PER_MSG = 4;
+  const FINAL_OVERHEAD = 2;
+  let total = FINAL_OVERHEAD;
+  for (const m of msgs) {
+    total += OVERHEAD_PER_MSG;
+    total += estimateTokensForText(m?.content || '');
+  }
+  return Math.max(0, total);
+}
+
+function getUsageTotalTokens(completion) {
+  const u = completion?.usage;
+  if (!u) return null;
+  if (Number.isFinite(u.total_tokens)) return u.total_tokens;
+  if (Number.isFinite(u.prompt_tokens) && Number.isFinite(u.completion_tokens)) {
+    return u.prompt_tokens + u.completion_tokens;
+  }
+  return null;
+}
+
 function setModelTimeUi(tab) {
   const el = document.getElementById('modelTime');
   if (!el) return;
 
   if (tab && Number.isFinite(tab.lastDurationMs)) {
-    el.textContent = formatDurationMs(tab.lastDurationMs);
+    const parts = [formatDurationMs(tab.lastDurationMs)];
+    if (Number.isFinite(tab.lastTokenCount)) parts.push(String(tab.lastTokenCount));
+    el.textContent = parts.join(' / ');
     el.classList.remove('hidden');
   } else {
     el.textContent = '';
@@ -1022,7 +1059,8 @@ function makeTab(label) {
     requestSeq: 0,
     inFlightToken: null,
     inFlight: false,
-    lastDurationMs: null
+    lastDurationMs: null,
+    lastTokenCount: null
   };
 }
 
@@ -2294,6 +2332,14 @@ ipcRenderer.on('help:open', () => {
   openHelp();
  });
 
+ipcRenderer.on('diffnav:prev', () => {
+  scrollToChange(-1);
+});
+
+ipcRenderer.on('diffnav:next', () => {
+  scrollToChange(1);
+});
+
 ipcRenderer.on('sysprompt:open', () => {
   openSysPromptModal({ tabId: activeTabId });
 });
@@ -2365,6 +2411,7 @@ async function applyPatch({ isRetry = false } = {}) {
 
   // Reset timing for this run (will be set when the model replies)
   tab.lastDurationMs = null;
+  tab.lastTokenCount = null;
   if (activeTabId === tabId) setModelTimeUi(tab);
   // Also clear cached diff for this tab (we are recomputing)
   if (tab.diffDom) tab.diffDom.replaceChildren();
@@ -2458,19 +2505,21 @@ async function applyPatch({ isRetry = false } = {}) {
     console.log('OpenAI SDK initialized with browser allowance.');
 
     const userPrompt = `Original file content:\n\n${modelContentSnapshot}\n\nDiff patch to apply:\n\n${diffTextSnapshot}\n\nApply the patch and output the exact resulting file.`;
+    const messages = [
+      { role: 'system', content: systemPromptSnapshot },
+      { role: 'user', content: userPrompt }
+    ];
 
     const t0 = _nowMs();
     const completion = await openai.chat.completions.create({
       model: selectedModelSnapshot,
-      messages: [
-        { role: 'system', content: systemPromptSnapshot },
-        { role: 'user', content: userPrompt }
-      ],
+      messages,
       temperature: 0.2,
       max_tokens: 32768  // Higher for large files; per docs
     });
 
     const durationMs = _nowMs() - t0;
+    const usageTotalTokens = getUsageTotalTokens(completion);
 
     let modified = completion.choices[0].message.content;
     // Strip any potential code fences
@@ -2483,6 +2532,12 @@ async function applyPatch({ isRetry = false } = {}) {
 
     // Store + render timing (model replied)
     tab.lastDurationMs = Math.max(0, Math.round(durationMs));
+    // Prefer API-reported usage when present; otherwise estimate total tokens for (system+user+assistant)
+    if (Number.isFinite(usageTotalTokens)) {
+      tab.lastTokenCount = usageTotalTokens;
+    } else {
+      tab.lastTokenCount = estimateChatTokens([...messages, { role: 'assistant', content: modified }]);
+    }
     if (activeTabId === tabId) setModelTimeUi(tab);
 
     // If model returned a congruency error, show it as an app error (not as file output)
