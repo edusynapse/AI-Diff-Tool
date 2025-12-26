@@ -1,7 +1,13 @@
-const { app, BrowserWindow, Menu, ipcMain, shell} = require('electron');
+const { app, BrowserWindow, Menu, ipcMain, shell } = require('electron');
 const path = require('path');  
 
 let isDark = false;
+
+// Main-process app settings (renderer reads these via IPC)
+const APP_SETTINGS = Object.freeze({
+  historyMax: 100,
+  historyPageSize: 5
+});
 
 // About/settings (bundled inside app.asar when packaged)
 // These are the values you asked to come from "settings within the app bundle".
@@ -16,6 +22,10 @@ const ABOUT_SETTINGS = Object.freeze({
 const iconPath = app.isPackaged
   ? path.join(process.resourcesPath, 'icons', '512x512.png')
   : path.join(__dirname, 'build', 'icons', '512x512.png');
+
+ipcMain.handle('app:getSettings', () => {
+  return APP_SETTINGS;
+});
 
 ipcMain.handle('about:getInfo', () => {
   return {
@@ -32,6 +42,13 @@ ipcMain.handle("creator-image-path", () => {
   return path.join(process.resourcesPath, "creator.png"); // packaged
 });
 
+ipcMain.handle("app-icon-path", () => {
+  // used for the header icon in the renderer
+  if (!app.isPackaged) {
+    return path.join(__dirname, "build", "icons", "128x128.png"); // dev
+  }
+  return path.join(process.resourcesPath, "app-icon.png"); // packaged (extraResources)
+});
 
 function isAllowedExternalUrl(url) {
   const u = String(url || '').trim();
@@ -129,6 +146,17 @@ function createAppMenu() {
     {
       label: 'View',
       submenu: [
+        {
+          label: 'History…',
+          accelerator: 'CmdOrCtrl+H',
+          click: () => {
+            const win = BrowserWindow.getFocusedWindow() || BrowserWindow.getAllWindows()[0];
+            if (win && !win.isDestroyed()) {
+              win.webContents.send('history:open');
+            }
+          }
+        },
+        { type: 'separator' },
         {
           id: 'toggle-dark-mode',
           label: 'Dark Mode',

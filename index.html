@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <!-- History modal added (View → History…) -->
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta http-equiv="Content-Security-Policy"
@@ -37,8 +38,16 @@
     <main class="main">
   <!-- Fixed topbar (same height as sidebar topbar) -->
   <div class="main-topbar">
-  <div class="main-title">AI Diff Tool</div>
-
+  <div class="main-brand">
+    <img
+      id="appIconImg"
+      class="app-icon hidden"
+      src=""
+      alt="AI Diff Tool icon"
+    />
+    <div class="main-title">AI Diff Tool</div>
+  </div>
+ 
   <div class="main-topbar-actions">
     <button id="diffPrevBtn" class="topbar-btn topbar-btn--nav hidden" type="button" title="Previous change">
       Prev change
@@ -391,6 +400,35 @@
     </div>
   </div>
   
+  <!-- History overlay (opened from View → History…) -->
+  <div id="historyOverlay" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="historyTitle">
+    <div class="modal-content" role="document">
+      <div class="modal-header">
+        <h2 id="historyTitle">History</h2>
+        <button id="historyCloseBtn" class="modal-close" aria-label="Close history">×</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="history-toolbar">
+          <div id="historyHint" class="history-hint"></div>
+          <button id="historyClearBtn" class="modal-ok" type="button" title="Clear history">Clear</button>
+        </div>
+
+        <div id="historyList" class="history-list" role="list" aria-label="History items"></div>
+
+        <div class="history-pagination" aria-label="History pagination">
+          <button id="historyPrevBtn" class="modal-ok" type="button">Prev</button>
+          <div id="historyPageLabel" class="history-page"></div>
+          <button id="historyNextBtn" class="modal-ok" type="button">Next</button>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button id="historyOkBtn" class="modal-ok" type="button">Close</button>
+      </div>
+    </div>
+  </div>
+
   <script src="renderer.js"></script>
 </body>
 </html>

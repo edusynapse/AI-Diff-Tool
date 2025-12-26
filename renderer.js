@@ -1,6 +1,7 @@
 const OpenAI = require('openai');  // Loaded via Node integration
 const { createTwoFilesPatch } = require('diff');  // For computing diff
 const Diff2Html = require('diff2html');  // For rendering as HTML
+const zlib = require('zlib'); // history compression fallback (no new deps)
 const { ipcRenderer } = require('electron');
 const { pathToFileURL } = require('url');
 const MAX_RETRIES = 3;
@@ -41,6 +42,29 @@ const DEFAULT_SYSTEM_PROMPT = [
 ].join('\n');
 
 let systemPromptStore = null; // { v, prompts: [] }
+
+// -------------------------
+// App settings (from main)
+// -------------------------
+const DEFAULT_APP_SETTINGS = Object.freeze({ historyMax: 100, historyPageSize: 5 });
+let appSettings = { ...DEFAULT_APP_SETTINGS };
+let appSettingsLoaded = false;
+
+async function ensureAppSettingsLoaded() {
+  if (appSettingsLoaded) return appSettings;
+  try {
+    const s = await ipcRenderer.invoke('app:getSettings');
+    if (s && typeof s === 'object') {
+      appSettings = {
+        ...appSettings,
+        historyMax: Number.isFinite(Number(s.historyMax)) ? Number(s.historyMax) : appSettings.historyMax,
+        historyPageSize: Number.isFinite(Number(s.historyPageSize)) ? Number(s.historyPageSize) : appSettings.historyPageSize
+      };
+    }
+  } catch {}
+  appSettingsLoaded = true;
+  return appSettings;
+}
 
 function _sysNow() { return Date.now(); }
 
@@ -163,6 +187,66 @@ function syncDiff2HtmlTheme() {
  }
 
 // -------------------------
+// Header app icon (bundled via extraResources)
+// -------------------------
+async function setAppHeaderIcon() {
+  const img = document.getElementById('appIconImg');
+  if (!img) return;
+
+  try {
+    const p = await ipcRenderer.invoke('app-icon-path');
+    if (!p) return;
+    img.src = pathToFileURL(p).href;
+    img.classList.remove('hidden');
+  } catch {
+    // no-op
+  }
+}
+
+// -------------------------
+// Tabs: active highlight matches the "+" button color
+// -------------------------
+function _parseCssColorToRgbaParts(s) {
+  const str = String(s || '').trim();
+  const m = str.match(/^rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)(?:\s*,\s*([\d.]+))?\s*\)$/i);
+  if (!m) return null;
+  const r = Math.max(0, Math.min(255, parseInt(m[1], 10)));
+  const g = Math.max(0, Math.min(255, parseInt(m[2], 10)));
+  const b = Math.max(0, Math.min(255, parseInt(m[3], 10)));
+  const a = (m[4] == null) ? 1 : Math.max(0, Math.min(1, parseFloat(m[4])));
+  return { r, g, b, a };
+}
+
+function _rgba({ r, g, b }, a) {
+  const alpha = Math.max(0, Math.min(1, Number(a)));
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+function syncTabActiveHighlightFromNewTabButton() {
+  const btn = document.getElementById('newTabBtn');
+  if (!btn) return;
+
+  const cs = window.getComputedStyle(btn);
+  const bg = cs.backgroundColor;
+  const fg = cs.color;
+
+  // Prefer a "real" background; if it's effectively transparent, fall back to the text color.
+  const bgParts = _parseCssColorToRgbaParts(bg);
+  const fgParts = _parseCssColorToRgbaParts(fg);
+
+  let accentParts = bgParts;
+  if (!accentParts || accentParts.a < 0.12) accentParts = fgParts;
+  if (!accentParts) return;
+
+  const root = document.documentElement;
+  // Keep background as a subtle tint; keep the indicator/border more prominent.
+  root.style.setProperty('--tab-active-bg', _rgba(accentParts, 0.14));
+  root.style.setProperty('--tab-active-border', _rgba(accentParts, 0.55));
+  root.style.setProperty('--tab-active-accent', _rgba(accentParts, 1));
+  root.style.setProperty('--tab-active-focus', _rgba(accentParts, 0.60));
+}
+
+// -------------------------
 // Model timing (X mins and Y seconds)
 // -------------------------
 function _nowMs() {
@@ -219,7 +303,7 @@ function setModelTimeUi(tab) {
 
   if (tab && Number.isFinite(tab.lastDurationMs)) {
     const parts = [formatDurationMs(tab.lastDurationMs)];
-    if (Number.isFinite(tab.lastTokenCount)) parts.push(String(tab.lastTokenCount));
+    if (Number.isFinite(tab.lastTokenCount)) parts.push(String(tab.lastTokenCount) + ' tokens [est.]');
     el.textContent = parts.join(' / ');
     el.classList.remove('hidden');
   } else {
@@ -373,6 +457,12 @@ function initStickyTaActions() {
 
     for (const { wrap, actions } of containers) {
       const r = wrap.getBoundingClientRect();
+      // Always clear stuck geometry; we re-apply only to the ONE best candidate
+      try {
+        actions.style.removeProperty('--ta-stuck-top');
+        actions.style.removeProperty('--ta-stuck-left');
+        actions.style.removeProperty('--ta-stuck-width');
+      } catch {}
 
       const outAbove = r.bottom <= rootRect.top + 1;
       const outBelow = r.top >= rootRect.bottom - 1;
@@ -392,7 +482,7 @@ function initStickyTaActions() {
       actions.classList.remove('ta-actions--stuck');
 
       if (topOutOfView && stillVisibleEnough) {
-        stuckCandidates.push({ actions, top: r.top });
+        stuckCandidates.push({ actions, wrap, top: r.top });
       }
     }
 
@@ -402,7 +492,17 @@ function initStickyTaActions() {
       if (!best || c.top > best.top) best = c;
     }
 
-    if (best) best.actions.classList.add('ta-actions--stuck');
+    if (best) {
+      // Pin to the exact textarea container box so there is NO horizontal jump
+      const wr = best.wrap.getBoundingClientRect();
+      const topPx = Math.round(rootRect.top + MARGIN);
+      const leftPx = Math.round(wr.left);
+      const widthPx = Math.round(wr.width);
+      best.actions.style.setProperty('--ta-stuck-top', `${topPx}px`);
+      best.actions.style.setProperty('--ta-stuck-left', `${leftPx}px`);
+      best.actions.style.setProperty('--ta-stuck-width', `${widthPx}px`);
+      best.actions.classList.add('ta-actions--stuck');
+    }
   };
 
   let raf = null;
@@ -741,6 +841,402 @@ function b64ToBytes(b64) {
   const u8 = new Uint8Array(bin.length);
   for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
   return u8;
+}
+
+// -------------------------
+// History (compressed localStorage)
+// -------------------------
+const HISTORY_INDEX_KEY = 'history_index_v1';
+const HISTORY_ITEM_PREFIX = 'history_item_v1:';
+const HISTORY_VERSION = 1;
+
+function _historyItemKey(id) {
+  return `${HISTORY_ITEM_PREFIX}${id}`;
+}
+
+function _isQuotaError(e) {
+  const name = (e && e.name) ? String(e.name) : '';
+  const code = (e && (e.code || e.number)) ? Number(e.code || e.number) : 0;
+  return name === 'QuotaExceededError' || code === 22 || code === -2147024882;
+}
+
+async function gzipStringToB64(str) {
+  const s = String(str || '');
+  // Prefer browser gzip (async + efficient)
+  if (typeof CompressionStream === 'function') {
+    const input = new TextEncoder().encode(s);
+    const stream = new Blob([input]).stream().pipeThrough(new CompressionStream('gzip'));
+    const ab = await new Response(stream).arrayBuffer();
+    return bytesToB64(new Uint8Array(ab));
+  }
+  // Fallback: Node zlib (Electron renderer has Node integration)
+  const buf = zlib.gzipSync(Buffer.from(s, 'utf8'));
+  return bytesToB64(new Uint8Array(buf));
+}
+
+async function gunzipB64ToString(b64) {
+  const u8 = b64ToBytes(String(b64 || ''));
+  if (typeof DecompressionStream === 'function') {
+    const stream = new Blob([u8]).stream().pipeThrough(new DecompressionStream('gzip'));
+    const ab = await new Response(stream).arrayBuffer();
+    return new TextDecoder().decode(new Uint8Array(ab));
+  }
+  const out = zlib.gunzipSync(Buffer.from(u8));
+  return out.toString('utf8');
+}
+
+function loadHistoryIndex() {
+  const raw = localStorage.getItem(HISTORY_INDEX_KEY);
+  if (!raw) return { v: HISTORY_VERSION, items: [] };
+  try {
+    const obj = JSON.parse(raw);
+    if (!obj || obj.v !== HISTORY_VERSION || !Array.isArray(obj.items)) {
+      return { v: HISTORY_VERSION, items: [] };
+    }
+    // normalize + newest first
+    const items = obj.items
+      .filter(x => x && x.id && Number.isFinite(Number(x.ts)))
+      .map(x => ({
+        id: String(x.id),
+        ts: Number(x.ts),
+        model: String(x.model || ''),
+        sysPromptId: String(x.sysPromptId || DEFAULT_SYS_PROMPT_ID),
+        sysPromptName: String(x.sysPromptName || 'Default'),
+        fileName: String(x.fileName || ''),
+        provider: String(x.provider || '')
+      }))
+      .sort((a, b) => b.ts - a.ts);
+    return { v: HISTORY_VERSION, items };
+  } catch {
+    return { v: HISTORY_VERSION, items: [] };
+  }
+}
+
+function saveHistoryIndex(idx) {
+  localStorage.setItem(HISTORY_INDEX_KEY, JSON.stringify(idx));
+}
+
+function clearAllHistory() {
+  const idx = loadHistoryIndex();
+  for (const it of (idx.items || [])) {
+    try { localStorage.removeItem(_historyItemKey(it.id)); } catch {}
+  }
+  try { localStorage.removeItem(HISTORY_INDEX_KEY); } catch {}
+}
+
+function formatLocalTs(ts) {
+  try { return new Date(Number(ts)).toLocaleString(); } catch { return String(ts); }
+}
+
+async function addHistoryEntry({
+  ts,
+  model,
+  provider,
+  sysPromptId,
+  sysPromptName,
+  sysPromptContent,
+  diffText,
+  inputText,
+  outputText,
+  inputFileName,
+  durationMs,
+  tokenCount
+}) {
+  const settings = await ensureAppSettingsLoaded();
+  const max = Math.max(1, Number(settings.historyMax || 100));
+
+  const id = `h_${Date.now()}_${Math.random().toString(16).slice(2)}`;
+  const when = Number.isFinite(Number(ts)) ? Number(ts) : Date.now();
+
+  const payload = {
+    v: HISTORY_VERSION,
+    id,
+    ts: when,
+    model: String(model || ''),
+    provider: String(provider || ''),
+    sysPromptId: String(sysPromptId || DEFAULT_SYS_PROMPT_ID),
+    sysPromptName: String(sysPromptName || 'Default'),
+    sysPromptContent: String(sysPromptContent || ''),
+    diffText: String(diffText || ''),
+    inputText: String(inputText || ''),
+    outputText: String(outputText || ''),
+    inputFileName: String(inputFileName || ''),
+    durationMs: Number.isFinite(Number(durationMs)) ? Number(durationMs) : null,
+    tokenCount: Number.isFinite(Number(tokenCount)) ? Number(tokenCount) : null
+  };
+
+  const compressed = await gzipStringToB64(JSON.stringify(payload));
+
+  // Prepare index in-memory first
+  const idx = loadHistoryIndex();
+  idx.items.unshift({
+    id,
+    ts: when,
+    model: payload.model,
+    sysPromptId: payload.sysPromptId,
+    sysPromptName: payload.sysPromptName,
+    fileName: payload.inputFileName,
+    provider: payload.provider
+  });
+
+  // de-dupe by id (keep first)
+  const seen = new Set();
+  idx.items = idx.items.filter(x => {
+    if (!x || !x.id) return false;
+    if (seen.has(x.id)) return false;
+    seen.add(x.id);
+    return true;
+  });
+
+  // enforce max (hard cap)
+  while (idx.items.length > max) {
+    const removed = idx.items.pop();
+    if (removed?.id) {
+      try { localStorage.removeItem(_historyItemKey(removed.id)); } catch {}
+    }
+  }
+
+  // 1) store payload (evict oldest on quota)
+  while (true) {
+    try {
+      localStorage.setItem(_historyItemKey(id), compressed);
+      break;
+    } catch (e) {
+      if (!_isQuotaError(e)) throw e;
+      const removed = idx.items.pop();
+      if (!removed || removed.id === id) {
+        // can't make space; abort storing this entry
+        try { localStorage.removeItem(_historyItemKey(id)); } catch {}
+        return;
+      }
+      try { localStorage.removeItem(_historyItemKey(removed.id)); } catch {}
+    }
+  }
+
+  // 2) store index (evict oldest on quota)
+  while (true) {
+    try {
+      saveHistoryIndex(idx);
+      break;
+    } catch (e) {
+      if (!_isQuotaError(e)) throw e;
+      const removed = idx.items.pop();
+      if (!removed || removed.id === id) {
+        // rollback newest payload
+        try { localStorage.removeItem(_historyItemKey(id)); } catch {}
+        return;
+      }
+      try { localStorage.removeItem(_historyItemKey(removed.id)); } catch {}
+    }
+  }
+}
+
+async function loadHistoryPayload(id) {
+  const raw = localStorage.getItem(_historyItemKey(String(id || '')));
+  if (!raw) return null;
+  try {
+    const json = await gunzipB64ToString(raw);
+    const obj = JSON.parse(json);
+    if (!obj || obj.v !== HISTORY_VERSION) return null;
+    return obj;
+  } catch {
+    return null;
+  }
+}
+
+// -------------------------
+// History modal UI
+// -------------------------
+let historyPage = 0;          // 0-based
+let historyIndexCache = null; // {v, items}
+
+function isHistoryModalOpen() {
+  return !document.getElementById('historyOverlay')?.classList.contains('hidden');
+}
+
+function openHistoryModal() {
+  const overlay = document.getElementById('historyOverlay');
+  if (!overlay) return;
+  historyIndexCache = loadHistoryIndex();
+  historyPage = 0;
+  overlay.classList.remove('hidden');
+  document.body.classList.add('modal-open');
+  void renderHistoryPage();
+  document.getElementById('historyCloseBtn')?.focus();
+}
+
+function closeHistoryModal() {
+  const overlay = document.getElementById('historyOverlay');
+  if (!overlay) return;
+  overlay.classList.add('hidden');
+
+  // Only remove modal-open if *no* other modal is open
+  const helpOpen = !document.getElementById('helpOverlay')?.classList.contains('hidden');
+  const apiOpen = !document.getElementById('apiKeyOverlay')?.classList.contains('hidden');
+  const typeOpen = !document.getElementById('keyTypeOverlay')?.classList.contains('hidden');
+  const renameOpen = !document.getElementById('tabRenameOverlay')?.classList.contains('hidden');
+  const closeOpen = !document.getElementById('tabCloseOverlay')?.classList.contains('hidden');
+  const sysOpen = !document.getElementById('sysPromptOverlay')?.classList.contains('hidden');
+  const aboutOpen = !document.getElementById('aboutOverlay')?.classList.contains('hidden');
+  const histOpen = !overlay.classList.contains('hidden');
+
+  if (!helpOpen && !apiOpen && !typeOpen && !renameOpen && !closeOpen && !sysOpen && !aboutOpen && !histOpen) {
+    document.body.classList.remove('modal-open');
+  }
+  historyIndexCache = null;
+  historyPage = 0;
+}
+
+async function renderHistoryPage() {
+  await ensureAppSettingsLoaded();
+  const hintEl = document.getElementById('historyHint');
+  const listEl = document.getElementById('historyList');
+  const prevBtn = document.getElementById('historyPrevBtn');
+  const nextBtn = document.getElementById('historyNextBtn');
+  const pageLabel = document.getElementById('historyPageLabel');
+
+  if (hintEl) {
+    hintEl.textContent = `Max history size is ${appSettings.historyMax}. Older entries are removed automatically.`;
+  }
+
+  const idx = historyIndexCache || loadHistoryIndex();
+  const items = Array.isArray(idx.items) ? idx.items : [];
+  const pageSize = Math.max(1, Number(appSettings.historyPageSize || 5));
+  const totalPages = Math.max(1, Math.ceil(items.length / pageSize));
+  historyPage = Math.min(Math.max(0, historyPage), totalPages - 1);
+
+  const start = historyPage * pageSize;
+  const slice = items.slice(start, start + pageSize);
+
+  if (listEl) {
+    if (!slice.length) {
+      const empty = document.createElement('div');
+      empty.className = 'history-hint';
+      empty.textContent = items.length ? 'No items on this page.' : 'No history yet.';
+      listEl.replaceChildren(empty);
+    } else {
+      const frag = document.createDocumentFragment();
+      for (const it of slice) {
+        const row = document.createElement('div');
+        row.className = 'history-row';
+        row.dataset.historyId = it.id;
+
+        const left = document.createElement('div');
+        left.className = 'history-left';
+
+        const date = document.createElement('div');
+        date.className = 'history-date';
+        date.textContent = formatLocalTs(it.ts);
+
+        const meta = document.createElement('div');
+        meta.className = 'history-meta';
+        const bits = [];
+        if (it.model) bits.push(it.model);
+        if (it.sysPromptName) bits.push(it.sysPromptName);
+        if (it.fileName) bits.push(it.fileName);
+        meta.textContent = bits.join(' • ');
+
+        left.appendChild(date);
+        left.appendChild(meta);
+
+        const actions = document.createElement('div');
+        actions.className = 'history-actions';
+
+        const openBtn = document.createElement('button');
+        openBtn.type = 'button';
+        openBtn.className = 'modal-ok history-open-btn';
+        openBtn.textContent = 'Open in new tab';
+        openBtn.dataset.action = 'open-history';
+        openBtn.dataset.historyId = it.id;
+
+        actions.appendChild(openBtn);
+        row.appendChild(left);
+        row.appendChild(actions);
+        frag.appendChild(row);
+      }
+      listEl.replaceChildren(frag);
+    }
+  }
+
+  if (pageLabel) pageLabel.textContent = `Page ${historyPage + 1} of ${totalPages}`;
+  if (prevBtn) prevBtn.disabled = historyPage <= 0;
+  if (nextBtn) nextBtn.disabled = historyPage >= (totalPages - 1);
+}
+
+function addTabAndSelect(tab) {
+  const prevId = activeTabId;
+  saveActiveTabFromDom();
+  tabs.push(tab);
+  activeTabId = tab.id;
+  applyTabToDom(tab);
+  const list = getTabsListEl();
+  if (list) {
+    const row = ensureTabRow(tab);
+    updateTabRowFor(tab);
+    list.appendChild(row);
+    try { row.scrollIntoView({ block: 'nearest' }); } catch {}
+  }
+  if (prevId) {
+    const prevTab = tabs.find(t => t.id === prevId);
+    if (prevTab) updateTabRowFor(prevTab);
+  }
+}
+
+function doesSystemPromptExist(id) {
+  const store = systemPromptStore || ensureSystemPromptStore();
+  return !!store.prompts.find(p => p && p.id === id);
+}
+
+function buildDiffHtml(originalText, modifiedText) {
+  const unifiedDiff = createTwoFilesPatch(
+    'original',
+    'modified',
+    originalText || '',
+    modifiedText || '',
+    '',
+    '',
+    { context: Number.MAX_SAFE_INTEGER }
+  );
+  return Diff2Html.html(unifiedDiff, {
+    drawFileList: false,
+    matching: 'none',
+    outputFormat: 'side-by-side',
+    synchronisedScroll: true,
+    colorScheme: document.body.classList.contains('dark') ? 'dark' : 'light'
+  });
+}
+
+async function openHistoryItemInNewTab(historyId) {
+  const payload = await loadHistoryPayload(historyId);
+  if (!payload) {
+    alert('Could not load this history item (it may have been cleared or storage is corrupted).');
+    return;
+  }
+
+  ensureSystemPromptStore();
+  const fileName = (payload.inputFileName || 'file.txt').trim() || 'file.txt';
+  const tab = makeTab(`🕘 ${fileName}`);
+  tab.labelCustomized = true;
+
+  tab.selectedModel = payload.model || tab.selectedModel;
+  tab.systemPromptId = doesSystemPromptExist(payload.sysPromptId) ? payload.sysPromptId : DEFAULT_SYS_PROMPT_ID;
+
+  tab.diffText = payload.diffText || '';
+  tab.modelText = payload.inputText || '';
+  tab.originalFileName = fileName;
+  tab.modifiedText = payload.outputText || '';
+  tab.errorText = '';
+  tab.retryCount = 0;
+  tab.lastDurationMs = Number.isFinite(Number(payload.durationMs)) ? Number(payload.durationMs) : null;
+  tab.lastTokenCount = Number.isFinite(Number(payload.tokenCount)) ? Number(payload.tokenCount) : null;
+
+  if (tab.modelText && tab.modifiedText) {
+    const html = buildDiffHtml(tab.modelText, tab.modifiedText);
+    const holder = ensureTabDiffDom(tab);
+    if (holder) holder.innerHTML = html;
+  }
+
+  addTabAndSelect(tab);
 }
 
 async function deriveAesKeyFromPin(pin, saltBytes, iterations) {
@@ -1248,8 +1744,9 @@ function closeTabRenameModal() {
   const closeOpen = !document.getElementById('tabCloseOverlay')?.classList.contains('hidden');
   const sysOpen = !document.getElementById('sysPromptOverlay')?.classList.contains('hidden');
   const aboutOpen = !document.getElementById('aboutOverlay')?.classList.contains('hidden');
+  const historyOpen = !document.getElementById('historyOverlay')?.classList.contains('hidden');
 
-  if (!helpOpen && !apiOpen && !typeOpen && !renameOpen && !closeOpen && !sysOpen && !aboutOpen) {
+  if (!helpOpen && !apiOpen && !typeOpen && !renameOpen && !closeOpen && !sysOpen && !aboutOpen && !historyOpen) {
     document.body.classList.remove('modal-open');
   }
 
@@ -1303,8 +1800,9 @@ function saveTabRename() {
    const closeOpen = !overlay.classList.contains('hidden');
    const sysOpen = !document.getElementById('sysPromptOverlay')?.classList.contains('hidden');
    const aboutOpen = !document.getElementById('aboutOverlay')?.classList.contains('hidden');
+   const historyOpen = !document.getElementById('historyOverlay')?.classList.contains('hidden');
 
-   if (!helpOpen && !apiOpen && !typeOpen && !renameOpen && !closeOpen && !sysOpen && !aboutOpen) {
+   if (!helpOpen && !apiOpen && !typeOpen && !renameOpen && !closeOpen && !sysOpen && !aboutOpen && !historyOpen) {
      document.body.classList.remove('modal-open');
    }
 
@@ -1496,8 +1994,9 @@ function closeApiKeyModal({ force = false } = {}) {
   const typeOpen = !document.getElementById('keyTypeOverlay')?.classList.contains('hidden');
   const sysOpen = !document.getElementById('sysPromptOverlay')?.classList.contains('hidden');
   const aboutOpen = !document.getElementById('aboutOverlay')?.classList.contains('hidden');
+  const historyOpen = !document.getElementById('historyOverlay')?.classList.contains('hidden');
 
-  if (!helpOpen && !renameOpen && !apiOpen && !closeOpen && !typeOpen && !sysOpen && !aboutOpen) {
+  if (!helpOpen && !renameOpen && !apiOpen && !closeOpen && !typeOpen && !sysOpen && !aboutOpen && !historyOpen) {
     document.body.classList.remove('modal-open');
   }
 
@@ -1696,7 +2195,8 @@ function closeKeyTypeModal({ force = false } = {}) {
   const typeOpen = !overlay.classList.contains('hidden');
   const sysOpen = !document.getElementById('sysPromptOverlay')?.classList.contains('hidden');
   const aboutOpen = !document.getElementById('aboutOverlay')?.classList.contains('hidden');
-  if (!helpOpen && !apiOpen && !renameOpen && !closeOpen && !typeOpen && !sysOpen && !aboutOpen) {
+  const historyOpen = !document.getElementById('historyOverlay')?.classList.contains('hidden');
+  if (!helpOpen && !apiOpen && !renameOpen && !closeOpen && !typeOpen && !sysOpen && !aboutOpen && !historyOpen) {
     document.body.classList.remove('modal-open');
   }
   keyTypeBlocking = false;
@@ -1723,15 +2223,16 @@ function closeHelp() {
   const helpOpen = !overlay.classList.contains('hidden');
   const sysOpen = !document.getElementById('sysPromptOverlay')?.classList.contains('hidden');
   const aboutOpen = !document.getElementById('aboutOverlay')?.classList.contains('hidden');
+  const historyOpen = !document.getElementById('historyOverlay')?.classList.contains('hidden');
  
-  if (!apiOpen && !typeOpen && !renameOpen && !closeOpen && !helpOpen && !sysOpen && !aboutOpen) {
+  if (!apiOpen && !typeOpen && !renameOpen && !closeOpen && !helpOpen && !sysOpen && !aboutOpen && !historyOpen) {
     document.body.classList.remove('modal-open');
   }
  }
 
 // -------------------------
- // About modal
- // -------------------------
+// About modal
+// -------------------------
 let aboutInfoCache = null;
 
 async function getAboutInfo() {
@@ -1824,8 +2325,9 @@ function closeAbout() {
   const closeOpen = !document.getElementById('tabCloseOverlay')?.classList.contains('hidden');
   const sysOpen = !document.getElementById('sysPromptOverlay')?.classList.contains('hidden');
   const aboutOpen = !overlay.classList.contains('hidden');
+  const historyOpen = !document.getElementById('historyOverlay')?.classList.contains('hidden');
 
-  if (!helpOpen && !apiOpen && !typeOpen && !renameOpen && !closeOpen && !sysOpen && !aboutOpen) {
+  if (!helpOpen && !apiOpen && !typeOpen && !renameOpen && !closeOpen && !sysOpen && !aboutOpen && !historyOpen) {
     document.body.classList.remove('modal-open');
   }
  }
@@ -1982,8 +2484,9 @@ function closeSysPromptModal() {
   const closeOpen = !document.getElementById('tabCloseOverlay')?.classList.contains('hidden');
   const sysOpen = !overlay.classList.contains('hidden');
   const aboutOpen = !document.getElementById('aboutOverlay')?.classList.contains('hidden');
+  const historyOpen = !document.getElementById('historyOverlay')?.classList.contains('hidden');
 
-  if (!helpOpen && !apiOpen && !typeOpen && !renameOpen && !closeOpen && !sysOpen && !aboutOpen) {
+  if (!helpOpen && !apiOpen && !typeOpen && !renameOpen && !closeOpen && !sysOpen && !aboutOpen && !historyOpen) {
     document.body.classList.remove('modal-open');
   }
 
@@ -2161,6 +2664,10 @@ window.addEventListener('load', () => {
   const storedTheme = localStorage.getItem('theme') || 'light';
   document.body.classList.toggle('dark', storedTheme === 'dark');
   ipcRenderer.send('theme:state', storedTheme);
+
+  // Header icon + tab active highlight should be ready ASAP
+  void setAppHeaderIcon();
+  syncTabActiveHighlightFromNewTabButton();
 
   // Setup context menu
   document.body.addEventListener('contextmenu', handleContextMenu);
@@ -2424,8 +2931,10 @@ window.addEventListener('load', () => {
     const aboutOpen = aboutOverlay && !aboutOverlay.classList.contains('hidden');
     const closeOpen = tabCloseOverlay && !tabCloseOverlay.classList.contains('hidden');
     const sysOpen = sp.overlay && !sp.overlay.classList.contains('hidden');
+    const histOpen = historyOverlay && !historyOverlay.classList.contains('hidden');
 
-    if (sysOpen) closeSysPromptModal();
+    if (histOpen) closeHistoryModal();
+    else if (sysOpen) closeSysPromptModal();
     else if (aboutOpen) closeAbout();
     else if (closeOpen) closeTabCloseModal();
     else if (renameOpen) closeTabRenameModal();
@@ -2434,6 +2943,49 @@ window.addEventListener('load', () => {
     }
     else if (helpOpen) closeHelp();
   });
+
+  // --- History modal wiring ---
+  const historyOverlay = document.getElementById('historyOverlay');
+  const historyCloseBtn = document.getElementById('historyCloseBtn');
+  const historyOkBtn = document.getElementById('historyOkBtn');
+  const historyClearBtn = document.getElementById('historyClearBtn');
+  const historyPrevBtn = document.getElementById('historyPrevBtn');
+  const historyNextBtn = document.getElementById('historyNextBtn');
+  const historyList = document.getElementById('historyList');
+
+  if (historyCloseBtn) historyCloseBtn.addEventListener('click', closeHistoryModal);
+  if (historyOkBtn) historyOkBtn.addEventListener('click', closeHistoryModal);
+  if (historyPrevBtn) historyPrevBtn.addEventListener('click', () => { historyPage = Math.max(0, historyPage - 1); void renderHistoryPage(); });
+  if (historyNextBtn) historyNextBtn.addEventListener('click', () => { historyPage = historyPage + 1; void renderHistoryPage(); });
+
+  if (historyClearBtn) {
+    historyClearBtn.addEventListener('click', () => {
+      const ok = confirm('Clear all history? This cannot be undone.');
+      if (!ok) return;
+      clearAllHistory();
+      historyIndexCache = loadHistoryIndex();
+      historyPage = 0;
+      void renderHistoryPage();
+    });
+  }
+
+  if (historyOverlay) {
+    historyOverlay.addEventListener('click', (e) => {
+      if (e.target === historyOverlay) closeHistoryModal();
+    });
+  }
+
+  if (historyList && historyList.dataset.delegated !== '1') {
+    historyList.dataset.delegated = '1';
+    historyList.addEventListener('click', (e) => {
+      const btn = e.target?.closest?.('button[data-action="open-history"]');
+      const id = btn?.dataset?.historyId;
+      if (!id) return;
+      void openHistoryItemInNewTab(id).then(() => {
+        closeHistoryModal();
+      });
+    });
+  }
 
   // --- Go to top (appears when scrolling the main body) ---
   const mainScroll = document.getElementById('mainScroll');
@@ -2464,6 +3016,8 @@ ipcRenderer.on('theme:set', (_evt, theme) => {
   // Re-theme an already-rendered diff without regenerating HTML
   syncDiff2HtmlTheme();
 
+  // Keep tab active highlight matched to "+" in both themes
+  syncTabActiveHighlightFromNewTabButton();
   // keep the menu checkbox in sync
   ipcRenderer.send('theme:state', shouldDark ? 'dark' : 'light');
 });
@@ -2486,6 +3040,10 @@ ipcRenderer.on('diffnav:next', () => {
 
 ipcRenderer.on('sysprompt:open', () => {
   openSysPromptModal({ tabId: activeTabId });
+});
+
+ipcRenderer.on('history:open', () => {
+  openHistoryModal();
 });
 
 ipcRenderer.on('apikey:open', (_evt, payload) => {
@@ -2727,6 +3285,25 @@ async function applyPatch({ isRetry = false } = {}) {
     tab.diffHtml = ''; // legacy fallback not needed
     tab.errorText = '';
     tab.retryCount = 0;
+
+    // ✅ Store history at the moment we have a successful output (all heavy fields compressed)
+    try {
+      const spObj = getSystemPromptById(systemPromptIdSnapshot || DEFAULT_SYS_PROMPT_ID);
+      void addHistoryEntry({
+        ts: Date.now(),
+        model: selectedModelSnapshot,
+        provider,
+        sysPromptId: systemPromptIdSnapshot,
+        sysPromptName: spObj?.name || 'Default',
+        sysPromptContent: systemPromptSnapshot,
+        diffText: diffTextSnapshot,
+        inputText: modelContentSnapshot,
+        outputText: modified,
+        inputFileName: tab.originalFileName || originalFileName || 'file.txt',
+        durationMs: tab.lastDurationMs,
+        tokenCount: tab.lastTokenCount
+      });
+    } catch {}
 
     // If user is NOT viewing that tab, parse diff into the tab's hidden DOM cache now
     // (so switching later is instant; no innerHTML parse on tab switch)

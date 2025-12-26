@@ -102,11 +102,93 @@ body { padding: 0; }                 /* move padding to .main so layout is even 
   padding: 20px;        /* keeps your original main padding */
 }
 
+/* =========================
+   History modal
+   ========================= */
+.history-toolbar{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  margin-bottom:10px;
+}
+.history-hint{
+  font-size:12px;
+  opacity:0.85;
+  line-height:1.2;
+}
+.history-list{
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+}
+.history-row{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  padding:10px;
+  border:1px solid #ddd;
+  border-radius:10px;
+  background:rgba(0,0,0,0.02);
+}
+body.dark .history-row{
+  border-color:#444;
+  background:rgba(255,255,255,0.05);
+}
+.history-left{
+  display:flex;
+  flex-direction:column;
+  min-width:0;
+  gap:2px;
+}
+.history-date{
+  font-weight:600;
+  white-space:nowrap;
+}
+.history-meta{
+  font-size:12px;
+  opacity:0.8;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  max-width:520px;
+}
+.history-actions{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  flex:0 0 auto;
+}
+.history-open-btn{
+  padding:6px 10px;
+}
+.history-pagination{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  margin-top:12px;
+}
+.history-page{
+  font-size:12px;
+  opacity:0.85;
+}
+
+
 /* Title in topbar */
 .main-title {
   font-weight: 700;
   color: #333;
 }
+
+/* App icon in main header (loaded from extraResources via renderer.js) */
+.main-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+.app-icon { width: 22px; height: 22px; object-fit: contain; }
 
 /* Flush topbar buttons (full height, no rounding) */
 .topbar-btn {
@@ -213,9 +295,10 @@ body { padding: 0; }                 /* move padding to .main so layout is even 
 }
 
 .tab-item.active {
-  background: #ffffff;
-  border-color: rgba(0, 123, 255, 0.45);
-  border-left-color: #007bff;
+  /* Active tab highlight should match the "+" button in the sidebar topbar */
+  background: var(--tab-active-bg, #ffffff);
+  border-color: var(--tab-active-border, rgba(0, 123, 255, 0.45));
+  border-left-color: var(--tab-active-accent, #007bff);
   color: #111;
 }
 
@@ -244,7 +327,7 @@ body { padding: 0; }                 /* move padding to .main so layout is even 
 }
 
 .tab-item:focus-visible {
-  outline: 2px solid rgba(0, 123, 255, 0.55);
+  outline: 2px solid var(--tab-active-focus, rgba(0, 123, 255, 0.55));
   outline-offset: 2px;
 }
 
@@ -306,6 +389,23 @@ body.dark .tab-item:focus-visible {
 
 body.dark .tab-close:hover {
   background: rgba(217, 210, 200, 0.10);
+}
+
+/* Output area: when empty, keep a sensible height so the floating buttons don't overstep */
+#output:empty {
+  min-height: 140px;
+}
+
+/* Sticky action buttons: lock to the exact container box to prevent horizontal "jump" */
+.ta-actions--stuck {
+  position: fixed !important;
+  top: var(--ta-stuck-top, 0px) !important;
+  left: var(--ta-stuck-left, 0px) !important;
+  width: var(--ta-stuck-width, auto) !important;
+  right: auto !important;
+  box-sizing: border-box;
+  display: flex;
+  justify-content: flex-end;
 }
 
 /* Optional: slightly emphasize busy tabs */
