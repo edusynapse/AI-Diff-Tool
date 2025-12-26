@@ -360,6 +360,54 @@ select {
   border-radius: 4px;
 }
 
+/* =========================
+   About modal tweaks
+   1) Max width 400px
+   2) Center-align all body content (except header + bottom Close footer)
+   3) Creator image ~2x size
+   ========================= */
+#aboutOverlay .modal-content.modal-about {
+  width: min(400px, calc(100vw - 28px));
+  max-width: 400px;
+}
+
+/* Center everything inside the modal BODY only (header + modal-footer untouched) */
+#aboutOverlay .modal-content.modal-about .modal-body {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Make the creator image ~2x (was previously much smaller) */
+#aboutOverlay .modal-content.modal-about .about-image {
+  width: 160px;
+  height: auto;
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Center meta rows (Creator / Email) */
+#aboutOverlay .modal-content.modal-about .about-meta {
+  width: 100%;
+}
+#aboutOverlay .modal-content.modal-about .about-row {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Center Donate/GitHub button row */
+#aboutOverlay .modal-content.modal-about .about-actions {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
 /* File picker rows: don't stretch across the full width.
    Keep a small default width when no file is chosen, and expand to fit filename (up to container). */
 input[type="file"] {
@@ -383,6 +431,68 @@ button:disabled { background: #ccc; cursor: not-allowed; }
 #copyBtn { position: static; }
 #error { color: red; margin-top: 10px; }
 #loading { text-align: center; margin: 20px; }
+/* =========================
+   About modal
+   ========================= */
+.about-thanks {
+  font-size: 14px;
+  opacity: 0.9;
+  margin-bottom: 8px;
+}
+
+.about-app-name {
+  font-size: 20px;
+  font-weight: 700;
+  margin-bottom: 10px;
+}
+
+.about-image {
+  display: block;
+  width: 72px;
+  height: 72px;
+  object-fit: contain;
+  margin: 10px auto 14px;
+  border-radius: 12px;
+}
+
+.about-meta { margin: 8px 0 10px; }
+.about-row {
+  display: flex;
+  gap: 12px;
+  margin: 6px 0;
+  align-items: baseline;
+}
+.about-label {
+  min-width: 70px;
+  font-weight: 700;
+  opacity: 0.9;
+}
+.about-value a { word-break: break-word; }
+
+.about-actions {
+  display: flex;
+  gap: 10px;
+  margin: 14px 0 6px;
+  flex-wrap: wrap;
+}
+/* override global button margin-right inside About actions */
+.about-actions button { margin-right: 0; }
+
+.about-footer { margin-top: 10px; }
+.about-license {
+  padding-top: 10px;
+  border-top: 1px solid #ddd;
+  font-size: 13px;
+}
+.about-license-title { font-weight: 700; margin-bottom: 6px; }
+.about-version {
+  margin-top: 10px;
+  font-size: 12px;
+  opacity: 0.75;
+  text-align: right;
+}
+body.dark .about-license { border-top-color: #333; }
+
 .spinner { border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; width: 20px; height: 20px; animation: spin 1s linear infinite; display: inline-block; }
 @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 @media (max-width: 600px) { .main { padding: 10px; } textarea { height: 150px; } }

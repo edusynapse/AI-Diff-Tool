@@ -2,6 +2,7 @@ const OpenAI = require('openai');  // Loaded via Node integration
 const { createTwoFilesPatch } = require('diff');  // For computing diff
 const Diff2Html = require('diff2html');  // For rendering as HTML
 const { ipcRenderer } = require('electron');
+const { pathToFileURL } = require('url');
 const MAX_RETRIES = 3;
 const MAX_FILE_SIZE_MB = 5;  // Warn if larger; adjust based on API limits
 let originalFileName = 'file.txt';  // Default for pasted content
@@ -1246,8 +1247,9 @@ function closeTabRenameModal() {
   const renameOpen = !overlay.classList.contains('hidden');
   const closeOpen = !document.getElementById('tabCloseOverlay')?.classList.contains('hidden');
   const sysOpen = !document.getElementById('sysPromptOverlay')?.classList.contains('hidden');
+  const aboutOpen = !document.getElementById('aboutOverlay')?.classList.contains('hidden');
 
-  if (!helpOpen && !apiOpen && !typeOpen && !renameOpen && !closeOpen && !sysOpen) {
+  if (!helpOpen && !apiOpen && !typeOpen && !renameOpen && !closeOpen && !sysOpen && !aboutOpen) {
     document.body.classList.remove('modal-open');
   }
 
@@ -1300,8 +1302,9 @@ function saveTabRename() {
    const renameOpen = !document.getElementById('tabRenameOverlay')?.classList.contains('hidden');
    const closeOpen = !overlay.classList.contains('hidden');
    const sysOpen = !document.getElementById('sysPromptOverlay')?.classList.contains('hidden');
+   const aboutOpen = !document.getElementById('aboutOverlay')?.classList.contains('hidden');
 
-   if (!helpOpen && !apiOpen && !typeOpen && !renameOpen && !closeOpen && !sysOpen) {
+   if (!helpOpen && !apiOpen && !typeOpen && !renameOpen && !closeOpen && !sysOpen && !aboutOpen) {
      document.body.classList.remove('modal-open');
    }
 
@@ -1492,8 +1495,9 @@ function closeApiKeyModal({ force = false } = {}) {
   const closeOpen = !document.getElementById('tabCloseOverlay')?.classList.contains('hidden');
   const typeOpen = !document.getElementById('keyTypeOverlay')?.classList.contains('hidden');
   const sysOpen = !document.getElementById('sysPromptOverlay')?.classList.contains('hidden');
+  const aboutOpen = !document.getElementById('aboutOverlay')?.classList.contains('hidden');
 
-  if (!helpOpen && !renameOpen && !apiOpen && !closeOpen && !typeOpen && !sysOpen) {
+  if (!helpOpen && !renameOpen && !apiOpen && !closeOpen && !typeOpen && !sysOpen && !aboutOpen) {
     document.body.classList.remove('modal-open');
   }
 
@@ -1691,7 +1695,8 @@ function closeKeyTypeModal({ force = false } = {}) {
   const closeOpen = !document.getElementById('tabCloseOverlay')?.classList.contains('hidden');
   const typeOpen = !overlay.classList.contains('hidden');
   const sysOpen = !document.getElementById('sysPromptOverlay')?.classList.contains('hidden');
-  if (!helpOpen && !apiOpen && !renameOpen && !closeOpen && !typeOpen && !sysOpen) {
+  const aboutOpen = !document.getElementById('aboutOverlay')?.classList.contains('hidden');
+  if (!helpOpen && !apiOpen && !renameOpen && !closeOpen && !typeOpen && !sysOpen && !aboutOpen) {
     document.body.classList.remove('modal-open');
   }
   keyTypeBlocking = false;
@@ -1717,8 +1722,110 @@ function closeHelp() {
   const closeOpen = !document.getElementById('tabCloseOverlay')?.classList.contains('hidden');
   const helpOpen = !overlay.classList.contains('hidden');
   const sysOpen = !document.getElementById('sysPromptOverlay')?.classList.contains('hidden');
+  const aboutOpen = !document.getElementById('aboutOverlay')?.classList.contains('hidden');
  
-  if (!apiOpen && !typeOpen && !renameOpen && !closeOpen && !helpOpen && !sysOpen) {
+  if (!apiOpen && !typeOpen && !renameOpen && !closeOpen && !helpOpen && !sysOpen && !aboutOpen) {
+    document.body.classList.remove('modal-open');
+  }
+ }
+
+// -------------------------
+ // About modal
+ // -------------------------
+let aboutInfoCache = null;
+
+async function getAboutInfo() {
+  try {
+    // Fetch from main process (bundled settings + app version/name)
+    const info = await ipcRenderer.invoke('about:getInfo');
+    return info || null;
+  } catch {
+    return null;
+  }
+}
+
+async function setAboutCreatorImage() {
+  const img = document.getElementById('aboutCreatorImg');
+  if (!img) return;
+
+  const p = await ipcRenderer.invoke('creator-image-path');
+  if (!p) return;
+
+  // safest cross-platform (Windows/Linux/macOS)
+  img.src = pathToFileURL(p).href;
+}
+
+function fillAboutUi(info) {
+  const appNameEl = document.getElementById('aboutAppName');
+  const creatorNameEl = document.getElementById('aboutCreatorName');
+  const creatorEmailEl = document.getElementById('aboutCreatorEmail');
+  const versionEl = document.getElementById('aboutVersion');
+  const donateBtn = document.getElementById('aboutDonateBtn');
+  const githubBtn = document.getElementById('aboutGitHubBtn');
+
+  const appName = (info?.appName || 'AI Diff Tool').trim();
+  const creatorName = (info?.creatorName || '').trim();
+  const creatorEmail = (info?.creatorEmail || '').trim();
+  const version = (info?.version || '').trim();
+  const donationUrl = (info?.donationUrl || '').trim();
+  const githubUrl = (info?.githubUrl || '').trim();
+
+  if (appNameEl) appNameEl.textContent = appName;
+  if (creatorNameEl) creatorNameEl.textContent = creatorName;
+
+  if (creatorEmailEl) {
+    creatorEmailEl.textContent = creatorEmail;
+    // mailto: is fine for display + click
+    creatorEmailEl.href = creatorEmail ? `mailto:${creatorEmail}` : '#';
+  }
+
+  if (versionEl) versionEl.textContent = version || '';
+
+  if (donateBtn) {
+    donateBtn.dataset.url = donationUrl;
+    const enabled = !!donationUrl;
+    donateBtn.disabled = !enabled;
+    donateBtn.title = enabled ? 'Open donation page' : 'Donation link not configured (set it in ABOUT_SETTINGS before build)';
+  }
+
+  if (githubBtn) {
+    githubBtn.dataset.url = githubUrl;
+    githubBtn.disabled = !githubUrl;
+    githubBtn.title = githubUrl ? 'Open GitHub repository' : 'GitHub URL not configured';
+  }
+}
+
+async function openAbout() {
+  const overlay = document.getElementById('aboutOverlay');
+  if (!overlay) return;
+
+  overlay.classList.remove('hidden');
+  document.body.classList.add('modal-open');
+
+  // Load once per session (fast), but still safe if null
+  if (!aboutInfoCache) aboutInfoCache = await getAboutInfo();
+  fillAboutUi(aboutInfoCache || {});
+
+  await setAboutCreatorImage();  // ✅ THIS is “renderer placement”
+
+  document.getElementById('aboutCloseBtn')?.focus();
+}
+
+function closeAbout() {
+  const overlay = document.getElementById('aboutOverlay');
+  if (!overlay) return;
+  overlay.classList.add('hidden');
+
+  // Only remove modal-open if *no* other modal is open
+  const helpOpen = !document.getElementById('helpOverlay')?.classList.contains('hidden');
+  const apiOpen = !document.getElementById('apiKeyOverlay')?.classList.contains('hidden');
+  const typeOpen = !document.getElementById('keyTypeOverlay')?.classList.contains('hidden');
+  const renameOpen = !document.getElementById('tabRenameOverlay')?.classList.contains('hidden');
+  const closeOpen = !document.getElementById('tabCloseOverlay')?.classList.contains('hidden');
+  const sysOpen = !document.getElementById('sysPromptOverlay')?.classList.contains('hidden');
+  const aboutOpen = !overlay.classList.contains('hidden');
+
+  if (!helpOpen && !apiOpen && !typeOpen && !renameOpen && !closeOpen && !sysOpen && !aboutOpen) {
     document.body.classList.remove('modal-open');
   }
  }
@@ -1874,8 +1981,9 @@ function closeSysPromptModal() {
   const renameOpen = !document.getElementById('tabRenameOverlay')?.classList.contains('hidden');
   const closeOpen = !document.getElementById('tabCloseOverlay')?.classList.contains('hidden');
   const sysOpen = !overlay.classList.contains('hidden');
+  const aboutOpen = !document.getElementById('aboutOverlay')?.classList.contains('hidden');
 
-  if (!helpOpen && !apiOpen && !typeOpen && !renameOpen && !closeOpen && !sysOpen) {
+  if (!helpOpen && !apiOpen && !typeOpen && !renameOpen && !closeOpen && !sysOpen && !aboutOpen) {
     document.body.classList.remove('modal-open');
   }
 
@@ -2117,6 +2225,36 @@ window.addEventListener('load', () => {
     });
   }
 
+  // --- About overlay wiring ---
+  const aboutOverlay = document.getElementById('aboutOverlay');
+  const aboutCloseBtn = document.getElementById('aboutCloseBtn');
+  const aboutOkBtn = document.getElementById('aboutOkBtn');
+  const aboutDonateBtn = document.getElementById('aboutDonateBtn');
+  const aboutGitHubBtn = document.getElementById('aboutGitHubBtn');
+
+  if (aboutCloseBtn) aboutCloseBtn.addEventListener('click', closeAbout);
+  if (aboutOkBtn) aboutOkBtn.addEventListener('click', closeAbout);
+
+  if (aboutOverlay) {
+    aboutOverlay.addEventListener('click', (e) => {
+      if (e.target === aboutOverlay) closeAbout();
+    });
+  }
+
+  // External open for Donate/GitHub (URLs injected on openAbout)
+  if (aboutDonateBtn) {
+    aboutDonateBtn.addEventListener('click', () => {
+      const url = (aboutDonateBtn.dataset.url || '').trim();
+      if (url) ipcRenderer.send('external:open', url);
+    });
+  }
+  if (aboutGitHubBtn) {
+    aboutGitHubBtn.addEventListener('click', () => {
+      const url = (aboutGitHubBtn.dataset.url || '').trim();
+      if (url) ipcRenderer.send('external:open', url);
+    });
+  }
+
   // --- API key modal wiring ---
   const apiOverlay = document.getElementById('apiKeyOverlay');
   const apiCloseBtn = document.getElementById('apiKeyCloseBtn');
@@ -2283,10 +2421,12 @@ window.addEventListener('load', () => {
     const renameOpen = renameOverlay && !renameOverlay.classList.contains('hidden');
     const apiOpen = apiOverlay && !apiOverlay.classList.contains('hidden');
     const helpOpen = overlay && !overlay.classList.contains('hidden');
+    const aboutOpen = aboutOverlay && !aboutOverlay.classList.contains('hidden');
     const closeOpen = tabCloseOverlay && !tabCloseOverlay.classList.contains('hidden');
     const sysOpen = sp.overlay && !sp.overlay.classList.contains('hidden');
 
     if (sysOpen) closeSysPromptModal();
+    else if (aboutOpen) closeAbout();
     else if (closeOpen) closeTabCloseModal();
     else if (renameOpen) closeTabRenameModal();
     else if (apiOpen) {
@@ -2331,6 +2471,10 @@ ipcRenderer.on('theme:set', (_evt, theme) => {
 ipcRenderer.on('help:open', () => {
   openHelp();
  });
+
+ipcRenderer.on('about:open', () => {
+  void openAbout();
+});
 
 ipcRenderer.on('diffnav:prev', () => {
   scrollToChange(-1);

@@ -1,11 +1,49 @@
-const { app, BrowserWindow, Menu, ipcMain } = require('electron');
+const { app, BrowserWindow, Menu, ipcMain, shell} = require('electron');
 const path = require('path');  
 
 let isDark = false;
 
+// About/settings (bundled inside app.asar when packaged)
+// These are the values you asked to come from "settings within the app bundle".
+// Donation URL intentionally empty for now; set it before building.
+const ABOUT_SETTINGS = Object.freeze({
+  creatorName: 'Surajit Ray',
+  creatorEmail: 'surajit@edusynapse.com',
+  githubUrl: 'https://github.com/edusynapse/AI-Diff-Tool',
+  donationUrl: '' // set before build
+});
+
 const iconPath = app.isPackaged
   ? path.join(process.resourcesPath, 'icons', '512x512.png')
   : path.join(__dirname, 'build', 'icons', '512x512.png');
+
+ipcMain.handle('about:getInfo', () => {
+  return {
+    appName: app.getName(),
+    version: app.getVersion(),
+    ...ABOUT_SETTINGS
+  };
+});
+
+ipcMain.handle("creator-image-path", () => {
+  if (!app.isPackaged) {
+    return path.join(__dirname, "build", "creator.png"); // dev
+  }
+  return path.join(process.resourcesPath, "creator.png"); // packaged
+});
+
+
+function isAllowedExternalUrl(url) {
+  const u = String(url || '').trim();
+  return /^https?:\/\/\S+/i.test(u);
+}
+
+ipcMain.on('external:open', (_evt, url) => {
+  const u = String(url || '').trim();
+  if (!u) return;
+  if (!isAllowedExternalUrl(u)) return;
+  void shell.openExternal(u);
+});
 
 function createAppMenu() {
   const isMac = process.platform === 'darwin';
@@ -172,6 +210,16 @@ function createAppMenu() {
             const win = BrowserWindow.getFocusedWindow() || BrowserWindow.getAllWindows()[0];
             if (win && !win.isDestroyed()) {
               win.webContents.send('help:open');
+            }
+          }
+        },
+        { type: 'separator' },
+        {
+          label: 'About…',
+          click: () => {
+            const win = BrowserWindow.getFocusedWindow() || BrowserWindow.getAllWindows()[0];
+            if (win && !win.isDestroyed()) {
+              win.webContents.send('about:open');
             }
           }
         }

@@ -31,7 +31,14 @@
       "buildResources": "build"
     },
     "extraResources": [
-      { "from": "build/icons", "to": "icons" }
+      {
+        "from": "build/icons",
+        "to": "icons"
+      },
+      {
+        "from": "build/creator.png",
+        "to": "creator.png"
+      }
     ]
   }
 }
