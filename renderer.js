@@ -229,22 +229,48 @@ function syncTabActiveHighlightFromNewTabButton() {
   const cs = window.getComputedStyle(btn);
   const bg = cs.backgroundColor;
   const fg = cs.color;
+  const border =
+    cs.borderTopColor ||
+    cs.borderLeftColor ||
+    cs.borderColor ||
+    '';
 
   // Prefer a "real" background; if it's effectively transparent, fall back to the text color.
   const bgParts = _parseCssColorToRgbaParts(bg);
   const fgParts = _parseCssColorToRgbaParts(fg);
+  const bdParts = _parseCssColorToRgbaParts(border);
 
-  let accentParts = bgParts;
-  if (!accentParts || accentParts.a < 0.12) accentParts = fgParts;
-  if (!accentParts) return;
+  // We want the ACTIVE TAB background to match the "+" button background.
+  // On some themes the "+" bg may compute as fully transparent; in that case,
+  // prefer the button border color (and ONLY as a last resort use the text color).
+  const hasRealBg = !!(bgParts && bgParts.a >= 0.04);
+  const baseParts =
+    hasRealBg ? bgParts :
+    (bdParts && bdParts.a >= 0.04) ? bdParts :
+    fgParts;
+  if (!baseParts) return;
 
   const root = document.documentElement;
-  // Keep background as a subtle tint; keep the indicator/border more prominent.
-  root.style.setProperty('--tab-active-bg', _rgba(accentParts, 0.14));
-  root.style.setProperty('--tab-active-border', _rgba(accentParts, 0.55));
-  root.style.setProperty('--tab-active-accent', _rgba(accentParts, 1));
-  root.style.setProperty('--tab-active-focus', _rgba(accentParts, 0.60));
-}
+
+  // 1) Background: match actual "+" bg if it exists (preserve its alpha).
+  //    Otherwise synthesize a subtle shade that is still visible.
+  if (hasRealBg) {
+    root.style.setProperty('--tab-active-bg', bg);
+  } else {
+    root.style.setProperty('--tab-active-bg', _rgba(baseParts, 0.16));
+  }
+
+  // 2) Border/indicator: slightly stronger than bg, still subtle in dark mode.
+  //    If the "+" has a real border, use it directly.
+  if (bdParts && bdParts.a >= 0.04) {
+    root.style.setProperty('--tab-active-border', border);
+  } else {
+    root.style.setProperty('--tab-active-border', _rgba(baseParts, 0.22));
+  }
+
+  root.style.setProperty('--tab-active-accent', _rgba(baseParts, 0.70));
+  root.style.setProperty('--tab-active-focus', _rgba(baseParts, 0.35));
+ }
 
 // -------------------------
 // Model timing (X mins and Y seconds)
