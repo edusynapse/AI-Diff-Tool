@@ -14,6 +14,113 @@ const PROVIDER_XAI = 'xai';
 const PROVIDER_OPENAI = 'openai';
 const PROVIDERS = [PROVIDER_XAI, PROVIDER_OPENAI];
 
+// -------------------------
+// System prompts (Default + up to 4 custom, total 5 incl Default)
+// -------------------------
+const SYS_PROMPTS_LS_KEY = 'system_prompts_v1';
+const SYS_PROMPTS_MAX = 5;
+const DEFAULT_SYS_PROMPT_ID = 'default';
+
+const DEFAULT_SYSTEM_PROMPT = [
+  'You are an expert at applying unified diff patches to files accurately.',
+  'The diff maybe a git style diff patch or a set of instructions with places to change in the target file code with micro diffs.',
+  'It also may be general instruction set - like for example to replace something everywhere in the file.',
+  '',
+  'CRITICAL RULE:',
+  'If the diff patch is not applicable with the provided original file content , DO NOT guess and DO NOT fabricate output.',
+  'Do this if the target file is wrong, or the diff refers to a different file, or some other file is pasted instead of diff etc.',
+  '',
+  'In that case, output an error commentary ONLY using this exact format:',
+  'ERROR: <one-line reason>',
+  '- <optional hint 1>',
+  '- <optional hint 2>',
+  '',
+  'Otherwise, output ONLY the full modified file content after applying the patch.',
+  'No explanations, no extra text, and no code fences.'
+].join('\n');
+
+let systemPromptStore = null; // { v, prompts: [] }
+
+function _sysNow() { return Date.now(); }
+
+function loadSystemPromptStore() {
+  const raw = localStorage.getItem(SYS_PROMPTS_LS_KEY);
+  if (!raw) return null;
+  try {
+    const obj = JSON.parse(raw);
+    if (!obj || obj.v !== 1 || !Array.isArray(obj.prompts)) return null;
+    return obj;
+  } catch {
+    return null;
+  }
+}
+
+function saveSystemPromptStore(store) {
+  localStorage.setItem(SYS_PROMPTS_LS_KEY, JSON.stringify(store));
+}
+
+function ensureSystemPromptStore() {
+  let store = loadSystemPromptStore();
+  if (!store) store = { v: 1, prompts: [] };
+
+  // Ensure Default exists and is always the current built-in prompt (reset behaviour)
+  const now = _sysNow();
+  const idx = store.prompts.findIndex(p => p && p.id === DEFAULT_SYS_PROMPT_ID);
+  const defObj = {
+    id: DEFAULT_SYS_PROMPT_ID,
+    name: 'Default',
+    content: DEFAULT_SYSTEM_PROMPT,
+    locked: true,
+    createdAt: now,
+    updatedAt: now
+  };
+
+  if (idx === -1) {
+    store.prompts.unshift(defObj);
+  } else {
+    const existing = store.prompts[idx] || {};
+    store.prompts[idx] = {
+      ...existing,
+      ...defObj,
+      createdAt: existing.createdAt || now,
+      updatedAt: now
+    };
+    // Keep Default at top
+    if (idx !== 0) {
+      store.prompts.splice(idx, 1);
+      store.prompts.unshift(defObj);
+    }
+  }
+
+  // De-dupe by id, keep first occurrence (Default already at top)
+  const seen = new Set();
+  store.prompts = store.prompts.filter(p => {
+    if (!p || !p.id) return false;
+    if (seen.has(p.id)) return false;
+    seen.add(p.id);
+    return true;
+  });
+
+  // Enforce max (always keep Default + first N-1 customs)
+  if (store.prompts.length > SYS_PROMPTS_MAX) {
+    const def = store.prompts.find(p => p.id === DEFAULT_SYS_PROMPT_ID);
+    const customs = store.prompts.filter(p => p.id !== DEFAULT_SYS_PROMPT_ID).slice(0, SYS_PROMPTS_MAX - 1);
+    store.prompts = [def, ...customs].filter(Boolean);
+  }
+
+  saveSystemPromptStore(store);
+  systemPromptStore = store;
+  return store;
+}
+
+function getSystemPromptById(id) {
+  const store = systemPromptStore || ensureSystemPromptStore();
+  const found = store.prompts.find(p => p.id === id);
+  return found || store.prompts.find(p => p.id === DEFAULT_SYS_PROMPT_ID) || {
+    id: DEFAULT_SYS_PROMPT_ID, name: 'Default', content: DEFAULT_SYSTEM_PROMPT, locked: true
+  };
+}
+
 // LocalStorage keys (encrypted payload + legacy plaintext)
 const LS = {
   [PROVIDER_XAI]:    { enc: 'api_key_enc_xai_v1',    plain: 'api_key_xai' },
@@ -900,6 +1007,7 @@ function makeTab(label) {
     label,
     labelCustomized: false,
     selectedModel: (localStorage.getItem('selectedModel') || document.getElementById('modelSelect')?.value || 'grok-4-fast-reasoning'),
+    systemPromptId: DEFAULT_SYS_PROMPT_ID,
     diffText: '',
     modelText: '',
     originalFileName: 'file.txt',
@@ -958,6 +1066,8 @@ function applyTabToDom(tab) {
   document.getElementById('error').textContent = tab.errorText || '';
   // Output header right-side timing
   setModelTimeUi(tab);
+  // System prompt button label (per-tab)
+  updateSystemPromptButtonForTab(tab);
 
   // If any area is currently expanded, re-fit it to the newly applied content
   autoResizeIfExpanded(document.getElementById('diff'));
@@ -1005,6 +1115,15 @@ function applyTabToDom(tab) {
 
   if (applyBtn) applyBtn.disabled = !!tab.inFlight;
   if (loadingEl) loadingEl.classList.toggle('hidden', !tab.inFlight);
+}
+
+function updateSystemPromptButtonForTab(tab) {
+  const btn = document.getElementById('sysPromptBtn');
+  if (!btn) return;
+  const p = getSystemPromptById(tab?.systemPromptId || DEFAULT_SYS_PROMPT_ID);
+  const nm = p?.name || 'Default';
+  btn.textContent = `Prompt - ${nm}`;
+  btn.title = `System prompt: ${nm}`;
 }
 
 // NOTE: renderTabs() replaced by incremental tabstrip (renderTabsFull + updateTabRowFor)
@@ -1085,10 +1204,12 @@ function closeTabRenameModal() {
   // Only remove modal-open if *no* other modal is open
   const helpOpen = !document.getElementById('helpOverlay')?.classList.contains('hidden');
   const apiOpen = !document.getElementById('apiKeyOverlay')?.classList.contains('hidden');
+  const typeOpen = !document.getElementById('keyTypeOverlay')?.classList.contains('hidden');
   const renameOpen = !overlay.classList.contains('hidden');
   const closeOpen = !document.getElementById('tabCloseOverlay')?.classList.contains('hidden');
+  const sysOpen = !document.getElementById('sysPromptOverlay')?.classList.contains('hidden');
 
-  if (!helpOpen && !apiOpen && !renameOpen && !closeOpen) {
+  if (!helpOpen && !apiOpen && !typeOpen && !renameOpen && !closeOpen && !sysOpen) {
     document.body.classList.remove('modal-open');
   }
 
@@ -1137,10 +1258,12 @@ function saveTabRename() {
    // Only remove modal-open if *no* other modal is open
    const helpOpen = !document.getElementById('helpOverlay')?.classList.contains('hidden');
    const apiOpen = !document.getElementById('apiKeyOverlay')?.classList.contains('hidden');
+   const typeOpen = !document.getElementById('keyTypeOverlay')?.classList.contains('hidden');
    const renameOpen = !document.getElementById('tabRenameOverlay')?.classList.contains('hidden');
    const closeOpen = !overlay.classList.contains('hidden');
+   const sysOpen = !document.getElementById('sysPromptOverlay')?.classList.contains('hidden');
 
-   if (!helpOpen && !apiOpen && !renameOpen && !closeOpen) {
+   if (!helpOpen && !apiOpen && !typeOpen && !renameOpen && !closeOpen && !sysOpen) {
      document.body.classList.remove('modal-open');
    }
 
@@ -1329,8 +1452,10 @@ function closeApiKeyModal({ force = false } = {}) {
   const renameOpen = !document.getElementById('tabRenameOverlay')?.classList.contains('hidden');
   const apiOpen = !overlay.classList.contains('hidden');
   const closeOpen = !document.getElementById('tabCloseOverlay')?.classList.contains('hidden');
+  const typeOpen = !document.getElementById('keyTypeOverlay')?.classList.contains('hidden');
+  const sysOpen = !document.getElementById('sysPromptOverlay')?.classList.contains('hidden');
 
-  if (!helpOpen && !renameOpen && !apiOpen && !closeOpen) {
+  if (!helpOpen && !renameOpen && !apiOpen && !closeOpen && !typeOpen && !sysOpen) {
     document.body.classList.remove('modal-open');
   }
 
@@ -1527,7 +1652,8 @@ function closeKeyTypeModal({ force = false } = {}) {
   const renameOpen = !document.getElementById('tabRenameOverlay')?.classList.contains('hidden');
   const closeOpen = !document.getElementById('tabCloseOverlay')?.classList.contains('hidden');
   const typeOpen = !overlay.classList.contains('hidden');
-  if (!helpOpen && !apiOpen && !renameOpen && !closeOpen && !typeOpen) {
+  const sysOpen = !document.getElementById('sysPromptOverlay')?.classList.contains('hidden');
+  if (!helpOpen && !apiOpen && !renameOpen && !closeOpen && !typeOpen && !sysOpen) {
     document.body.classList.remove('modal-open');
   }
   keyTypeBlocking = false;
@@ -1548,14 +1674,338 @@ function closeHelp() {
  
   // Only remove modal-open if *no* other modal is open
   const apiOpen = !document.getElementById('apiKeyOverlay')?.classList.contains('hidden');
+  const typeOpen = !document.getElementById('keyTypeOverlay')?.classList.contains('hidden');
   const renameOpen = !document.getElementById('tabRenameOverlay')?.classList.contains('hidden');
   const closeOpen = !document.getElementById('tabCloseOverlay')?.classList.contains('hidden');
   const helpOpen = !overlay.classList.contains('hidden');
+  const sysOpen = !document.getElementById('sysPromptOverlay')?.classList.contains('hidden');
  
-  if (!apiOpen && !renameOpen && !closeOpen && !helpOpen) {
+  if (!apiOpen && !typeOpen && !renameOpen && !closeOpen && !helpOpen && !sysOpen) {
     document.body.classList.remove('modal-open');
   }
  }
+
+// -------------------------
+// System Prompt modal (single modal: select/create/edit/save)
+// -------------------------
+let sysPromptModalSelectedId = DEFAULT_SYS_PROMPT_ID;
+let sysPromptModalMode = 'view'; // 'view' | 'create' | 'edit'
+let sysPromptModalDirty = false;
+let sysPromptModalForTabId = null;
+
+function sysPromptEls() {
+  return {
+    overlay: document.getElementById('sysPromptOverlay'),
+    list: document.getElementById('sysPromptList'),
+    listHint: document.getElementById('sysPromptListHint'),
+    hint: document.getElementById('sysPromptHint'),
+    name: document.getElementById('sysPromptNameInput'),
+    text: document.getElementById('sysPromptText'),
+    btnNew: document.getElementById('sysPromptNewBtn'),
+    btnDup: document.getElementById('sysPromptDuplicateBtn'),
+    btnDel: document.getElementById('sysPromptDeleteBtn'),
+    btnSave: document.getElementById('sysPromptSaveBtn'),
+    btnUse: document.getElementById('sysPromptUseBtn'),
+    btnClose: document.getElementById('sysPromptCloseBtn'),
+    btnCancel: document.getElementById('sysPromptCancelBtn')
+  };
+}
+
+function renderSysPromptList() {
+  const { list, listHint } = sysPromptEls();
+  if (!list) return;
+  const store = systemPromptStore || ensureSystemPromptStore();
+  const tab = tabs.find(t => t.id === sysPromptModalForTabId) || getActiveTab();
+  const inUseId = tab?.systemPromptId || DEFAULT_SYS_PROMPT_ID;
+
+  const frag = document.createDocumentFragment();
+  for (const p of store.prompts) {
+    const row = document.createElement('div');
+    row.className = 'sys-prompt-item';
+    row.dataset.promptId = p.id;
+    row.setAttribute('role', 'option');
+    row.setAttribute('aria-selected', p.id === sysPromptModalSelectedId ? 'true' : 'false');
+    row.classList.toggle('active', p.id === sysPromptModalSelectedId);
+
+    const name = document.createElement('div');
+    name.className = 'sys-prompt-item-name';
+    name.textContent = p.name || '(unnamed)';
+
+    const badges = document.createElement('div');
+    badges.className = 'sys-prompt-item-badges';
+
+    if (p.id === DEFAULT_SYS_PROMPT_ID) {
+      const b = document.createElement('span');
+      b.className = 'sys-prompt-badge';
+      b.textContent = 'Default';
+      badges.appendChild(b);
+    }
+
+    if (p.id === inUseId) {
+      const b = document.createElement('span');
+      b.className = 'sys-prompt-badge';
+      b.textContent = 'In use';
+      badges.appendChild(b);
+    }
+
+    row.appendChild(name);
+    row.appendChild(badges);
+    frag.appendChild(row);
+  }
+  list.replaceChildren(frag);
+
+  if (listHint) {
+    const count = store.prompts.length;
+    const remaining = Math.max(0, SYS_PROMPTS_MAX - count);
+    listHint.textContent = `You can save ${remaining} more prompt${remaining === 1 ? '' : 's'} (max ${SYS_PROMPTS_MAX} incl. Default).`;
+  }
+}
+
+function setSysPromptEditorFromSelection() {
+  const { name, text, hint, btnSave, btnUse, btnDel } = sysPromptEls();
+  const store = systemPromptStore || ensureSystemPromptStore();
+  const p = store.prompts.find(x => x.id === sysPromptModalSelectedId) || getSystemPromptById(DEFAULT_SYS_PROMPT_ID);
+  if (!name || !text) return;
+
+  sysPromptModalDirty = false;
+  if (hint) hint.textContent = '';
+
+  const locked = !!p.locked || p.id === DEFAULT_SYS_PROMPT_ID;
+  name.value = p.name || '';
+  text.value = p.content || '';
+
+  name.disabled = locked;
+  text.readOnly = locked;
+
+  if (locked) {
+    if (hint) hint.textContent = 'Default prompt cannot be edited. Click “New” or “Duplicate” to create a custom prompt.';
+  }
+
+  if (btnSave) btnSave.disabled = locked;
+  if (btnDel) btnDel.disabled = locked;
+  if (btnUse) btnUse.disabled = false;
+
+  sysPromptModalMode = locked ? 'view' : 'edit';
+}
+
+function openSysPromptModal({ tabId = null } = {}) {
+  const { overlay, hint, list, name, text, btnSave, btnDel } = sysPromptEls();
+  if (!overlay) return;
+
+  ensureSystemPromptStore();
+  sysPromptModalForTabId = tabId || activeTabId;
+  const tab = tabs.find(t => t.id === sysPromptModalForTabId) || getActiveTab();
+  sysPromptModalSelectedId = tab?.systemPromptId || DEFAULT_SYS_PROMPT_ID;
+  sysPromptModalDirty = false;
+  sysPromptModalMode = 'view';
+  if (hint) hint.textContent = '';
+
+  overlay.classList.remove('hidden');
+  document.body.classList.add('modal-open');
+
+  renderSysPromptList();
+  setSysPromptEditorFromSelection();
+
+  // Safety: ensure Default stays locked even if some old store had it wrong
+  const p = getSystemPromptById(sysPromptModalSelectedId);
+  const locked = !!p.locked || p.id === DEFAULT_SYS_PROMPT_ID;
+  if (btnSave) btnSave.disabled = locked;
+  if (btnDel) btnDel.disabled = locked;
+
+  // Focus list for quick picking
+  setTimeout(() => {
+    try { list?.focus?.(); } catch {}
+    // If current is editable, focus textarea for quick edits
+    if (!locked) {
+      try { text?.focus?.(); } catch {}
+    } else {
+      try { name?.blur?.(); } catch {}
+    }
+  }, 0);
+}
+
+function closeSysPromptModal() {
+  const { overlay } = sysPromptEls();
+  if (!overlay) return;
+  overlay.classList.add('hidden');
+
+  // Only remove modal-open if *no* other modal is open
+  const helpOpen = !document.getElementById('helpOverlay')?.classList.contains('hidden');
+  const apiOpen = !document.getElementById('apiKeyOverlay')?.classList.contains('hidden');
+  const typeOpen = !document.getElementById('keyTypeOverlay')?.classList.contains('hidden');
+  const renameOpen = !document.getElementById('tabRenameOverlay')?.classList.contains('hidden');
+  const closeOpen = !document.getElementById('tabCloseOverlay')?.classList.contains('hidden');
+  const sysOpen = !overlay.classList.contains('hidden');
+
+  if (!helpOpen && !apiOpen && !typeOpen && !renameOpen && !closeOpen && !sysOpen) {
+    document.body.classList.remove('modal-open');
+  }
+
+  sysPromptModalDirty = false;
+  sysPromptModalMode = 'view';
+  sysPromptModalForTabId = null;
+}
+
+function beginCreatePromptFrom(baseId) {
+  const { name, text, hint, btnSave, btnDel } = sysPromptEls();
+  const base = getSystemPromptById(baseId || DEFAULT_SYS_PROMPT_ID);
+  if (!name || !text) return;
+
+  sysPromptModalMode = 'create';
+  sysPromptModalDirty = true;
+
+  name.disabled = false;
+  text.readOnly = false;
+  name.value = '';
+  text.value = base.content || DEFAULT_SYSTEM_PROMPT;
+
+  if (btnSave) btnSave.disabled = false;
+  if (btnDel) btnDel.disabled = true;
+
+  if (hint) hint.textContent = 'Creating a new custom prompt. Enter a name, edit the text, then Save.';
+  setTimeout(() => {
+    try { name.focus(); name.select(); } catch {}
+  }, 0);
+}
+
+function normalizeName(s) { return (s || '').trim(); }
+
+function isNameTaken(name, ignoreId = null) {
+  const store = systemPromptStore || ensureSystemPromptStore();
+  const n = normalizeName(name).toLowerCase();
+  return store.prompts.some(p => p.id !== ignoreId && (p.name || '').trim().toLowerCase() === n);
+}
+
+function createPromptId() {
+  return `p_${Date.now()}_${Math.random().toString(16).slice(2)}`;
+}
+
+function handleSysPromptSave() {
+  const { name, text, hint } = sysPromptEls();
+  const store = systemPromptStore || ensureSystemPromptStore();
+  if (!name || !text) return;
+  if (hint) hint.textContent = '';
+
+  const selected = getSystemPromptById(sysPromptModalSelectedId);
+  const selectedLocked = !!selected.locked || selected.id === DEFAULT_SYS_PROMPT_ID;
+
+  const nm = normalizeName(name.value);
+  const content = (text.value || '').trimEnd();
+
+  if (sysPromptModalMode === 'create') {
+    if (!nm) { if (hint) hint.textContent = 'Prompt name is required.'; return; }
+    if (nm.toLowerCase() === 'default') { if (hint) hint.textContent = '“Default” is reserved. Choose another name.'; return; }
+    if (isNameTaken(nm, null)) { if (hint) hint.textContent = 'A prompt with this name already exists.'; return; }
+    if (!content.trim()) { if (hint) hint.textContent = 'System prompt text is required.'; return; }
+
+    if (store.prompts.length >= SYS_PROMPTS_MAX) {
+      if (hint) hint.textContent = `Max ${SYS_PROMPTS_MAX} prompts allowed (including Default). Delete one to add a new one.`;
+      return;
+    }
+
+    const now = _sysNow();
+    const id = createPromptId();
+    store.prompts.push({
+      id,
+      name: nm,
+      content,
+      locked: false,
+      createdAt: now,
+      updatedAt: now
+    });
+
+    saveSystemPromptStore(store);
+    systemPromptStore = store;
+    sysPromptModalSelectedId = id;
+    sysPromptModalMode = 'edit';
+    sysPromptModalDirty = false;
+    if (hint) hint.textContent = 'Saved.';
+    renderSysPromptList();
+    setSysPromptEditorFromSelection();
+    return;
+  }
+
+  // Editing existing custom prompt
+  if (selectedLocked) {
+    if (hint) hint.textContent = 'Default prompt cannot be edited.';
+    return;
+  }
+
+  if (!nm) { if (hint) hint.textContent = 'Prompt name is required.'; return; }
+  if (nm.toLowerCase() === 'default') { if (hint) hint.textContent = '“Default” is reserved. Choose another name.'; return; }
+  if (isNameTaken(nm, selected.id)) { if (hint) hint.textContent = 'A prompt with this name already exists.'; return; }
+  if (!content.trim()) { if (hint) hint.textContent = 'System prompt text is required.'; return; }
+
+  const i = store.prompts.findIndex(p => p.id === selected.id);
+  if (i === -1) { if (hint) hint.textContent = 'Could not find this prompt in storage.'; return; }
+
+  store.prompts[i] = {
+    ...store.prompts[i],
+    name: nm,
+    content,
+    updatedAt: _sysNow()
+  };
+  saveSystemPromptStore(store);
+  systemPromptStore = store;
+  sysPromptModalDirty = false;
+  if (hint) hint.textContent = 'Saved.';
+  renderSysPromptList();
+}
+
+function handleSysPromptUse() {
+  const { hint } = sysPromptEls();
+  const tab = tabs.find(t => t.id === sysPromptModalForTabId) || getActiveTab();
+  if (!tab) return;
+
+  if (sysPromptModalDirty) {
+    if (hint) hint.textContent = 'You have unsaved changes. Save before using this prompt.';
+    return;
+  }
+
+  tab.systemPromptId = sysPromptModalSelectedId || DEFAULT_SYS_PROMPT_ID;
+  if (tab.id === activeTabId) updateSystemPromptButtonForTab(tab);
+  // also refresh badges in list ("In use")
+  renderSysPromptList();
+  closeSysPromptModal();
+}
+
+function handleSysPromptDelete() {
+  const { hint } = sysPromptEls();
+  const store = systemPromptStore || ensureSystemPromptStore();
+  const p = getSystemPromptById(sysPromptModalSelectedId);
+  if (!p || p.id === DEFAULT_SYS_PROMPT_ID || p.locked) {
+    if (hint) hint.textContent = 'Default prompt cannot be deleted.';
+    return;
+  }
+
+  const ok = confirm(`Delete system prompt “${p.name}”?`);
+  if (!ok) return;
+
+  const nextPrompts = store.prompts.filter(x => x.id !== p.id);
+  store.prompts = nextPrompts;
+  saveSystemPromptStore(store);
+  systemPromptStore = store;
+
+  // Any tabs using this prompt revert to Default
+  for (const t of tabs) {
+    if (t.systemPromptId === p.id) t.systemPromptId = DEFAULT_SYS_PROMPT_ID;
+  }
+
+  sysPromptModalSelectedId = DEFAULT_SYS_PROMPT_ID;
+  sysPromptModalMode = 'view';
+  sysPromptModalDirty = false;
+  if (hint) hint.textContent = 'Deleted.';
+  renderSysPromptList();
+  setSysPromptEditorFromSelection();
+
+  // Active tab button label might need update
+  const active = getActiveTab();
+  if (active) updateSystemPromptButtonForTab(active);
+}
+
+function handleSysPromptDuplicate() {
+  beginCreatePromptFrom(sysPromptModalSelectedId || DEFAULT_SYS_PROMPT_ID);
+}
 
 // Load stored API key and model on app start
 window.addEventListener('load', () => {
@@ -1581,6 +2031,7 @@ window.addEventListener('load', () => {
   });
 
   // Tabs
+  ensureSystemPromptStore();
   initTabs();
   document.getElementById('newTabBtn')?.addEventListener('click', newTab);
 
@@ -1739,6 +2190,44 @@ window.addEventListener('load', () => {
   document.getElementById('diffPrevBtn')?.addEventListener('click', () => scrollToChange(-1));
   document.getElementById('diffNextBtn')?.addEventListener('click', () => scrollToChange(1));
 
+  // --- System prompt button + modal wiring ---
+  const sysBtn = document.getElementById('sysPromptBtn');
+  if (sysBtn) sysBtn.addEventListener('click', () => openSysPromptModal({ tabId: activeTabId }));
+
+  const sp = sysPromptEls();
+  if (sp.btnClose) sp.btnClose.addEventListener('click', closeSysPromptModal);
+  if (sp.btnCancel) sp.btnCancel.addEventListener('click', closeSysPromptModal);
+  if (sp.btnNew) sp.btnNew.addEventListener('click', () => beginCreatePromptFrom(DEFAULT_SYS_PROMPT_ID));
+  if (sp.btnDup) sp.btnDup.addEventListener('click', handleSysPromptDuplicate);
+  if (sp.btnSave) sp.btnSave.addEventListener('click', handleSysPromptSave);
+  if (sp.btnUse) sp.btnUse.addEventListener('click', handleSysPromptUse);
+  if (sp.btnDel) sp.btnDel.addEventListener('click', handleSysPromptDelete);
+
+  if (sp.overlay) {
+    sp.overlay.addEventListener('click', (e) => {
+      if (e.target === sp.overlay) closeSysPromptModal();
+    });
+  }
+
+  if (sp.list && sp.list.dataset.delegated !== '1') {
+    sp.list.dataset.delegated = '1';
+    sp.list.addEventListener('click', (e) => {
+      const row = e.target?.closest?.('.sys-prompt-item');
+      if (!row?.dataset?.promptId) return;
+      if (sysPromptModalDirty) {
+        const ok = confirm('Discard unsaved changes?');
+        if (!ok) return;
+      }
+      sysPromptModalSelectedId = row.dataset.promptId;
+      renderSysPromptList();
+      setSysPromptEditorFromSelection();
+    });
+  }
+
+  // Track dirty state for Save/Use gating
+  if (sp.name) sp.name.addEventListener('input', () => { sysPromptModalDirty = true; });
+  if (sp.text) sp.text.addEventListener('input', () => { sysPromptModalDirty = true; });
+
   setupDiffNavObserver();
   updateDiffNavButtons();
 
@@ -1757,8 +2246,10 @@ window.addEventListener('load', () => {
     const apiOpen = apiOverlay && !apiOverlay.classList.contains('hidden');
     const helpOpen = overlay && !overlay.classList.contains('hidden');
     const closeOpen = tabCloseOverlay && !tabCloseOverlay.classList.contains('hidden');
+    const sysOpen = sp.overlay && !sp.overlay.classList.contains('hidden');
 
-    if (closeOpen) closeTabCloseModal();
+    if (sysOpen) closeSysPromptModal();
+    else if (closeOpen) closeTabCloseModal();
     else if (renameOpen) closeTabRenameModal();
     else if (apiOpen) {
       if (!apiModalBlocking) closeApiKeyModal();
@@ -1801,6 +2292,10 @@ ipcRenderer.on('theme:set', (_evt, theme) => {
 
 ipcRenderer.on('help:open', () => {
   openHelp();
+ });
+
+ipcRenderer.on('sysprompt:open', () => {
+  openSysPromptModal({ tabId: activeTabId });
 });
 
 ipcRenderer.on('apikey:open', (_evt, payload) => {
@@ -1849,6 +2344,12 @@ async function applyPatch({ isRetry = false } = {}) {
   // lock model choice into the originating tab + request
   // lock model choice into the originating tab + request
   tab.selectedModel = selectedModelSnapshot;
+
+  // Lock system prompt choice into the originating tab + request
+  const systemPromptIdSnapshot = tab.systemPromptId || DEFAULT_SYS_PROMPT_ID;
+  tab.systemPromptId = systemPromptIdSnapshot;
+  const systemPromptSnapshot = getSystemPromptById(systemPromptIdSnapshot)?.content || DEFAULT_SYSTEM_PROMPT;
+
   const outputEl = document.getElementById('output');
   const errorEl = document.getElementById('error');
   const loadingEl = document.getElementById('loading');
@@ -1956,31 +2457,13 @@ async function applyPatch({ isRetry = false } = {}) {
     });
     console.log('OpenAI SDK initialized with browser allowance.');
 
-    const systemPrompt = [
-      'You are an expert at applying unified diff patches to files accurately.',
-      'The diff maybe a git style diff patch or a set of instructions with places to change in the target file code with micro diffs.',
-      'It also may be general instruction set - like for example to replace something everywhere in the file.',
-      '',
-      'CRITICAL RULE:',
-      'If the diff patch is not applicable with the provided original file content , DO NOT guess and DO NOT fabricate output.',
-      'Do this if the target file is wrong, or the diff refers to a different file, or some other file is pasted instead of diff etc.',
-      '',
-      'In that case, output an error commentary ONLY using this exact format:',
-      'ERROR: <one-line reason>',
-      '- <optional hint 1>',
-      '- <optional hint 2>',
-      '',
-      'Otherwise, output ONLY the full modified file content after applying the patch.',
-      'No explanations, no extra text, and no code fences.'
-    ].join('\n');
-
     const userPrompt = `Original file content:\n\n${modelContentSnapshot}\n\nDiff patch to apply:\n\n${diffTextSnapshot}\n\nApply the patch and output the exact resulting file.`;
 
     const t0 = _nowMs();
     const completion = await openai.chat.completions.create({
       model: selectedModelSnapshot,
       messages: [
-        { role: 'system', content: systemPrompt },
+        { role: 'system', content: systemPromptSnapshot },
         { role: 'user', content: userPrompt }
       ],
       temperature: 0.2,

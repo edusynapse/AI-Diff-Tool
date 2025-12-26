@@ -80,6 +80,7 @@
       </div>
       <div class="model-action-right">
         <button id="retryBtn" class="hidden" type="button">Retry</button>
+        <button id="sysPromptBtn" type="button" title="System prompt">Default</button>
         <button id="applyBtn" type="button">Apply Patch</button>
       </div>
     </div>
@@ -281,7 +282,54 @@
       </div>
     </div>
   </div>
- 
+  <!-- System Prompt overlay (select / create / edit / save) -->
+  <div id="sysPromptOverlay" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="sysPromptTitle">
+    <div class="modal-content" role="document">
+      <div class="modal-header">
+        <h2 id="sysPromptTitle">System Prompt</h2>
+        <button id="sysPromptCloseBtn" class="modal-close" aria-label="Close system prompt dialog">×</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="sys-prompt-layout">
+          <div class="sys-prompt-list">
+            <div class="sys-prompt-list-header">
+              <div class="sys-prompt-list-title">Saved prompts</div>
+              <div class="sys-prompt-list-actions">
+                <button id="sysPromptNewBtn" class="modal-ok" type="button">New</button>
+              </div>
+            </div>
+
+            <div id="sysPromptList" class="sys-prompt-items" role="listbox" aria-label="System prompts"></div>
+            <div id="sysPromptListHint" class="modal-hint"></div>
+          </div>
+
+          <div class="sys-prompt-editor">
+            <label for="sysPromptNameInput">Prompt name</label>
+            <input id="sysPromptNameInput" type="text" placeholder="e.g. Strict patcher" autocomplete="off">
+
+            <label for="sysPromptText">System prompt</label>
+            <textarea id="sysPromptText" rows="12"></textarea>
+
+            <div id="sysPromptHint" class="modal-hint"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer sys-prompt-footer">
+        <div class="sys-prompt-footer-left">
+          <button id="sysPromptDuplicateBtn" class="modal-ok" type="button">Duplicate</button>
+          <button id="sysPromptDeleteBtn" class="modal-ok" type="button">Delete</button>
+        </div>
+        <div class="sys-prompt-footer-right">
+          <button id="sysPromptSaveBtn" class="modal-ok" type="button">Save</button>
+          <button id="sysPromptUseBtn" class="modal-ok" type="button">Use in this tab</button>
+          <button id="sysPromptCancelBtn" class="modal-ok" type="button">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  
   <script src="renderer.js"></script>
 </body>
 </html>

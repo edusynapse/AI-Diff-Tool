@@ -46,6 +46,13 @@ body { padding: 0; }                 /* move padding to .main so layout is even 
 
 :root {
   --topbar-h: 56px; /* fixed height for both left + right topbars */
+  /* Topbar + topbar button surfaces (light theme) */
+  --topbar-bg: #ededed;
+  --topbar-border: #ddd;
+  /* Subtle button fill so the + is distinguishable without "accent" coloring */
+  --topbar-btn-bg: rgba(0, 0, 0, 0.06);
+  --topbar-btn-hover-bg: rgba(0, 0, 0, 0.10);
+  --topbar-btn-fg: #222;
 }
 
 /* Sidebar becomes a column: topbar fixed, body scrolls */
@@ -76,8 +83,8 @@ body { padding: 0; }                 /* move padding to .main so layout is even 
   padding-left: 12px;   /* label padding */
   padding-right: 0;     /* button flush to edge */
 
-  background: #ededed;  /* slightly different section */
-  border-bottom: 1px solid #ddd;
+  background: var(--topbar-bg);  /* slightly different section */
+  border-bottom: 1px solid var(--topbar-border);
 }
 
 /* Scroll areas */
@@ -116,15 +123,25 @@ body { padding: 0; }                 /* move padding to .main so layout is even 
   padding: 0 16px;
 }
 
-/* Sidebar “+” button: fixed width, larger glyph */
+/* Sidebar "+" button: fixed width, larger glyph */
 .topbar-btn--sidebar {
   width: var(--topbar-h);
   padding: 0;
   font-size: 22px;
   line-height: 1;
+  /* Override global button theme (blue/orange) => subtle neutral surface */
+  background: var(--topbar-btn-bg);
+  color: var(--topbar-btn-fg);
+}
+.topbar-btn--sidebar:hover {
+  background: var(--topbar-btn-hover-bg);
+}
+.topbar-btn--sidebar:disabled {
+  background: var(--topbar-btn-bg);
+  opacity: 0.6;
 }
 
-/* Main “Go to top” button: a bit wider */
+/* Main "Go to top" button: a bit wider */
 .topbar-btn--main {
   min-width: 140px;
 }
@@ -499,6 +516,12 @@ body.dark #apiKeyModalInput:disabled { background: #2a2a2a; color: #bdbdbd; }
 body.dark {
   background: #121212;
   color: #e6e6e6;
+  /* Topbar + topbar button surfaces (dark theme) */
+  --topbar-bg: #1a1a1a;
+  --topbar-border: #2e2e2e;
+  --topbar-btn-bg: rgba(255, 255, 255, 0.06);
+  --topbar-btn-hover-bg: rgba(255, 255, 255, 0.10);
+  --topbar-btn-fg: #e6e6e6;
 }
 body.dark h1 { color: #e6e6e6; }
 body.dark label { color: #e6e6e6; }
@@ -567,7 +590,6 @@ body.dark button:disabled { background: #444; }
 
 .modal-close {
   font-size: 22px;
-  line-height: 22px;
   width: 36px;
   height: 36px;
   border-radius: 8px;
@@ -575,6 +597,12 @@ body.dark button:disabled { background: #444; }
   background: #fafafa;
   color: #111;
   cursor: pointer;
+  /* Center the "×" perfectly in the rounded square */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  line-height: 1;
 }
 
 .modal-body {
@@ -830,7 +858,7 @@ body.dark #diffView td.d2h-code-side-linenumber {
   background: #161616 !important;
 }
 
-/* Let Diff2Html size columns naturally; fixes “missing” gutters in some Chromium builds */
+/* Let Diff2Html size columns naturally; fixes "missing" gutters in some Chromium builds */
 #diffView .d2h-diff-table {
   table-layout: auto !important;
   width: 100% !important;
@@ -842,7 +870,7 @@ body.dark #diffView td.d2h-code-side-linenumber {
    ========================= */
 
 #diffView .d2h-diff-table {
-  table-layout: auto !important;   /* don’t crush gutters */
+  table-layout: auto !important;   /* don't crush gutters */
   width: 100% !important;
 }
 
@@ -938,21 +966,23 @@ body.dark .tab-item.active {
   box-shadow: 0 0 0 2px rgba(169, 130, 93, 0.20) !important;
 }
 
-body.dark button:not(.tab-close),
+/* Keep accent for all buttons EXCEPT the sidebar + button */
+body.dark button:not(.tab-close):not(#newTabBtn),
 body.dark .icon-btn{
   background: var(--accent) !important;
   color: #141110 !important;
 }
 
-body.dark button:not(.tab-close):hover,
+body.dark button:not(.tab-close):not(#newTabBtn):hover,
 body.dark .icon-btn:hover{
   background: var(--accent2) !important;
 }
 
-body.dark button:not(.tab-close):disabled{
+body.dark button:not(.tab-close):not(#newTabBtn):disabled{
   background: rgba(47, 42, 39, 0.85) !important;
   color: rgba(217, 210, 200, 0.52) !important;
 }
+
 
 /* Inputs */
 body.dark textarea,
@@ -1188,7 +1218,7 @@ body.dark .diff-nav-flash{
   background: rgba(0,0,0,0.04) !important;
 }
 
-/* Close button should also be “square-ish” */
+/* Close button should also be "square-ish" */
 .tab-close{
   border-radius: 0 !important;
 }
@@ -1245,7 +1275,7 @@ body.dark .tab-item:hover{
   background: rgba(0,0,0,0.04) !important;
 }
 
-/* Close button should also be “square-ish” */
+/* Close button should also be "square-ish" */
 .tab-close{
   border-radius: 0 !important;
 }
@@ -1341,7 +1371,7 @@ body.dark .tab-item.active .tab-close:hover{
   box-shadow: none !important;
 }
 
-/* Don’t show a focus box on the X (the row itself already has focus styling) */
+/* Don't show a focus box on the X (the row itself already has focus styling) */
 .tab-close:focus,
 .tab-close:focus-visible{
   outline: none !important;
@@ -1396,6 +1426,141 @@ body.dark .tab-item.active .tab-close:hover{
   margin-right: 0; /* keep buttons tight on the right */
 }
 
+/* System prompt button (in model-action row) */
+#sysPromptBtn{
+  max-width: 240px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* -------------------------
+   System Prompt modal layout
+   ------------------------- */
+.sys-prompt-layout{
+  display: flex;
+  gap: 16px;
+  align-items: stretch;
+  min-height: 360px;
+}
+
+.sys-prompt-list{
+  flex: 0 0 280px;
+  width: 280px;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.sys-prompt-list-header{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.sys-prompt-list-title{
+  font-weight: 700;
+}
+
+.sys-prompt-items{
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.sys-prompt-item{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(0,0,0,0.08);
+  cursor: pointer;
+  user-select: none;
+}
+.sys-prompt-item:last-child{ border-bottom: 0; }
+.sys-prompt-item:hover{ background: rgba(0,0,0,0.04); }
+.sys-prompt-item.active{
+  background: rgba(0, 123, 255, 0.14);
+  outline: 2px solid rgba(0, 123, 255, 0.25);
+  outline-offset: -2px;
+}
+
+.sys-prompt-item-name{
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+.sys-prompt-item-badges{
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+}
+
+.sys-prompt-badge{
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(0,0,0,0.14);
+  opacity: 0.9;
+  white-space: nowrap;
+}
+
+.sys-prompt-editor{
+  flex: 1;
+  min-width: 0;
+}
+
+.sys-prompt-editor input[type="text"]{
+  margin-bottom: 12px;
+}
+
+.sys-prompt-editor textarea{
+  min-height: 220px;
+  resize: vertical;
+}
+
+.sys-prompt-footer{
+  justify-content: space-between;
+  gap: 10px;
+}
+.sys-prompt-footer-left,
+.sys-prompt-footer-right{
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+/* Dark mode variants */
+body.dark .sys-prompt-items{
+  background: var(--panel);
+  border-color: var(--border);
+}
+body.dark .sys-prompt-item{
+  border-bottom-color: rgba(217,210,200,0.10);
+}
+body.dark .sys-prompt-item:hover{
+  background: rgba(217,210,200,0.08);
+}
+body.dark .sys-prompt-item.active{
+  background: rgba(169, 130, 93, 0.16);
+  outline-color: rgba(169, 130, 93, 0.28);
+}
+body.dark .sys-prompt-badge{
+  border-color: rgba(217,210,200,0.18);
+}
+
 .section-row{
   display: flex;
   align-items: center;
@@ -1412,4 +1577,12 @@ body.dark .tab-item.active .tab-close:hover{
 
 body.dark .section-meta{
   opacity: 0.85;
+}
+
+body.dark .topbar-btn--sidebar{
+  background: var(--topbar-btn-bg) !important;
+  color: var(--topbar-btn-fg) !important;
+}
+body.dark .topbar-btn--sidebar:hover{
+  background: var(--topbar-btn-hover-bg) !important;
 }

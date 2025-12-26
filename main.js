@@ -72,7 +72,18 @@ function createAppMenu() {
         { role: 'paste' },
         ...(isMac ? [{ role: 'pasteAndMatchStyle' }, { role: 'delete' }] : [{ role: 'delete' }]),
         { type: 'separator' },
-        { role: 'selectAll' }
+        { role: 'selectAll' },
+        { type: 'separator' },
+        {
+          label: 'System Prompt…',
+          accelerator: 'CmdOrCtrl+Shift+P',
+          click: () => {
+            const win = BrowserWindow.getFocusedWindow() || BrowserWindow.getAllWindows()[0];
+            if (win && !win.isDestroyed()) {
+              win.webContents.send('sysprompt:open');
+            }
+          }
+        }
       ]
     },
 
