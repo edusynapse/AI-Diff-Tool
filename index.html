@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; script-src 'self' 'unsafe-eval';">
+<meta http-equiv="Content-Security-Policy"
+      content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-eval';">
   <title>AI Diff Tool - Grok 4 Patch Applier</title>
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="node_modules/diff2html/bundles/css/diff2html.min.css">
@@ -57,26 +58,36 @@
   <div id="mainScroll" class="main-body">
     <!-- REMOVE the old <h1> entirely (per your request) -->
 
-    <!-- Model selector (per-tab state handled in renderer.js) -->
-    <label for="modelSelect">Select Model:</label>
-    <select id="modelSelect">
-      <optgroup label="xAI">
-        <option value="grok-4-1-fast-reasoning">grok-4-1-fast-reasoning</option>
-        <option value="grok-4-1-fast-non-reasoning">grok-4-1-fast-non-reasoning</option>
-        <option value="grok-code-fast-1">grok-code-fast-1</option>
-        <option value="grok-4-fast-reasoning">grok-4-fast-reasoning</option>
-        <option value="grok-4-fast-non-reasoning">grok-4-fast-non-reasoning</option>
-      </optgroup>
-      <optgroup label="OpenAI">
-        <option value="gpt-4.1-mini">gpt-4.1-mini</option>
-        <option value="gpt-4.1-nano">gpt-4.1-nano</option>
-        <option value="gpt-5.2-mini">gpt-5.2-mini</option>
-        <option value="gpt-5.2-nano">gpt-5.2-nano</option>
-      </optgroup>
-    </select>
+    <!-- Model selector + Apply button row (per-tab state handled in renderer.js) -->
+    <div class="model-action-row">
+      <div class="model-action-left">
+        <label for="modelSelect" class="inline-label">Select Model:</label>
+        <select id="modelSelect">
+          <optgroup label="xAI">
+            <option value="grok-4-1-fast-reasoning">grok-4-1-fast-reasoning</option>
+            <option value="grok-4-1-fast-non-reasoning">grok-4-1-fast-non-reasoning</option>
+            <option value="grok-code-fast-1">grok-code-fast-1</option>
+            <option value="grok-4-fast-reasoning">grok-4-fast-reasoning</option>
+            <option value="grok-4-fast-non-reasoning">grok-4-fast-non-reasoning</option>
+          </optgroup>
+          <optgroup label="OpenAI">
+            <option value="gpt-4.1-mini">gpt-4.1-mini</option>
+            <option value="gpt-4.1-nano">gpt-4.1-nano</option>
+            <option value="gpt-5.2-mini">gpt-5.2-mini</option>
+            <option value="gpt-5.2-nano">gpt-5.2-nano</option>
+          </optgroup>
+        </select>
+      </div>
+      <div class="model-action-right">
+        <button id="retryBtn" class="hidden" type="button">Retry</button>
+        <button id="applyBtn" type="button">Apply Patch</button>
+      </div>
+    </div>
+
+    <div id="loading" class="hidden"><div class="spinner"></div> Processing...</div>
 
     <label for="diff">Diff Patch (paste or load file):</label>
-    <div class="ta-container">
+    <div  id="diff-container"  class="ta-container">
       <div class="ta-actions" aria-label="Diff textarea actions">
         <button type="button" class="ta-fab" data-ta-action="max" data-ta-target="#diff" title="Maximize" aria-label="Maximize">⛶</button>
         <button type="button" class="ta-fab" data-ta-action="min" data-ta-target="#diff" title="Minimize" aria-label="Minimize">🗕</button>
@@ -86,7 +97,7 @@
     <input type="file" id="diffFile">
 
     <label for="model">File Content (paste or load file):</label>
-    <div class="ta-container">
+    <div  id="model-container"  class="ta-container">
       <div class="ta-actions" aria-label="File content textarea actions">
         <button type="button" class="ta-fab" data-ta-action="max" data-ta-target="#model" title="Maximize" aria-label="Maximize">⛶</button>
         <button type="button" class="ta-fab" data-ta-action="min" data-ta-target="#model" title="Minimize" aria-label="Minimize">🗕</button>
@@ -95,11 +106,10 @@
     </div>
     <input type="file" id="modelFile">
 
-    <button id="applyBtn">Apply Patch with Grok 4 Fast</button>
-    <button id="retryBtn" class="hidden">Retry</button>
-
-    <div id="loading" class="hidden"><div class="spinner"></div> Processing...</div>
-
+    <div class="section-row" aria-label="Output header row">
+      <div class="section-title">Output from Model</div>
+      <div id="modelTime" class="section-meta hidden" aria-label="Time taken by model to reply"></div>
+    </div>
     <div id="output-container" class="ta-container">
       <div class="ta-actions" aria-label="Output actions">
         <button type="button" class="ta-fab" data-ta-action="max" data-ta-target="#output" title="Maximize" aria-label="Maximize">⛶</button>
@@ -111,6 +121,10 @@
     </div>
 
     <button id="download" class="hidden">Download Modified File</button>
+
+    <div class="section-row" aria-label="Diff header row">
+      <div class="section-title">Diff with original</div>
+    </div>
     <div id="diffView"></div>
     <div id="error"></div>
   </div>

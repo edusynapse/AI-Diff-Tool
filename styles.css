@@ -175,7 +175,7 @@ body { padding: 0; }                 /* move padding to .main so layout is even 
 .tabs-list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 2px;                 /* compact like a tab strip */
 }
 
 .tab-item {
@@ -184,21 +184,27 @@ body { padding: 0; }                 /* move padding to .main so layout is even 
   gap: 8px;
   width: 100%;
   text-align: left;
-  padding: 10px 12px;
-  border: 1px solid #ccc;
-  border-radius: 8px;
-  background: #fff;
+  height: 34px;             /* tab-strip height */
+  padding: 0 10px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: transparent;
   cursor: pointer;
   color: #111;
   user-select: none;
+  border-left: 3px solid transparent; /* tab indicator */
 }
 
 .tab-item.active {
-  /* Active tab should look like a primary page button */
-  border-color: #007bff;
-  background: #007bff;
-  color: #fff;
-  box-shadow: none;
+  background: #ffffff;
+  border-color: rgba(0, 123, 255, 0.45);
+  border-left-color: #007bff;
+  color: #111;
+}
+
+.tab-item:hover {
+  background: rgba(0,0,0,0.04);
+  border-color: rgba(0,0,0,0.06);
 }
 
 .tab-label {
@@ -207,6 +213,17 @@ body { padding: 0; }                 /* move padding to .main so layout is even 
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* Hide close button unless hover/active (browser-like) */
+.tab-close {
+  opacity: 0;
+  pointer-events: none;
+}
+.tab-item:hover .tab-close,
+.tab-item.active .tab-close {
+  opacity: 0.9;
+  pointer-events: auto;
 }
 
 .tab-item:focus-visible {
@@ -287,16 +304,23 @@ body.dark .sidebar {
 }
 body.dark .sidebar-title { color: #e6e6e6; }
 body.dark .tab-item {
-  background: #1e1e1e;
-  border-color: #333;
+  background: transparent;
+  border-color: transparent;
   color: #e6e6e6;
+  border-left-color: transparent;
 }
+
+body.dark .tab-item:hover {
+  background: rgba(217, 210, 200, 0.08);
+  border-color: rgba(217, 210, 200, 0.10);
+}
+
 body.dark .tab-item.active {
-  /* Match page button look in dark theme */
-  background: var(--accent) !important;
-  border-color: var(--accent) !important;
-  color: #141110 !important;
-  box-shadow: none !important;
+  background: var(--panel2) !important;
+  border-color: rgba(169, 130, 93, 0.40) !important;
+  border-left-color: var(--accent) !important;
+  color: var(--text) !important;
+  box-shadow: 0 0 0 2px rgba(169, 130, 93, 0.18) !important;
 }
 body.dark .icon-btn { background: #2d6cdf; }
 body.dark .icon-btn:hover { background: #2456ad; }
@@ -320,6 +344,7 @@ select {
 }
 /* Fixed width, flexible height (user can resize only vertically) */
 textarea { resize: vertical; }
+textarea { transition: height 180ms ease; }
 button { padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; margin-right: 10px; }
 button:hover { background: #0056b3; }
 button:disabled { background: #ccc; cursor: not-allowed; }
@@ -347,6 +372,23 @@ button:disabled { background: #ccc; cursor: not-allowed; }
   gap: 6px;
   align-items: center;
 }
+
+/* When the output area scrolls up (top out of view),
+   pin the action buttons just under the header (main topbar). */
+.ta-actions.ta-actions--stuck{
+  position: fixed;
+  top: var(--ta-stuck-top, 0px);
+  left: var(--ta-stuck-left, 0px);
+  right: auto;
+  z-index: 999; /* above content */
+}
+
+/* When the output area is completely out of view, hide the buttons */
+.ta-actions.ta-actions--hidden{
+  opacity: 0;
+  pointer-events: none;
+}
+
 
 .ta-fab{
   width: 32px;
@@ -379,6 +421,22 @@ button:disabled { background: #ccc; cursor: not-allowed; }
 .ta-container pre{
   padding-top: 44px;
 }
+
+/* =========================
+   CSP-safe expand/collapse (no inline style writes)
+   Toggle .ta-expanded from JS
+   ========================= */
+.ta-container textarea.ta-expanded{
+  max-height: none;
+  overflow-y: hidden;   /* no inner scrollbar; main page scrolls instead */
+  resize: none;         /* optional: prevents fighting the auto-height */
+}
+
+.ta-container pre.ta-expanded{
+  max-height: none !important;
+  overflow-y: visible !important;
+}
+
 
 #apiKey:disabled { background: #e9e9e9; color: #666; }  /* Greyed out style */
 #apiKeyContainer {
@@ -880,19 +938,18 @@ body.dark .tab-item.active {
   box-shadow: 0 0 0 2px rgba(169, 130, 93, 0.20) !important;
 }
 
-/* Buttons / icon buttons */
-body.dark button,
-body.dark .icon-btn {
+body.dark button:not(.tab-close),
+body.dark .icon-btn{
   background: var(--accent) !important;
-  color: #141110 !important; /* dark text on warm-grey button */
+  color: #141110 !important;
 }
 
-body.dark button:hover,
-body.dark .icon-btn:hover {
+body.dark button:not(.tab-close):hover,
+body.dark .icon-btn:hover{
   background: var(--accent2) !important;
 }
 
-body.dark button:disabled {
+body.dark button:not(.tab-close):disabled{
   background: rgba(47, 42, 39, 0.85) !important;
   color: rgba(217, 210, 200, 0.52) !important;
 }
@@ -1091,4 +1148,268 @@ body.dark .diff-nav-flash{
 .topbar-btn--nav,
 .topbar-btn--main{
   min-width: clamp(92px, 14vw, 140px);
+}
+
+/* =========================================================
+   OVERRIDES (put at END): Workspace tabs = rectangular + flush
+   ========================================================= */
+
+/* Your sidebar-scroll has padding:12px; this makes the tab strip flush to edges */
+#tabsList{
+  margin: -12px -12px 0 -12px;  /* flush left/right/top */
+}
+
+/* No gap between tabs; borders only */
+.tabs-list{
+  gap: 0 !important;
+  border-top: 1px solid rgba(0,0,0,0.12);
+}
+
+/* Rectangular rows: no rounding, no spacing, just separators */
+.tab-item{
+  border-radius: 0 !important;
+  margin: 0 !important;
+
+  border: 0 !important;
+  border-bottom: 1px solid rgba(0,0,0,0.12) !important;
+
+  height: 36px;
+  padding: 0 12px;
+  background: transparent !important;
+}
+
+/* Active = just a flat fill + clear border (still rectangular) */
+.tab-item.active{
+  background: #ffffff !important;
+}
+
+/* Hover = subtle fill */
+.tab-item:hover{
+  background: rgba(0,0,0,0.04) !important;
+}
+
+/* Close button should also be “square-ish” */
+.tab-close{
+  border-radius: 0 !important;
+}
+
+/* Dark mode borders + fills */
+body.dark .tabs-list{
+  border-top-color: var(--border) !important;
+}
+body.dark .tab-item{
+  border-bottom-color: var(--border) !important;
+  background: transparent !important;
+}
+body.dark .tab-item.active{
+  background: var(--panel2) !important;
+}
+body.dark .tab-item:hover{
+  background: rgba(217,210,200,0.08) !important;
+}
+/* =========================================================
+   OVERRIDES (put at END): Workspace tabs = rectangular + flush
+   ========================================================= */
+
+/* Your sidebar-scroll has padding:12px; this makes the tab strip flush to edges */
+#tabsList{
+  margin: -12px -12px 0 -12px;  /* flush left/right/top */
+}
+
+/* No gap between tabs; borders only */
+.tabs-list{
+  gap: 0 !important;
+  border-top: 1px solid rgba(0,0,0,0.12);
+}
+
+/* Rectangular rows: no rounding, no spacing, just separators */
+.tab-item{
+  border-radius: 0 !important;
+  margin: 0 !important;
+
+  border: 0 !important;
+  border-bottom: 1px solid rgba(0,0,0,0.12) !important;
+
+  height: 36px;
+  padding: 0 12px;
+  background: transparent !important;
+}
+
+/* Active = just a flat fill + clear border (still rectangular) */
+.tab-item.active{
+  background: #ffffff !important;
+}
+
+/* Hover = subtle fill */
+.tab-item:hover{
+  background: rgba(0,0,0,0.04) !important;
+}
+
+/* Close button should also be “square-ish” */
+.tab-close{
+  border-radius: 0 !important;
+}
+
+/* Dark mode borders + fills */
+body.dark .tabs-list{
+  border-top-color: var(--border) !important;
+}
+body.dark .tab-item{
+  border-bottom-color: var(--border) !important;
+  background: transparent !important;
+}
+body.dark .tab-item.active{
+  background: var(--panel2) !important;
+}
+body.dark .tab-item:hover{
+  background: rgba(217,210,200,0.08) !important;
+}
+
+/* =========================================================
+   OVERRIDES (put at END): Sticky output action buttons
+   ========================================================= */
+
+/* Make main padding a variable so fixed-right aligns perfectly */
+:root{
+  --main-body-pad: 20px;
+}
+
+.main-body{
+  padding: var(--main-body-pad) !important;
+}
+
+@media (max-width: 600px){
+  :root{ --main-body-pad: 10px; }
+}
+
+/* Keep your default overlay position */
+.ta-actions{
+  transition: opacity 120ms ease;
+}
+
+/* When stuck: fixed under the topbar, aligned to main-body right padding */
+.ta-actions.ta-actions--stuck{
+  position: fixed !important;
+  top: calc(var(--topbar-h) + 6px) !important;
+  right: calc(var(--main-body-pad) + 6px) !important;
+  left: auto !important;
+  z-index: 999 !important;
+}
+
+/* Hidden when output container is out of view */
+.ta-actions.ta-actions--hidden{
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+/* =========================================================
+   OVERRIDE (END): Tab close should be plain "×" (no box)
+   ========================================================= */
+
+.tab-close{
+  -webkit-appearance: none !important;
+  appearance: none !important;
+
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  outline: none !important;
+
+  padding: 0 !important;
+  margin: 0 !important;
+
+  width: 20px;         /* keep a clickable target, but no visible box */
+  height: 20px;
+  line-height: 1;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  font-size: 18px;
+  font-weight: 600;
+  opacity: 0.75;
+}
+
+/* No background/border on hover/active in BOTH themes */
+.tab-close:hover,
+.tab-close:active,
+.tab-item.active .tab-close:hover,
+body.dark .tab-close:hover,
+body.dark .tab-item.active .tab-close:hover{
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+/* Don’t show a focus box on the X (the row itself already has focus styling) */
+.tab-close:focus,
+.tab-close:focus-visible{
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Optional: make it feel interactive without a box */
+.tab-close:hover{ opacity: 1; }
+
+/* =========================
+   Model row (Select Model + Apply Patch) + section headers
+   ========================= */
+.model-action-row{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 10px 0 15px;
+}
+
+.model-action-left{
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+}
+
+.inline-label{
+  display: inline-block !important;
+  margin: 0 !important;
+  font-weight: bold;
+  white-space: nowrap;
+}
+
+.model-action-left #modelSelect{
+  flex: 1;
+  min-width: 220px;
+  width: auto;
+  margin-bottom: 0; /* override global select margin */
+}
+
+.model-action-right{
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex: 0 0 auto;
+}
+
+.model-action-right button{
+  margin-right: 0; /* keep buttons tight on the right */
+}
+
+.section-row{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 10px 0 5px;
+  font-weight: bold;
+}
+
+.section-meta{
+  font-weight: normal;
+  opacity: 0.75;
+  white-space: nowrap;
+}
+
+body.dark .section-meta{
+  opacity: 0.85;
 }

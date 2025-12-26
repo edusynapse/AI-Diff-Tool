@@ -6,38 +6,40 @@ const MAX_RETRIES = 3;
 const MAX_FILE_SIZE_MB = 5;  // Warn if larger; adjust based on API limits
 let originalFileName = 'file.txt';  // Default for pasted content
 let isApiKeyEditable = true;
+
 // -------------------------
-// Encrypted API key storage (PIN-based) - supports xAI + OpenAI
+// Providers + encrypted key storage
 // -------------------------
 const PROVIDER_XAI = 'xai';
 const PROVIDER_OPENAI = 'openai';
 const PROVIDERS = [PROVIDER_XAI, PROVIDER_OPENAI];
 
+// LocalStorage keys (encrypted payload + legacy plaintext)
 const LS = {
-  [PROVIDER_XAI]: {
-    enc: 'xaiApiKeyEnc',   // JSON payload
-    plain: 'xaiApiKey'     // legacy plaintext (migration only)
-  },
-  [PROVIDER_OPENAI]: {
-    enc: 'openaiApiKeyEnc',
-    plain: 'openaiApiKey'
-  }
+  [PROVIDER_XAI]:    { enc: 'api_key_enc_xai_v1',    plain: 'api_key_xai' },
+  [PROVIDER_OPENAI]: { enc: 'api_key_enc_openai_v1', plain: 'api_key_openai' }
 };
 
-const ENC_VERSION = 1;
-const PBKDF2_ITERS = 120000;
+// PIN/crypto params
 const PIN_LEN = 6;
-let autoUnlockBusy = false;
+const ENC_VERSION = 1;
 const SALT_BYTES = 16;
 const AES_GCM_IV_BYTES = 12;
+const PBKDF2_ITERS = 150000;
 
-const sessionApiKeys = { [PROVIDER_XAI]: '', [PROVIDER_OPENAI]: '' }; // decrypted keys (memory only)
-let sessionPin = '';           // PIN in RAM for this app session (never stored)
-let apiModalMode = 'setup';    // 'setup' | 'unlock' | 'manage'
+// Session (RAM-only)
+let sessionPin = '';
+const sessionApiKeys = {
+  [PROVIDER_XAI]: '',
+  [PROVIDER_OPENAI]: ''
+};
+
+// Modal state
+let apiModalMode = 'manage';
 let apiModalBlocking = false;
-let apiModalProvider = PROVIDER_XAI; // 'xai' | 'openai' | 'all'
-let apiModalAskPin = true;          // if false, use sessionPin silently
-
+let apiModalProvider = PROVIDER_XAI;
+let apiModalAskPin = true;
+let autoUnlockBusy = false;
 let keyTypeBlocking = false;
 
 const webCrypto = (typeof window !== 'undefined' && window.crypto) ? window.crypto : globalThis.crypto;
@@ -53,16 +55,40 @@ function syncDiff2HtmlTheme() {
  }
 
 // -------------------------
+// Model timing (X mins and Y seconds)
+// -------------------------
+function _nowMs() {
+  return (typeof performance !== 'undefined' && typeof performance.now === 'function')
+    ? performance.now()
+    : Date.now();
+}
+
+function formatDurationMs(ms) {
+  const totalSeconds = Math.max(0, Math.floor((ms || 0) / 1000));
+  const mins = Math.floor(totalSeconds / 60);
+  const secs = totalSeconds % 60;
+  return `${mins} mins and ${secs} seconds`;
+}
+
+function setModelTimeUi(tab) {
+  const el = document.getElementById('modelTime');
+  if (!el) return;
+
+  if (tab && Number.isFinite(tab.lastDurationMs)) {
+    el.textContent = formatDurationMs(tab.lastDurationMs);
+    el.classList.remove('hidden');
+  } else {
+    el.textContent = '';
+    el.classList.add('hidden');
+  }
+}
+
+// -------------------------
 // Textarea / Output expand-collapse (maximize / minimize)
 // -------------------------
 function ensureDefaultMetrics(el) {
   if (!el || !el.dataset) return;
-  if (!el.dataset.taDefaultH) el.dataset.taDefaultH = String(el.offsetHeight || 0);
-  if (!el.dataset.taDefaultMaxH) {
-    const cs = window.getComputedStyle(el);
-    el.dataset.taDefaultMaxH = cs.maxHeight || '';
-    el.dataset.taDefaultOverflowY = cs.overflowY || '';
-  }
+  if (!el.dataset.taExpanded) el.dataset.taExpanded = '0';
 }
 
 function setExpandedButtonState(el) {
@@ -80,57 +106,61 @@ function maximizeElement(el) {
   if (!el) return;
   ensureDefaultMetrics(el);
 
-  // TEXTAREA
+  // Remember collapsed height for smooth minimize
   if (el.tagName === 'TEXTAREA') {
-    el.style.height = `${el.scrollHeight}px`;
-    el.style.overflowY = 'hidden';
-    el.dataset.taExpanded = '1';
-    setExpandedButtonState(el);
-    return;
+    el.dataset.taCollapsedH = `${el.getBoundingClientRect().height}`;
   }
 
-  // PRE (output)
-  if (el.tagName === 'PRE') {
-    el.style.maxHeight = 'none';
-    el.style.height = `${el.scrollHeight}px`;
-    el.style.overflowY = 'visible';
-    el.dataset.taExpanded = '1';
-    setExpandedButtonState(el);
-  }
+  // CSP-safe: no inline styles, just CSS classes
+  el.classList.add('ta-expanded');
+  el.dataset.taExpanded = '1';
+  setExpandedButtonState(el);
+
+  // Fit to full content (and animate height because textarea has transition now)
+  autoResizeIfExpanded(el);
 }
 
 function minimizeElement(el) {
   if (!el) return;
   ensureDefaultMetrics(el);
 
-  // TEXTAREA
+  // Smooth collapse for textarea: animate back to prior height, then clear inline height
   if (el.tagName === 'TEXTAREA') {
-    const h = Number(el.dataset.taDefaultH || 0);
-    if (h > 0) el.style.height = `${h}px`;
-    else el.style.height = '';
-    el.style.overflowY = 'auto';
-    el.dataset.taExpanded = '0';
-    setExpandedButtonState(el);
-    return;
+    const to = Number(el.dataset.taCollapsedH || 0);
+    if (to > 0) {
+      const from = el.getBoundingClientRect().height;
+      el.style.overflowY = 'hidden';
+      el.style.height = `${from}px`;
+      el.offsetHeight; // force reflow so transition triggers
+      el.style.height = `${to}px`;
+
+      const onEnd = (ev) => {
+        if (ev.propertyName !== 'height') return;
+        el.removeEventListener('transitionend', onEnd);
+        el.style.height = '';
+        el.style.overflowY = '';
+      };
+      el.addEventListener('transitionend', onEnd);
+    } else {
+      el.style.height = '';
+      el.style.overflowY = '';
+    }
   }
 
-  // PRE (output)
-  if (el.tagName === 'PRE') {
-    const maxH = el.dataset.taDefaultMaxH || '300px';
-    el.style.height = '';
-    el.style.maxHeight = maxH;
-    el.style.overflowY = 'auto';
-    el.dataset.taExpanded = '0';
-    setExpandedButtonState(el);
-  }
+  el.classList.remove('ta-expanded');
+  el.dataset.taExpanded = '0';
+  setExpandedButtonState(el);
 }
 
 function autoResizeIfExpanded(el) {
   if (!el) return;
-  if (el.dataset.taExpanded === '1') {
-    // Re-apply maximize sizing to match new content
-    maximizeElement(el);
-  }
+  if (el.tagName !== 'TEXTAREA') return;
+  if (!el.classList.contains('ta-expanded')) return;
+
+  // Grow/shrink to fit content (old behavior: no inner scroll)
+  el.style.overflowY = 'hidden';
+  el.style.height = 'auto';                 // allow shrink
+  el.style.height = `${el.scrollHeight + 2}px`; // +2 avoids last-line clipping in Chromium sometimes
 }
 
 function initTextareaExpandCollapse() {
@@ -154,6 +184,101 @@ function initTextareaExpandCollapse() {
     if (action === 'max') maximizeElement(el);
     if (action === 'min') minimizeElement(el);
   });
+
+  // Keep expanded textareas auto-fitting while user types/pastes
+  document.addEventListener('input', (e) => {
+    const el = e.target;
+    if (el && el.tagName === 'TEXTAREA') autoResizeIfExpanded(el);
+  });
+
+  // Refit expanded ones on resize (font/viewport changes)
+  window.addEventListener('resize', () => {
+    ['#diff', '#model'].forEach((sel) => autoResizeIfExpanded(document.querySelector(sel)));
+  });
+}
+
+// -------------------------
+// Sticky output actions (max/min/copy)
+// Stick under header when output container top scrolls out of view,
+// hide when output container is fully out of view.
+// -------------------------
+function initStickyTaActions() {
+  const root = getMainScrollEl();
+  if (!root) return;
+
+  // All ta-containers that have a direct .ta-actions child
+  const containers = Array.from(root.querySelectorAll('.ta-container'))
+    .map((wrap) => {
+      const actions = wrap.querySelector(':scope > .ta-actions');
+      return actions ? { wrap, actions } : null;
+    })
+    .filter(Boolean);
+
+  if (!containers.length) return;
+
+  const MARGIN = 6;      // same “breathing room” you used
+  const MIN_VISIBLE = 44;
+
+  const update = () => {
+    const rootRect = root.getBoundingClientRect();
+
+    // Candidates whose top is above the viewport top (scrolled past),
+    // but are still visible enough to justify sticking.
+    const stuckCandidates = [];
+
+    for (const { wrap, actions } of containers) {
+      const r = wrap.getBoundingClientRect();
+
+      const outAbove = r.bottom <= rootRect.top + 1;
+      const outBelow = r.top >= rootRect.bottom - 1;
+
+      if (outAbove || outBelow) {
+        actions.classList.remove('ta-actions--stuck');
+        actions.classList.add('ta-actions--hidden');
+        continue;
+      }
+
+      actions.classList.remove('ta-actions--hidden');
+
+      const topOutOfView = r.top < (rootRect.top + MARGIN);
+      const stillVisibleEnough = r.bottom > (rootRect.top + MIN_VISIBLE);
+
+      // default: not stuck (we'll apply stuck to only ONE best candidate)
+      actions.classList.remove('ta-actions--stuck');
+
+      if (topOutOfView && stillVisibleEnough) {
+        stuckCandidates.push({ actions, top: r.top });
+      }
+    }
+
+    // Pick the candidate closest to the viewport top (max top, but still < rootRect.top)
+    let best = null;
+    for (const c of stuckCandidates) {
+      if (!best || c.top > best.top) best = c;
+    }
+
+    if (best) best.actions.classList.add('ta-actions--stuck');
+  };
+
+  let raf = null;
+  const schedule = () => {
+    if (raf) return;
+    raf = requestAnimationFrame(() => {
+      raf = null;
+      update();
+    });
+  };
+
+  root.addEventListener('scroll', schedule, { passive: true });
+  window.addEventListener('resize', schedule);
+
+  // If any textarea expands/collapses, container heights change:
+  try {
+    const ro = new ResizeObserver(schedule);
+    for (const { wrap } of containers) ro.observe(wrap);
+  } catch {}
+
+  schedule();
 }
 
 // -------------------------
@@ -164,7 +289,9 @@ let diffNavVisible = false;
 let diffNavIdx = -1; // -1 means "not aligned to a change yet"
 
 function getMainScrollEl() {
-  return document.getElementById('mainScroll');
+  return document.getElementById('mainScroll')
+    || document.querySelector('.main-body')   // fallback if you forgot the id
+    || null;
 }
 
 function resetDiffNav() { diffNavIdx = -1; }
@@ -588,6 +715,184 @@ let tabSeq = 1;
 let renamingTabId = null;
 let closingTabId = null;
 
+// --- Fast vertical tabstrip: keep DOM rows, update incrementally ---
+const tabRowById = new Map();
+let _tabsListEl = null;
+function getTabsListEl() {
+  if (_tabsListEl) return _tabsListEl;
+  _tabsListEl = document.getElementById('tabsList');
+  return _tabsListEl;
+}
+
+function ensureTabsListDelegation() {
+  const list = getTabsListEl();
+  if (!list || list.dataset.delegated === '1') return;
+  list.dataset.delegated = '1';
+
+  // Click: select tab OR close button
+  list.addEventListener('click', (e) => {
+    const closeBtn = e.target?.closest?.('button.tab-close');
+    if (closeBtn) {
+      e.preventDefault();
+      e.stopPropagation();
+      const row = closeBtn.closest('.tab-item');
+      if (row?.dataset?.tabId) openTabCloseModal(row.dataset.tabId);
+      return;
+    }
+    const row = e.target?.closest?.('.tab-item');
+    if (row?.dataset?.tabId) selectTab(row.dataset.tabId);
+  });
+
+  // Double click: rename (ignore double-click on close button)
+  list.addEventListener('dblclick', (e) => {
+    if (e.target?.closest?.('.tab-close')) return;
+    const row = e.target?.closest?.('.tab-item');
+    if (row?.dataset?.tabId) openTabRenameModal(row.dataset.tabId);
+  });
+
+  // Keyboard on tab rows
+  list.addEventListener('keydown', (e) => {
+    const row = e.target?.closest?.('.tab-item');
+    if (!row?.dataset?.tabId) return;
+    const id = row.dataset.tabId;
+
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      selectTab(id);
+      return;
+    }
+    if (e.key === 'Backspace' || e.key === 'Delete') {
+      e.preventDefault();
+      openTabCloseModal(id);
+      return;
+    }
+    if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+      e.preventDefault();
+      focusAdjacentTab(id, e.key === 'ArrowUp' ? -1 : 1, { select: true });
+    }
+  });
+}
+
+function ensureTabRow(tab) {
+  const list = getTabsListEl();
+  if (!list || !tab) return null;
+  let row = tabRowById.get(tab.id);
+  if (row) return row;
+
+  row = document.createElement('div');
+  row.className = 'tab-item';
+  row.dataset.tabId = tab.id;
+  row.setAttribute('role', 'tab');
+
+  const label = document.createElement('div');
+  label.className = 'tab-label';
+  row.appendChild(label);
+
+  const spin = document.createElement('span');
+  spin.className = 'tab-spinner hidden';
+  spin.setAttribute('aria-hidden', 'true');
+  row.appendChild(spin);
+
+  const closeBtn = document.createElement('button');
+  closeBtn.type = 'button';
+  closeBtn.className = 'tab-close';
+  closeBtn.textContent = '×';
+  closeBtn.setAttribute('aria-label', 'Close tab');
+  row.appendChild(closeBtn);
+
+  tabRowById.set(tab.id, row);
+  return row;
+}
+
+function updateTabRowFor(tab) {
+  if (!tab) return;
+  const row = ensureTabRow(tab);
+  if (!row) return;
+
+  const isActive = tab.id === activeTabId;
+  const isBusy = !!tab.inFlight;
+
+  row.classList.toggle('active', isActive);
+  row.classList.toggle('busy', isBusy);
+  row.setAttribute('aria-selected', isActive ? 'true' : 'false');
+  row.setAttribute('aria-busy', isBusy ? 'true' : 'false');
+  row.tabIndex = isActive ? 0 : -1;
+
+  const label = row.querySelector('.tab-label');
+  if (label && label.textContent !== (tab.label || '')) label.textContent = tab.label || '';
+
+  const spin = row.querySelector('.tab-spinner');
+  if (spin) spin.classList.toggle('hidden', !isBusy);
+
+  if (isBusy) row.title = 'Processing…';
+  else row.removeAttribute('title');
+}
+
+function renderTabsFull() {
+  const list = getTabsListEl();
+  if (!list) return;
+
+  const keep = new Set(tabs.map(t => t.id));
+  for (const [id, row] of tabRowById.entries()) {
+    if (!keep.has(id)) {
+      try { row.remove(); } catch {}
+      tabRowById.delete(id);
+    }
+  }
+
+  const frag = document.createDocumentFragment();
+  for (const t of tabs) {
+    const row = ensureTabRow(t);
+    updateTabRowFor(t);
+    frag.appendChild(row);
+  }
+  list.replaceChildren(frag);
+}
+
+function focusAdjacentTab(fromId, dir /* -1|1 */, { select = false } = {}) {
+  const n = tabs.length;
+  if (!n) return;
+  const idx = Math.max(0, tabs.findIndex(t => t.id === fromId));
+  const next = tabs[(idx + dir + n) % n];
+  if (!next) return;
+  const row = tabRowById.get(next.id);
+  if (row) row.focus();
+  if (select) selectTab(next.id);
+}
+
+// --- Diff DOM caching: avoid innerHTML stringify/parse on every switch ---
+function ensureTabDiffDom(tab) {
+  if (!tab) return null;
+  if (!tab.diffDom) tab.diffDom = document.createElement('div');
+  return tab.diffDom;
+}
+
+function stashDiffDomIntoTab(tab) {
+  const diffView = document.getElementById('diffView');
+  if (!tab || !diffView) return;
+  const holder = ensureTabDiffDom(tab);
+  if (!holder) return;
+  holder.replaceChildren();
+  // Typically there is a single .d2h-wrapper root => O(1) move
+  while (diffView.firstChild) holder.appendChild(diffView.firstChild);
+}
+
+function restoreDiffDomFromTab(tab) {
+  const diffView = document.getElementById('diffView');
+  if (!tab || !diffView) return;
+  diffView.replaceChildren();
+  // If we have cached DOM, move it back (fast)
+  if (tab.diffDom && tab.diffDom.firstChild) {
+    while (tab.diffDom.firstChild) diffView.appendChild(tab.diffDom.firstChild);
+    return;
+  }
+  // Fallback for older state (if any)
+  if (tab.diffHtml) {
+    diffView.innerHTML = tab.diffHtml;
+    tab.diffHtml = ''; // stop re-parsing later
+  }
+}
+
 function makeTab(label) {
   const id = `tab-${Date.now()}-${Math.random().toString(16).slice(2)}`;
   return {
@@ -599,7 +904,8 @@ function makeTab(label) {
     modelText: '',
     originalFileName: 'file.txt',
     modifiedText: '',
-    diffHtml: '',
+    diffHtml: '',   // legacy fallback only
+    diffDom: null,  // DOM cache for diff view (fast tab switching)
     errorText: '',
     retryCount: 0,
     // Per-tab main scroll position
@@ -607,7 +913,8 @@ function makeTab(label) {
     // NEW
     requestSeq: 0,
     inFlightToken: null,
-    inFlight: false
+    inFlight: false,
+    lastDurationMs: null
   };
 }
 
@@ -623,7 +930,8 @@ function saveActiveTabFromDom() {
   tab.diffText = document.getElementById('diff').value || '';
   tab.modelText = document.getElementById('model').value || '';
   tab.modifiedText = document.getElementById('output').textContent || '';
-  tab.diffHtml = document.getElementById('diffView').innerHTML || '';
+  // Diff view: cache DOM, not innerHTML
+  stashDiffDomIntoTab(tab);
   tab.errorText = document.getElementById('error').textContent || '';
   tab.originalFileName = originalFileName;
   // Save main scroll per tab
@@ -644,10 +952,12 @@ function applyTabToDom(tab) {
   document.getElementById('diff').value = tab.diffText || '';
   document.getElementById('model').value = tab.modelText || '';
   document.getElementById('output').textContent = tab.modifiedText || '';
-  document.getElementById('diffView').innerHTML = tab.diffHtml || '';
+  restoreDiffDomFromTab(tab);
   // If the diff HTML was saved under a different theme, fix its wrapper class now
   syncDiff2HtmlTheme();
   document.getElementById('error').textContent = tab.errorText || '';
+  // Output header right-side timing
+  setModelTimeUi(tab);
 
   // If any area is currently expanded, re-fit it to the newly applied content
   autoResizeIfExpanded(document.getElementById('diff'));
@@ -697,92 +1007,25 @@ function applyTabToDom(tab) {
   if (loadingEl) loadingEl.classList.toggle('hidden', !tab.inFlight);
 }
 
-function renderTabs() {
-  const list = document.getElementById('tabsList');
-  if (!list) return;
-
-  list.innerHTML = '';
-  tabs.forEach((t, idx) => {
-    const isActive = t.id === activeTabId;
-    const isBusy = !!t.inFlight;
-
-    const row = document.createElement('div');
-    row.className =
-      'tab-item' +
-      (isActive ? ' active' : '') +
-      (isBusy ? ' busy' : '');
-
-    row.setAttribute('role', 'tab');
-    row.setAttribute('aria-selected', isActive ? 'true' : 'false');
-    row.setAttribute('aria-busy', isBusy ? 'true' : 'false');
-    row.tabIndex = 0;
-    row.dataset.tabId = t.id;
-
-    const label = document.createElement('div');
-    label.className = 'tab-label';
-    label.textContent = t.label;
-
-    // Optional tooltip
-    if (isBusy) row.title = 'Processing…';
-    else row.removeAttribute('title');
-
-    row.appendChild(label);
-
-    // Spinner badge when this tab has a request in flight
-    if (isBusy) {
-      const spin = document.createElement('span');
-      spin.className = 'tab-spinner';
-      spin.setAttribute('aria-hidden', 'true');
-      row.appendChild(spin);
-    }
-
-    // Close (X) button at right-most
-    const closeBtn = document.createElement('button');
-    closeBtn.type = 'button';
-    closeBtn.className = 'tab-close';
-    closeBtn.setAttribute('aria-label', `Close ${t.label}`);
-    closeBtn.textContent = '×';
-
-    closeBtn.addEventListener('click', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      openTabCloseModal(t.id);
-    });
-    closeBtn.addEventListener('dblclick', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-    });
-
-    row.appendChild(closeBtn);
-
-    row.addEventListener('click', () => selectTab(t.id));
-    row.addEventListener('dblclick', () => openTabRenameModal(t.id));
-    row.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault();
-        selectTab(t.id);
-        return;
-      }
-      if (e.key === 'Backspace' || e.key === 'Delete') {
-        e.preventDefault();
-        openTabCloseModal(t.id);
-      }
-    });
-
-    list.appendChild(row);
-  });
-}
+// NOTE: renderTabs() replaced by incremental tabstrip (renderTabsFull + updateTabRowFor)
 
 function selectTab(tabId) {
   if (tabId === activeTabId) return;
+  const prevId = activeTabId;
   saveActiveTabFromDom();
   activeTabId = tabId;
   const tab = getActiveTab();
   if (tab) applyTabToDom(tab);
-  renderTabs();
+  // Update only two rows
+  if (prevId) {
+    const prevTab = tabs.find(t => t.id === prevId);
+    if (prevTab) updateTabRowFor(prevTab);
+  }
+  if (tab) updateTabRowFor(tab);
 }
 
 function newTab() {
+  const prevId = activeTabId;
   saveActiveTabFromDom();
   const curModel = document.getElementById('modelSelect')?.value || localStorage.getItem('selectedModel') || 'grok-4-fast-reasoning';
   const tab = makeTab(`Tab ${tabSeq++}`);
@@ -790,7 +1033,19 @@ function newTab() {
   tabs.push(tab);
   activeTabId = tab.id;
   applyTabToDom(tab);
-  renderTabs();
+  // Append only the new row
+  const list = getTabsListEl();
+  if (list) {
+    const row = ensureTabRow(tab);
+    updateTabRowFor(tab);
+    list.appendChild(row);
+    try { row.scrollIntoView({ block: 'nearest' }); } catch {}
+  }
+  // Update previous active row
+  if (prevId) {
+    const prevTab = tabs.find(t => t.id === prevId);
+    if (prevTab) updateTabRowFor(prevTab);
+  }
 }
 
 function initTabs() {
@@ -800,7 +1055,8 @@ function initTabs() {
   tabSeq = 2;
   activeTabId = tabs[0].id;
   applyTabToDom(tabs[0]);
-  renderTabs();
+  ensureTabsListDelegation();
+  renderTabsFull();
 }
 
 function openTabRenameModal(tabId) {
@@ -851,7 +1107,7 @@ function saveTabRename() {
 
   tab.label = next;
   tab.labelCustomized = true;
-  renderTabs();
+  updateTabRowFor(tab);
   closeTabRenameModal();
  }
 
@@ -910,7 +1166,8 @@ function saveTabRename() {
      tabSeq = 2;
      activeTabId = fresh.id;
      applyTabToDom(fresh);
-     renderTabs();
+     ensureTabsListDelegation();
+     renderTabsFull();
      return;
    }
 
@@ -921,7 +1178,13 @@ function saveTabRename() {
      applyTabToDom(next);
    }
 
-   renderTabs();
+   // Remove the row (if present) and refresh active state
+   const row = tabRowById.get(tabId);
+   if (row) {
+     try { row.remove(); } catch {}
+   }
+   tabRowById.delete(tabId);
+   tabs.forEach(updateTabRowFor);
  }
 
  function confirmTabClose() {
@@ -1320,8 +1583,37 @@ window.addEventListener('load', () => {
   // Tabs
   initTabs();
   document.getElementById('newTabBtn')?.addEventListener('click', newTab);
+
+  // Browser-like tab shortcuts (vertical tabs still on the left)
+  window.addEventListener('keydown', (e) => {
+    const isMac = navigator.platform.toLowerCase().includes('mac');
+    const mod = isMac ? e.metaKey : e.ctrlKey;
+    if (!mod) return;
+
+    // Ctrl/Cmd+T => new tab
+    if (e.key.toLowerCase() === 't') {
+      e.preventDefault();
+      newTab();
+      return;
+    }
+
+    // Ctrl/Cmd+W => close tab
+    if (e.key.toLowerCase() === 'w') {
+      e.preventDefault();
+      if (activeTabId) openTabCloseModal(activeTabId);
+      return;
+    }
+
+    // Ctrl/Cmd+Tab / Ctrl/Cmd+Shift+Tab => cycle tabs
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      focusAdjacentTab(activeTabId, e.shiftKey ? -1 : 1, { select: true });
+    }
+  });
   // Max/Min floating buttons
   initTextareaExpandCollapse();
+  // Sticky max/min/copy for OUTPUT area while scrolling
+  initStickyTaActions();
   // --- Help overlay wiring (must be inside load) ---
   const overlay = document.getElementById('helpOverlay');
   const closeBtn = document.getElementById('helpCloseBtn');
@@ -1569,6 +1861,13 @@ async function applyPatch({ isRetry = false } = {}) {
   errorEl.textContent = '';
   outputEl.textContent = '';
   diffViewEl.innerHTML = '';
+
+  // Reset timing for this run (will be set when the model replies)
+  tab.lastDurationMs = null;
+  if (activeTabId === tabId) setModelTimeUi(tab);
+  // Also clear cached diff for this tab (we are recomputing)
+  if (tab.diffDom) tab.diffDom.replaceChildren();
+  tab.diffHtml = '';
   resetDiffNav();
   diffNavVisible = false;
   updateDiffNavButtons();
@@ -1638,7 +1937,7 @@ async function applyPatch({ isRetry = false } = {}) {
   const token = `${tabId}:${++tab.requestSeq}:${Date.now()}`;
   tab.inFlightToken = token;
   tab.inFlight = true;
-  renderTabs(); // NEW: show spinner on the tab immediately
+  updateTabRowFor(tab); // fast spinner update
 
   // Keep tab state consistent even if user switches tabs
   tab.diffText = diffTextSnapshot || '';
@@ -1677,6 +1976,7 @@ async function applyPatch({ isRetry = false } = {}) {
 
     const userPrompt = `Original file content:\n\n${modelContentSnapshot}\n\nDiff patch to apply:\n\n${diffTextSnapshot}\n\nApply the patch and output the exact resulting file.`;
 
+    const t0 = _nowMs();
     const completion = await openai.chat.completions.create({
       model: selectedModelSnapshot,
       messages: [
@@ -1687,6 +1987,8 @@ async function applyPatch({ isRetry = false } = {}) {
       max_tokens: 32768  // Higher for large files; per docs
     });
 
+    const durationMs = _nowMs() - t0;
+
     let modified = completion.choices[0].message.content;
     // Strip any potential code fences
     modified = modified.replace(/^```[\w]*\n?|\n?```$/g, '').trim();
@@ -1695,6 +1997,10 @@ async function applyPatch({ isRetry = false } = {}) {
     if (tab.inFlightToken !== token) {
       return;
     }
+
+    // Store + render timing (model replied)
+    tab.lastDurationMs = Math.max(0, Math.round(durationMs));
+    if (activeTabId === tabId) setModelTimeUi(tab);
 
     // If model returned a congruency error, show it as an app error (not as file output)
     if (/^ERROR:/i.test(modified)) {
@@ -1736,9 +2042,18 @@ async function applyPatch({ isRetry = false } = {}) {
 
     // Save into the originating tab
     tab.modifiedText = modified;
-    tab.diffHtml = html;
+    tab.diffHtml = ''; // legacy fallback not needed
     tab.errorText = '';
     tab.retryCount = 0;
+
+    // If user is NOT viewing that tab, parse diff into the tab's hidden DOM cache now
+    // (so switching later is instant; no innerHTML parse on tab switch)
+    if (activeTabId !== tabId) {
+     const holder = ensureTabDiffDom(tab);
+     if (holder) holder.innerHTML = html;
+     updateTabRowFor(tab);
+     return;
+   }
 
     // Only paint UI if user is still viewing that tab
     if (activeTabId === tabId) {
@@ -1777,7 +2092,7 @@ async function applyPatch({ isRetry = false } = {}) {
     if (tab.inFlightToken === token) {
       tab.inFlightToken = null;
       tab.inFlight = false;
-      renderTabs(); // NEW: remove spinner when done
+      updateTabRowFor(tab); // fast spinner update
     }
 
     if (activeTabId === tabId) {
@@ -1829,7 +2144,7 @@ document.getElementById('modelFile').addEventListener('change', async (e) => {
     if (!tab.labelCustomized) {
       // CSS ellipsis will truncate visually to fit the sidebar
       tab.label = file.name;
-      renderTabs();
+      updateTabRowFor(tab);
     }
   }
 });
