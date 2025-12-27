@@ -1,7 +1,126 @@
 const { app, BrowserWindow, Menu, ipcMain, shell } = require('electron');
-const path = require('path');  
+const path = require('path');
+const fs = require('fs');
 
 let isDark = false;
+
+// -------------------------
+// UI Language (i18n) - Main process
+// - Renderer selects language, main rebuilds menu using that pack.
+// - Fallback language is EN.
+// - Language packs live in build/languages/*.json (dev)
+//   and are copied to resourcesPath/languages/*.json (packaged)
+// -------------------------
+const LANG_FALLBACK = 'EN';
+let currentLang = LANG_FALLBACK;
+let cachedFallbackPack = null;
+const cachedLangPacks = new Map(); // code -> pack
+let langSettingsPath = null; // initialized after app is ready
+
+function _safeReadJson(filePath) {
+  try {
+    const raw = fs.readFileSync(filePath, 'utf8');
+    const obj = JSON.parse(raw);
+    return (obj && typeof obj === 'object') ? obj : null;
+  } catch {
+    return null;
+  }
+}
+
+function normalizeLangCode(code) {
+  const c = String(code || '').trim().replace(/[^A-Za-z0-9_-]/g, '').toUpperCase();
+  return c || LANG_FALLBACK;
+}
+
+function getLanguagesDir() {
+  return app.isPackaged
+    ? path.join(process.resourcesPath, 'languages')
+    : path.join(__dirname, 'build', 'languages');
+}
+
+function listAvailableLanguages() {
+  const dir = getLanguagesDir();
+  const out = new Set([LANG_FALLBACK]);
+  try {
+    const files = fs.readdirSync(dir, { withFileTypes: true })
+      .filter(d => d.isFile())
+      .map(d => d.name);
+    for (const f of files) {
+      // Expect files like EN.json, HI.json etc.
+      const m = String(f).match(/^([A-Za-z0-9_-]+)\.json$/);
+      if (!m) continue;
+      out.add(normalizeLangCode(m[1]));
+    }
+  } catch {
+    // no-op (folder may not exist in dev until created)
+  }
+  return Array.from(out).sort((a, b) => a.localeCompare(b));
+}
+
+function loadLanguagePack(code) {
+  const c = normalizeLangCode(code);
+  if (cachedLangPacks.has(c)) return cachedLangPacks.get(c);
+
+  const dir = getLanguagesDir();
+  const p = path.join(dir, `${c}.json`);
+  const pack = _safeReadJson(p) || {};
+  cachedLangPacks.set(c, pack);
+  return pack;
+}
+
+function ensureFallbackPackLoaded() {
+  if (cachedFallbackPack) return cachedFallbackPack;
+  cachedFallbackPack = loadLanguagePack(LANG_FALLBACK) || {};
+  return cachedFallbackPack;
+}
+
+function deepGet(obj, keyPath) {
+  const parts = String(keyPath || '').split('.').filter(Boolean);
+  let cur = obj;
+  for (const p of parts) {
+    if (!cur || typeof cur !== 'object') return undefined;
+    cur = cur[p];
+  }
+  return cur;
+}
+
+function tMenu(keyPath, fallbackText) {
+  const cur = loadLanguagePack(currentLang) || {};
+  const fb = ensureFallbackPackLoaded();
+  const v = deepGet(cur, keyPath);
+  if (typeof v === 'string' && v.trim()) return v;
+  const vf = deepGet(fb, keyPath);
+  if (typeof vf === 'string' && vf.trim()) return vf;
+  return String(fallbackText || '');
+}
+
+function readPersistedLanguage() {
+  if (!langSettingsPath) return LANG_FALLBACK;
+  try {
+    const raw = fs.readFileSync(langSettingsPath, 'utf8');
+    const obj = JSON.parse(raw);
+    const code = normalizeLangCode(obj?.code || '');
+    return code || LANG_FALLBACK;
+  } catch {
+    return LANG_FALLBACK;
+  }
+}
+
+function persistLanguage(code) {
+  if (!langSettingsPath) return;
+  try {
+    fs.writeFileSync(langSettingsPath, JSON.stringify({ v: 1, code: normalizeLangCode(code) }, null, 2), 'utf8');
+  } catch {
+    // no-op
+  }
+}
+
+function resolveLanguage(code) {
+  const c = normalizeLangCode(code);
+  const list = listAvailableLanguages();
+  if (list.includes(c)) return c;
+  return LANG_FALLBACK;
+}
 
 // Main-process app settings (renderer reads these via IPC)
 const APP_SETTINGS = Object.freeze({
@@ -22,6 +141,35 @@ const ABOUT_SETTINGS = Object.freeze({
 const iconPath = app.isPackaged
   ? path.join(process.resourcesPath, 'icons', '512x512.png')
   : path.join(__dirname, 'build', 'icons', '512x512.png');
+
+ipcMain.handle('language:list', () => {
+  return listAvailableLanguages();
+});
+
+ipcMain.handle('language:getAll', (_evt, code) => {
+  const desired = resolveLanguage(code);
+  const fallback = ensureFallbackPackLoaded();
+  const pack = loadLanguagePack(desired) || {};
+  return {
+    code: desired,
+    pack,
+    fallback,
+    available: listAvailableLanguages()
+  };
+});
+
+ipcMain.handle('language:set', (_evt, code) => {
+  const next = resolveLanguage(code);
+  currentLang = next;
+  persistLanguage(next);
+  // Rebuild app menu so menu labels update immediately
+  try { createAppMenu(); } catch {}
+  return { ok: true, code: next };
+});
+
+ipcMain.handle('language:getCurrent', () => {
+  return currentLang;
+});
 
 ipcMain.handle('app:getSettings', () => {
   return APP_SETTINGS;
@@ -70,17 +218,17 @@ function createAppMenu() {
     ...(isMac
       ? [
           {
-            label: app.name,
+            label: app.name, // keep app name as-is
             submenu: [
-              { role: 'about' },
+              { role: 'about', label: tMenu('menu.mac.about', 'About') },
               { type: 'separator' },
-              { role: 'services' },
+              { role: 'services', label: tMenu('menu.mac.services', 'Services') },
               { type: 'separator' },
-              { role: 'hide' },
-              { role: 'hideOthers' },
-              { role: 'unhide' },
+              { role: 'hide', label: tMenu('menu.mac.hide', 'Hide') },
+              { role: 'hideOthers', label: tMenu('menu.mac.hideOthers', 'Hide Others') },
+              { role: 'unhide', label: tMenu('menu.mac.unhide', 'Unhide') },
               { type: 'separator' },
-              { role: 'quit' }
+              { role: 'quit', label: tMenu('menu.mac.quit', 'Quit') }
             ]
           }
         ]
@@ -88,10 +236,10 @@ function createAppMenu() {
 
     // File
     {
-      label: 'File',
+      label: tMenu('menu.file.title', 'File'),
       submenu: [
         {
-          label: 'xAI API Key…',
+          label: tMenu('menu.file.xaiKey', 'xAI API Key…'),
           accelerator: 'CmdOrCtrl+K',
           click: () => {
             const win = BrowserWindow.getFocusedWindow() || BrowserWindow.getAllWindows()[0];
@@ -101,7 +249,7 @@ function createAppMenu() {
           }
         },
         {
-          label: 'OpenAI API Key…',
+          label: tMenu('menu.file.openaiKey', 'OpenAI API Key…'),
           accelerator: 'CmdOrCtrl+Shift+K',
           click: () => {
             const win = BrowserWindow.getFocusedWindow() || BrowserWindow.getAllWindows()[0];
@@ -111,26 +259,28 @@ function createAppMenu() {
           }
         },
         { type: 'separator' },
-        ...(isMac ? [{ role: 'close' }] : [{ role: 'quit' }])
+        ...(isMac ? [{ role: 'close', label: tMenu('menu.file.close', 'Close') }] : [{ role: 'quit', label: tMenu('menu.file.quit', 'Quit') }])
       ]
     },
 
     // Edit (this brings back Cut/Copy/Paste/Select All etc.)
     {
-      label: 'Edit',
+      label: tMenu('menu.edit.title', 'Edit'),
       submenu: [
-        { role: 'undo' },
-        { role: 'redo' },
+        { role: 'undo', label: tMenu('menu.edit.undo', 'Undo') },
+        { role: 'redo', label: tMenu('menu.edit.redo', 'Redo') },
         { type: 'separator' },
-        { role: 'cut' },
-        { role: 'copy' },
-        { role: 'paste' },
-        ...(isMac ? [{ role: 'pasteAndMatchStyle' }, { role: 'delete' }] : [{ role: 'delete' }]),
+        { role: 'cut', label: tMenu('menu.edit.cut', 'Cut') },
+        { role: 'copy', label: tMenu('menu.edit.copy', 'Copy') },
+        { role: 'paste', label: tMenu('menu.edit.paste', 'Paste') },
+        ...(isMac
+          ? [{ role: 'pasteAndMatchStyle', label: tMenu('menu.edit.pasteMatch', 'Paste and Match Style') }, { role: 'delete', label: tMenu('menu.edit.delete', 'Delete') }]
+          : [{ role: 'delete', label: tMenu('menu.edit.delete', 'Delete') }]),
         { type: 'separator' },
-        { role: 'selectAll' },
+        { role: 'selectAll', label: tMenu('menu.edit.selectAll', 'Select All') },
         { type: 'separator' },
         {
-          label: 'System Prompt…',
+          label: tMenu('menu.edit.systemPrompt', 'System Prompt…'),
           accelerator: 'CmdOrCtrl+Shift+P',
           click: () => {
             const win = BrowserWindow.getFocusedWindow() || BrowserWindow.getAllWindows()[0];
@@ -144,10 +294,10 @@ function createAppMenu() {
 
     // View (we add Dark Mode here, but keep the standard view items)
     {
-      label: 'View',
+      label: tMenu('menu.view.title', 'View'),
       submenu: [
         {
-          label: 'History…',
+          label: tMenu('menu.view.history', 'History…'),
           accelerator: 'CmdOrCtrl+H',
           click: () => {
             const win = BrowserWindow.getFocusedWindow() || BrowserWindow.getAllWindows()[0];
@@ -156,10 +306,19 @@ function createAppMenu() {
             }
           }
         },
+        {
+          label: tMenu('menu.view.language', 'Language…'),
+          click: () => {
+            const win = BrowserWindow.getFocusedWindow() || BrowserWindow.getAllWindows()[0];
+            if (win && !win.isDestroyed()) {
+              win.webContents.send('language:open');
+            }
+          }
+        },
         { type: 'separator' },
         {
           id: 'toggle-dark-mode',
-          label: 'Dark Mode',
+          label: tMenu('menu.view.darkMode', 'Dark Mode'),
           type: 'checkbox',
           checked: isDark,
           accelerator: 'CmdOrCtrl+D',
@@ -173,7 +332,7 @@ function createAppMenu() {
         },
         { type: 'separator' },
         {
-          label: 'Previous Change',
+          label: tMenu('menu.view.prevChange', 'Previous Change'),
           accelerator: 'F7',
           click: () => {
             const win = BrowserWindow.getFocusedWindow() || BrowserWindow.getAllWindows()[0];
@@ -183,7 +342,7 @@ function createAppMenu() {
           }
         },
         {
-          label: 'Next Change',
+          label: tMenu('menu.view.nextChange', 'Next Change'),
           accelerator: 'F8',
           click: () => {
             const win = BrowserWindow.getFocusedWindow() || BrowserWindow.getAllWindows()[0];
@@ -193,15 +352,15 @@ function createAppMenu() {
           }
         },
         { type: 'separator' },
-        { role: 'reload' },
-        { role: 'forceReload' },
-        { role: 'toggleDevTools' },
+        { role: 'reload', label: tMenu('menu.view.reload', 'Reload') },
+        { role: 'forceReload', label: tMenu('menu.view.forceReload', 'Force Reload') },
+        { role: 'toggleDevTools', label: tMenu('menu.view.devTools', 'Toggle Developer Tools') },
         { type: 'separator' },
-        { role: 'resetZoom' },
-        { role: 'zoomIn' },
-        { role: 'zoomOut' },
+        { role: 'resetZoom', label: tMenu('menu.view.resetZoom', 'Actual Size') },
+        { role: 'zoomIn', label: tMenu('menu.view.zoomIn', 'Zoom In') },
+        { role: 'zoomOut', label: tMenu('menu.view.zoomOut', 'Zoom Out') },
         { type: 'separator' },
-        { role: 'togglefullscreen' }
+        { role: 'togglefullscreen', label: tMenu('menu.view.fullscreen', 'Toggle Full Screen') }
       ]
     },
 
@@ -209,30 +368,31 @@ function createAppMenu() {
     ...(isMac
       ? [
           {
-            label: 'Window',
+            label: tMenu('menu.window.title', 'Window'),
             submenu: [
-              { role: 'minimize' },
-              { role: 'zoom' },
+              { role: 'minimize', label: tMenu('menu.window.minimize', 'Minimize') },
+              { role: 'zoom', label: tMenu('menu.window.zoom', 'Zoom') },
               { type: 'separator' },
-              { role: 'front' },
+              { role: 'front', label: tMenu('menu.window.front', 'Bring All to Front') },
               { type: 'separator' },
-              { role: 'window' }
+              { role: 'window', label: tMenu('menu.window.window', 'Window') }
             ]
           }
         ]
       : [
           {
-            label: 'Window',
-            submenu: [{ role: 'minimize' }, { role: 'close' }]
+            label: tMenu('menu.window.title', 'Window'),
+            submenu: [{ role: 'minimize', label: tMenu('menu.window.minimize', 'Minimize') }, { role: 'close', label: tMenu('menu.window.close', 'Close') }]
           }
         ]),
 
     // Help
     {
       role: 'help',
+      label: tMenu('menu.help.title', 'Help'),
       submenu: [
         {
-          label: 'Usage',
+          label: tMenu('menu.help.usage', 'Usage'),
           accelerator: 'F1',
           click: () => {
             const win = BrowserWindow.getFocusedWindow() || BrowserWindow.getAllWindows()[0];
@@ -243,7 +403,7 @@ function createAppMenu() {
         },
         { type: 'separator' },
         {
-          label: 'About…',
+          label: tMenu('menu.help.about', 'About…'),
           click: () => {
             const win = BrowserWindow.getFocusedWindow() || BrowserWindow.getAllWindows()[0];
             if (win && !win.isDestroyed()) {
@@ -283,6 +443,14 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
+  // init language persistence file path
+  try {
+    langSettingsPath = path.join(app.getPath('userData'), 'ui_language.json');
+  } catch {
+    langSettingsPath = null;
+  }
+  currentLang = resolveLanguage(readPersistedLanguage());
+
   createWindow();
   createAppMenu();
 });

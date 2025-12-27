@@ -36,6 +36,10 @@
         "to": "icons"
       },
       {
+        "from": "build/languages",
+        "to": "languages"
+      },
+      {
         "from": "build/creator.png",
         "to": "creator.png"
       },

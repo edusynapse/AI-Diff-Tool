@@ -15,7 +15,7 @@
     <aside class="sidebar" aria-label="Workspaces">
   <!-- Fixed topbar -->
   <div class="sidebar-topbar">
-    <div class="sidebar-title">Workspaces</div>
+    <div class="sidebar-title" id="sidebarWorkspacesTitle">Workspaces</div>
     <button
       id="newTabBtn"
       class="topbar-btn topbar-btn--sidebar"
@@ -30,7 +30,7 @@
     <div id="tabsList" class="tabs-list" role="tablist" aria-orientation="vertical"></div>
 
     <div class="sidebar-footer">
-      <div class="sidebar-hint">Double-click a tab to rename</div>
+      <div class="sidebar-hint" id="sidebarRenameHint">Double-click a tab to rename</div>
     </div>
   </div>
 </aside>
@@ -45,7 +45,7 @@
       src=""
       alt="AI Diff Tool icon"
     />
-    <div class="main-title">AI Diff Tool</div>
+    <div class="main-title" id="mainAppTitle">AI Diff Tool</div>
   </div>
  
   <div class="main-topbar-actions">
@@ -70,7 +70,7 @@
     <!-- Model selector + Apply button row (per-tab state handled in renderer.js) -->
     <div class="model-action-row">
       <div class="model-action-left">
-        <label for="modelSelect" class="inline-label">Select Model:</label>
+        <label for="modelSelect" class="inline-label" id="modelSelectLabel">Select Model:</label>
         <select id="modelSelect">
           <optgroup label="xAI">
             <option value="grok-4-1-fast-reasoning">grok-4-1-fast-reasoning</option>
@@ -94,9 +94,9 @@
       </div>
     </div>
 
-    <div id="loading" class="hidden"><div class="spinner"></div> Processing...</div>
+    <div id="loading" class="hidden"><div class="spinner"></div> <span id="loadingText">Processing...</span></div>
 
-    <label for="diff">Diff Patch (paste or load file):</label>
+    <label for="diff" id="diffLabel">Diff Patch (paste or load file):</label>
     <div  id="diff-container"  class="ta-container">
       <div class="ta-actions" aria-label="Diff textarea actions">
         <button type="button" class="ta-fab" data-ta-action="max" data-ta-target="#diff" title="Maximize" aria-label="Maximize">⛶</button>
@@ -104,9 +104,14 @@
       </div>
       <textarea id="diff" rows="10"></textarea>
     </div>
-    <input type="file" id="diffFile">
+    <div class="file-picker" id="diffFilePicker" aria-label="Diff patch file picker">
+      <button id="diffFileBtn" class="modal-ok" type="button">Choose file</button>
+      <span id="diffFileName" class="file-name">No file chosen</span>
+      <!-- keep the real input for the OS picker, but hide it (we localize our own UI) -->
+      <input type="file" id="diffFile" class="hidden">
+    </div>
 
-    <label for="model">File Content (paste or load file):</label>
+    <label for="model" id="modelLabel">File Content (paste or load file):</label>
     <div  id="model-container"  class="ta-container">
       <div class="ta-actions" aria-label="File content textarea actions">
         <button type="button" class="ta-fab" data-ta-action="max" data-ta-target="#model" title="Maximize" aria-label="Maximize">⛶</button>
@@ -114,10 +119,15 @@
       </div>
       <textarea id="model" rows="15"></textarea>
     </div>
-    <input type="file" id="modelFile">
+    <div class="file-picker" id="modelFilePicker" aria-label="File content file picker">
+      <button id="modelFileBtn" class="modal-ok" type="button">Choose file</button>
+      <span id="modelFileName" class="file-name">No file chosen</span>
+      <!-- keep the real input for the OS picker, but hide it (we localize our own UI) -->
+      <input type="file" id="modelFile" class="hidden">
+    </div>
 
     <div class="section-row" aria-label="Output header row">
-      <div class="section-title">Output from Model</div>
+      <div class="section-title" id="outputSectionTitle">Output from Model</div>
       <div id="modelTime" class="section-meta hidden" aria-label="Time taken by model to reply"></div>
     </div>
     <div id="output-container" class="ta-container">
@@ -133,7 +143,7 @@
     <button id="download" class="hidden">Download Modified File</button>
 
     <div class="section-row" aria-label="Diff header row">
-      <div class="section-title">Diff with original</div>
+      <div class="section-title" id="diffSectionTitle">Diff with original</div>
     </div>
     <div id="diffView"></div>
     <div id="error"></div>
@@ -165,12 +175,12 @@
 
         <div class="about-meta">
           <div class="about-row">
-            <div class="about-label">Creator</div>
+            <div class="about-label" id="aboutCreatorLabel">Creator</div>
             <div class="about-value" id="aboutCreatorName"></div>
           </div>
 
           <div class="about-row">
-            <div class="about-label">Email</div>
+            <div class="about-label" id="aboutEmailLabel">Email</div>
             <div class="about-value">
               <a id="aboutCreatorEmail" href="#" rel="noreferrer"></a>
             </div>
@@ -184,14 +194,14 @@
 
         <div class="about-footer">
           <div class="about-license">
-            <div class="about-license-title">Open Source License</div>
-            <div class="about-license-text">
+            <div class="about-license-title" id="aboutLicenseTitle">Open Source License</div>
+            <div class="about-license-text" id="aboutLicenseText">
               This project is open-source. See the LICENSE file in the GitHub repository.
             </div>
           </div>
 
           <div class="about-version">
-            Version <span id="aboutVersion"></span>
+            <span id="aboutVersionPrefix">Version</span> <span id="aboutVersion"></span>
           </div>
         </div>
       </div>
@@ -210,37 +220,76 @@
         <button id="helpCloseBtn" class="modal-close" aria-label="Close help">×</button>
       </div>
 
-      <div class="modal-body">
+      <div class="modal-body" id="helpBody">
         <p>
-          This app applies a <b>unified diff patch</b> to a file by asking the selected Grok model to produce the patched output.
-          It then shows you the modified file and a side-by-side diff view.
-        </p>
+          This app applies a <b>unified diff patch</b> to a file by asking the selected model (xAI Grok or OpenAI GPT) to produce the patched output.
+           It then shows you the modified file and a side-by-side diff view.
+         </p>
 
-        <h3>Quick steps</h3>
-        <ol>
-          <li><b>Select Model</b> (top dropdown).</li>
-          <li><b>Paste or load</b> your unified diff patch into <b>Diff Patch</b>.</li>
-          <li><b>Paste or load</b> the original file content into <b>File Content</b>.</li>
-          <li>Enter your <b>API Key</b> (xAI or OpenAI), click <b>Save</b> (saved locally, encrypted).</li>
-          <li>Click <b>Apply Patch</b>.</li>
-          <li>Use <b>Copy</b> or <b>Download Modified File</b> once output is generated.</li>
-        </ol>
+         <h3>Quick steps</h3>
+         <ol>
+           <li><b>Pick a workspace tab</b> (left sidebar). Each tab keeps its own inputs, model, prompt, output, and diff.</li>
+           <li><b>Select Model</b> (top dropdown).</li>
+           <li><b>Choose System Prompt</b> (top button: <b>Prompt - ...</b>) if you need stricter/looser behavior.</li>
+           <li><b>Paste or load</b> your unified diff patch into <b>Diff Patch</b> (use “Choose file” under the textarea if you prefer).</li>
+           <li><b>Paste or load</b> the original file content into <b>File Content</b> (use “Choose file” under the textarea if you prefer).</li>
+           <li>Enter your <b>API Key</b> (xAI for <code>grok-*</code>, OpenAI for <code>gpt-*</code>) and <b>6-digit PIN</b>, then <b>Save</b> (stored locally, encrypted).</li>
+           <li>Click <b>Apply Patch</b>. Review the output and the “Diff with original”.</li>
+           <li>Use <b>Copy</b> or <b>Download Modified File</b> once output is generated.</li>
+         </ol>
 
-        <h3>Notes</h3>
-        <ul>
-          <li>The model is instructed to output <b>only the final file contents</b> (no code fences, no commentary).</li>
-          <li>If the file is large, you may get a size warning before sending.</li>
-          <li><b>Dark Mode</b> can be toggled via the <b>View → Dark Mode</b> menu item (or <b>Cmd/Ctrl + D</b>).</li>
-          <li>You can dismiss this help with <b>ESC</b>, the <b>×</b> button, or by clicking the background.</li>
-        </ul>
+         <h3>Workspaces (tabs)</h3>
+         <ul>
+           <li>Create a new tab with the <b>+</b> button (or <b>Cmd/Ctrl + T</b>).</li>
+           <li><b>Double-click</b> a tab to rename it.</li>
+           <li>Close a tab with the <b>×</b> on the tab (or <b>Cmd/Ctrl + W</b>).</li>
+           <li>Cycle tabs with <b>Cmd/Ctrl + Tab</b> (and <b>Cmd/Ctrl + Shift + Tab</b>).</li>
+         </ul>
 
-        <h3>Keyboard shortcuts</h3>
-        <ul>
-          <li><b>F1</b>: Open Usage Help</li>
-          <li><b>Cmd/Ctrl + D</b>: Toggle Dark Mode</li>
-          <li><b>ESC</b>: Close Help</li>
-        </ul>
-      </div>
+         <h3>System Prompt</h3>
+         <ul>
+           <li>Open via the top <b>Prompt - ...</b> button, or <b>Edit → System Prompt…</b> (<b>Cmd/Ctrl + Shift + P</b>).</li>
+           <li><b>Default</b> is locked. Use <b>New</b> or <b>Duplicate</b> to create a custom prompt.</li>
+           <li>Click <b>Use in this tab</b> to apply the selected prompt to the current workspace.</li>
+           <li>Prompts are stored locally (in this app's localStorage).</li>
+         </ul>
+
+         <h3>API keys (xAI / OpenAI)</h3>
+         <ul>
+           <li>Open via <b>File → xAI API Key…</b> (<b>Cmd/Ctrl + K</b>) or <b>File → OpenAI API Key…</b> (<b>Cmd/Ctrl + Shift + K</b>).</li>
+           <li>Keys are encrypted locally using your <b>6-digit PIN</b>. The PIN is not stored; you unlock keys once per app session.</li>
+           <li>The app automatically chooses which provider key to use based on the model name (<code>grok-*</code> vs <code>gpt-*</code>).</li>
+         </ul>
+
+         <h3>Output, diff navigation, and tools</h3>
+         <ul>
+           <li>The model is instructed to output <b>only the final file contents</b> (no code fences, no commentary).</li>
+           <li>If the file is large, you may get a size warning before sending.</li>
+           <li>The top-right metadata shows <b>time</b> and an <b>estimated token count</b> as: <code>&lt;time&gt; / &lt;tokens&gt;</code>.</li>
+           <li><b>Prev change</b> / <b>Next change</b> buttons appear when the diff section is on-screen.</li>
+           <li><b>Go to top</b> appears after you scroll down.</li>
+           <li>Use the <b>⛶</b>/<b>🗕</b> buttons to expand/collapse Diff, File Content, and Output.</li>
+           <li><b>Retry</b> appears when a request fails and retries are available.</li>
+           <li><b>Dark Mode</b> can be toggled via the <b>View → Dark Mode</b> menu item (or <b>Cmd/Ctrl + D</b>).</li>
+           <li>You can dismiss this help with <b>ESC</b>, the <b>×</b> button, or by clicking the background.</li>
+         </ul>
+
+         <h3>Keyboard shortcuts</h3>
+         <ul>
+           <li><b>F1</b>: Open Usage Help</li>
+           <li><b>Cmd/Ctrl + D</b>: Toggle Dark Mode</li>
+           <li><b>Cmd/Ctrl + K</b>: xAI API Key</li>
+           <li><b>Cmd/Ctrl + Shift + K</b>: OpenAI API Key</li>
+           <li><b>Cmd/Ctrl + Shift + P</b>: System Prompt</li>
+           <li><b>Cmd/Ctrl + T</b>: New tab</li>
+           <li><b>Cmd/Ctrl + W</b>: Close tab</li>
+           <li><b>Cmd/Ctrl + Tab</b>: Next tab</li>
+           <li><b>Cmd/Ctrl + Shift + Tab</b>: Previous tab</li>
+           <li><b>F7</b>: Previous change</li>
+           <li><b>F8</b>: Next change</li>
+           <li><b>ESC</b>: Close the currently open dialog</li>
+         </ul>
+       </div>
 
       <div class="modal-footer">
         <button id="helpOkBtn" class="modal-ok">Close</button>
@@ -320,9 +369,9 @@
     </div>
 
     <div class="modal-body">
-      <label for="tabRenameInput">Tab name</label>
+      <label for="tabRenameInput" id="tabRenameLabel">Tab name</label>
       <input type="text" id="tabRenameInput" placeholder="e.g. auth.js patch" autocomplete="off">
-      <div class="modal-hint">Press Enter to save</div>
+      <div class="modal-hint" id="tabRenameHint">Press Enter to save</div>
     </div>
 
     <div class="modal-footer">
@@ -341,7 +390,7 @@
       </div>
  
       <div class="modal-body">
-        <p>
+        <p id="tabCloseBody">
           Close <b id="tabCloseName">this tab</b>? Any unsaved input in this tab will be lost.
         </p>
       </div>
@@ -364,7 +413,7 @@
         <div class="sys-prompt-layout">
           <div class="sys-prompt-list">
             <div class="sys-prompt-list-header">
-              <div class="sys-prompt-list-title">Saved prompts</div>
+              <div class="sys-prompt-list-title" id="sysPromptSavedTitle">Saved prompts</div>
               <div class="sys-prompt-list-actions">
                 <button id="sysPromptNewBtn" class="modal-ok" type="button">New</button>
               </div>
@@ -375,10 +424,10 @@
           </div>
 
           <div class="sys-prompt-editor">
-            <label for="sysPromptNameInput">Prompt name</label>
+            <label for="sysPromptNameInput" id="sysPromptNameLabel">Prompt name</label>
             <input id="sysPromptNameInput" type="text" placeholder="e.g. Strict patcher" autocomplete="off">
 
-            <label for="sysPromptText">System prompt</label>
+            <label for="sysPromptText" id="sysPromptTextLabel">System prompt</label>
             <textarea id="sysPromptText" rows="12"></textarea>
 
             <div id="sysPromptHint" class="modal-hint"></div>
@@ -426,6 +475,20 @@
       <div class="modal-footer">
         <button id="historyOkBtn" class="modal-ok" type="button">Close</button>
       </div>
+    </div>
+  </div>
+
+  <!-- Language overlay (opened from View → Language…) -->
+  <div id="languageOverlay" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="languageTitle">
+    <div class="modal-content modal-sm" role="document">
+      <div class="modal-header">
+        <h2 id="languageTitle">Language</h2>
+        <button id="languageCloseBtn" class="modal-close" aria-label="Close language">×</button>
+      </div>
+      <div class="modal-body">
+        <div id="languageIntro" class="modal-hint">Choose a language. The app will reload.</div>
+      </div>
+      <div class="modal-footer" id="languageButtons" style="flex-wrap: wrap; gap: 8px;"></div>
     </div>
   </div>
 

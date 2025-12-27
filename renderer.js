@@ -4,17 +4,139 @@ const Diff2Html = require('diff2html');  // For rendering as HTML
 const zlib = require('zlib'); // history compression fallback (no new deps)
 const { ipcRenderer } = require('electron');
 const { pathToFileURL } = require('url');
+const { createTabsManager } = require('./tabs');
+const { createApiKeyManager } = require('./apikeys');
+const { createI18nManager } = require('./i18n');
+
+// --- Close modals + keep tabs safe when switching language ---
+function closeAllModalsForLanguageChange() {
+  // stash current tab inputs safely (doesn't touch their contents)
+  try { initTabsManagerOnce(); saveActiveTabFromDom(); } catch {}
+
+  // Close everything visible; force-close blocking ones
+  try { closeHelp(); } catch {}
+  try { closeAbout(); } catch {}
+  try { closeHistoryModal(); } catch {}
+  try { closeSysPromptModal(); } catch {}
+  try { closeTabRenameModal(); } catch {}
+  try { closeTabCloseModal(); } catch {}
+  try { closeLanguageModal(); } catch {}
+
+  try {
+    const api = initApiKeysManagerOnce();
+    api?.closeApiKeyModal?.({ force: true });
+    api?.closeKeyTypeModal?.({ force: true });
+  } catch {}
+
+  // Hard reset body scroll lock (safe because we just closed everything)
+  try { document.body.classList.remove('modal-open'); } catch {}
+}
+
+// -------------------------
+// Localized "Choose file" / "No file chosen" (custom file picker UI)
+// -------------------------
+function applyI18nToFilePickers() {
+  const diffBtn = document.getElementById('diffFileBtn');
+  const diffName = document.getElementById('diffFileName');
+  const modelBtn = document.getElementById('modelFileBtn');
+  const modelName = document.getElementById('modelFileName');
+
+  const choose = t('filePicker.chooseFile', 'Choose file');
+  const none = t('filePicker.noFileChosen', 'No file chosen');
+
+  if (diffBtn) {
+    diffBtn.textContent = choose;
+    diffBtn.title = choose;
+    diffBtn.setAttribute('aria-label', choose);
+  }
+  if (modelBtn) {
+    modelBtn.textContent = choose;
+    modelBtn.title = choose;
+    modelBtn.setAttribute('aria-label', choose);
+  }
+
+  // Only overwrite the filename display if no file is currently shown
+  if (diffName && diffName.dataset.hasFile !== '1') diffName.textContent = none;
+  if (modelName && modelName.dataset.hasFile !== '1') modelName.textContent = none;
+}
+
+function setFilePickerName(kind /* 'diff' | 'model' */, name) {
+  const none = t('filePicker.noFileChosen', 'No file chosen');
+  const el = document.getElementById(kind === 'diff' ? 'diffFileName' : 'modelFileName');
+  if (!el) return;
+  const nm = String(name || '').trim();
+  if (nm) {
+    el.textContent = nm;
+    el.dataset.hasFile = '1';
+  } else {
+    el.textContent = none;
+    el.dataset.hasFile = '0';
+  }
+}
+
+function refreshUiAfterLanguageChange() {
+  // 1) Tabs (aria-label, busy tooltip, etc.)
+  try { initTabsManagerOnce(); renderTabsFull(); } catch {}
+
+  // 2) System prompt button label (uses t/tFmt)
+  try { updateSystemPromptButtonForTab(getActiveTab()); } catch {}
+
+  // 3) Model time string (uses tFmt)
+  try { setModelTimeUi(getActiveTab()); } catch {}
+
+  // 4) Diff nav labels already handled by applyI18nToStaticUi,
+  //    but visibility/disabled state can be refreshed.
+  try { updateDiffNavButtons(); } catch {}
+
+  // 5) Custom file pickers ("Choose file" / "No file chosen")
+  try { applyI18nToFilePickers(); } catch {}
+}
+
 const MAX_RETRIES = 3;
 const MAX_FILE_SIZE_MB = 5;  // Warn if larger; adjust based on API limits
 let originalFileName = 'file.txt';  // Default for pasted content
 let isApiKeyEditable = true;
 
 // -------------------------
-// Providers + encrypted key storage
+// UI Language (i18n) - Renderer (modularized)
 // -------------------------
-const PROVIDER_XAI = 'xai';
-const PROVIDER_OPENAI = 'openai';
-const PROVIDERS = [PROVIDER_XAI, PROVIDER_OPENAI];
+const i18nMgr = createI18nManager({
+  ipcRenderer,
+  window,
+  document,
+  storage: localStorage,
+  hooks: {
+    beforeChange: closeAllModalsForLanguageChange,
+    afterChange: refreshUiAfterLanguageChange
+  },
+  modal: {
+    overlayId: 'languageOverlay',
+    buttonsWrapId: 'languageButtons',
+    closeBtnId: 'languageCloseBtn',
+    // Used only to decide when to remove body.modal-open
+    otherOverlayIds: [
+      'helpOverlay',
+      'apiKeyOverlay',
+      'keyTypeOverlay',
+      'tabRenameOverlay',
+      'tabCloseOverlay',
+      'sysPromptOverlay',
+      'aboutOverlay',
+      'historyOverlay'
+    ]
+  }
+});
+
+const {
+  t,
+  tFmt,
+  initI18n,
+  applyI18nToStaticUi,
+  setLanguage,
+  isLanguageModalOpen,
+  openLanguageModal,
+  closeLanguageModal,
+} = i18nMgr;
 
 // -------------------------
 // System prompts (Default + up to 4 custom, total 5 incl Default)
@@ -146,35 +268,6 @@ function getSystemPromptById(id) {
   };
 }
 
-// LocalStorage keys (encrypted payload + legacy plaintext)
-const LS = {
-  [PROVIDER_XAI]:    { enc: 'api_key_enc_xai_v1',    plain: 'api_key_xai' },
-  [PROVIDER_OPENAI]: { enc: 'api_key_enc_openai_v1', plain: 'api_key_openai' }
-};
-
-// PIN/crypto params
-const PIN_LEN = 6;
-const ENC_VERSION = 1;
-const SALT_BYTES = 16;
-const AES_GCM_IV_BYTES = 12;
-const PBKDF2_ITERS = 150000;
-
-// Session (RAM-only)
-let sessionPin = '';
-const sessionApiKeys = {
-  [PROVIDER_XAI]: '',
-  [PROVIDER_OPENAI]: ''
-};
-
-// Modal state
-let apiModalMode = 'manage';
-let apiModalBlocking = false;
-let apiModalProvider = PROVIDER_XAI;
-let apiModalAskPin = true;
-let autoUnlockBusy = false;
-let keyTypeBlocking = false;
-
-const webCrypto = (typeof window !== 'undefined' && window.crypto) ? window.crypto : globalThis.crypto;
 
 // Keep diff2html scheme class in sync when user toggles app theme
 function syncDiff2HtmlTheme() {
@@ -285,7 +378,7 @@ function formatDurationMs(ms) {
   const totalSeconds = Math.max(0, Math.floor((ms || 0) / 1000));
   const mins = Math.floor(totalSeconds / 60);
   const secs = totalSeconds % 60;
-  return `${mins} mins and ${secs} seconds`;
+  return tFmt('output.timeFmt', { mins, secs }, `${mins} mins and ${secs} seconds`);
 }
 
 // -------------------------
@@ -329,8 +422,10 @@ function setModelTimeUi(tab) {
 
   if (tab && Number.isFinite(tab.lastDurationMs)) {
     const parts = [formatDurationMs(tab.lastDurationMs)];
-    if (Number.isFinite(tab.lastTokenCount)) parts.push(String(tab.lastTokenCount) + ' tokens [est.]');
-    el.textContent = parts.join(' / ');
+    if (Number.isFinite(tab.lastTokenCount)) {
+      parts.push(tFmt('output.tokensEstFmt', { n: String(tab.lastTokenCount) }, `${tab.lastTokenCount} tokens [est.]`));
+    }
+    el.textContent = parts.join(t('output.separator', ' / '));
     el.classList.remove('hidden');
   } else {
     el.textContent = '';
@@ -687,174 +782,6 @@ function computeDiffNavVisible() {
   return diffNavVisible;
 }
 
-function isValidPin(pin) {
-  return /^\d{6}$/.test((pin || '').trim());
-}
-
-function providerForModel(model) {
-  const m = (model || '').trim();
-  // Convention: OpenAI models start with "gpt-"
-  return m.startsWith('gpt-') ? PROVIDER_OPENAI : PROVIDER_XAI;
-}
-
-function baseUrlForProvider(provider) {
-  return provider === PROVIDER_XAI ? 'https://api.x.ai/v1' : 'https://api.openai.com/v1';
-}
-
-function getProviderUi(provider) {
-  if (provider === PROVIDER_OPENAI) return { title: 'OpenAI API Key', placeholder: 'sk-...', introKey: 'OpenAI' };
-  if (provider === PROVIDER_XAI) return { title: 'xAI API Key', placeholder: 'xai-...', introKey: 'xAI' };
-  return { title: 'Unlock API Keys', placeholder: '', introKey: 'saved keys' };
-}
-
-function getPinBoxes() {
-  const wrap = document.getElementById('apiKeyPinBoxes');
-  if (!wrap) return [];
-  return Array.from(wrap.querySelectorAll('input.pin-box'));
-}
-
-function setHiddenPin(pin) {
-  const hidden = document.getElementById('apiKeyPinInput');
-  if (hidden) hidden.value = (pin || '').slice(0, PIN_LEN);
-}
-
-function getPinFromBoxes() {
-  const boxes = getPinBoxes();
-  if (!boxes.length) {
-    return (document.getElementById('apiKeyPinInput')?.value || '').trim();
-  }
-  return boxes.map(b => (b.value || '').replace(/\D/g, '')).join('');
-}
-
-function focusPinBox(idx) {
-  const boxes = getPinBoxes();
-  const el = boxes[idx];
-  if (!el) return;
-  el.focus();
-  // select if possible
-  try { el.setSelectionRange(0, el.value.length); } catch {}
-}
-
-function clearPinBoxes({ focusIndex = 0 } = {}) {
-  const boxes = getPinBoxes();
-  boxes.forEach(b => { b.value = ''; });
-  setHiddenPin('');
-  if (boxes.length) focusPinBox(Math.min(Math.max(focusIndex, 0), boxes.length - 1));
-}
-
-function setPinBoxesFromString(pin) {
-  const clean = (pin || '').replace(/\D/g, '').slice(0, PIN_LEN);
-  const boxes = getPinBoxes();
-  for (let i = 0; i < boxes.length; i++) {
-    boxes[i].value = clean[i] || '';
-  }
-  setHiddenPin(clean);
-  const nextIdx = Math.min(clean.length, boxes.length - 1);
-  focusPinBox(nextIdx);
-}
-
-function syncHiddenPinFromBoxes() {
-  setHiddenPin(getPinFromBoxes());
-}
-
-function isPinComplete() {
-  const pin = getPinFromBoxes();
-  return /^\d{6}$/.test(pin);
-}
-
-async function maybeAutoUnlock() {
-  // Only auto-submit when unlocking (no API key field) and 6 digits are present
-  if (apiModalMode !== 'unlock') return;
-  if (!isPinComplete()) return;
-  if (autoUnlockBusy) return;
-
-  autoUnlockBusy = true;
-  try {
-    await handleApiKeyPrimaryClick();
-  } finally {
-    autoUnlockBusy = false;
-  }
-}
-
-function setupPinBoxes() {
-  const boxes = getPinBoxes();
-  if (!boxes.length) return;
-
-  boxes.forEach((box, idx) => {
-    // typing / input
-    box.addEventListener('input', () => {
-      // Keep only digits; allow multi-digit (mobile autofill / paste into one box)
-      const digits = (box.value || '').replace(/\D/g, '');
-
-      if (digits.length <= 1) {
-        box.value = digits;
-        syncHiddenPinFromBoxes();
-        if (digits && idx < boxes.length - 1) focusPinBox(idx + 1);
-      } else {
-        // Spread multi-digit input across remaining boxes starting at idx
-        const spread = digits.split('').slice(0, boxes.length - idx);
-        spread.forEach((ch, j) => {
-          boxes[idx + j].value = ch;
-        });
-        syncHiddenPinFromBoxes();
-        const next = Math.min(idx + spread.length, boxes.length - 1);
-        focusPinBox(next);
-      }
-
-      // Auto-unlock when full
-      void maybeAutoUnlock();
-    });
-
-    // key navigation + backspace behavior
-    box.addEventListener('keydown', (e) => {
-      const key = e.key;
-
-      if (key === 'Backspace') {
-        e.preventDefault();
-        if (box.value) {
-          // clear current box first
-          box.value = '';
-          syncHiddenPinFromBoxes();
-          return;
-        }
-        // if empty, clear previous and move cursor there
-        if (idx > 0) {
-          boxes[idx - 1].value = '';
-          syncHiddenPinFromBoxes();
-          focusPinBox(idx - 1);
-        }
-        return;
-      }
-
-      if (key === 'ArrowLeft') {
-        e.preventDefault();
-        if (idx > 0) focusPinBox(idx - 1);
-        return;
-      }
-
-      if (key === 'ArrowRight') {
-        e.preventDefault();
-        if (idx < boxes.length - 1) focusPinBox(idx + 1);
-        return;
-      }
-
-      // block non-digit single-character keys
-      if (key.length === 1 && !/\d/.test(key)) {
-        e.preventDefault();
-      }
-    });
-
-    // paste support (paste 6 digits anywhere)
-    box.addEventListener('paste', (e) => {
-      const txt = (e.clipboardData?.getData('text') || '').trim();
-      const clean = txt.replace(/\D/g, '');
-      if (!clean) return;
-      e.preventDefault();
-      setPinBoxesFromString(clean);
-      void maybeAutoUnlock();
-    });
-  });
-}
 
 function bytesToB64(u8) {
   let bin = '';
@@ -1105,8 +1032,9 @@ function closeHistoryModal() {
   const sysOpen = !document.getElementById('sysPromptOverlay')?.classList.contains('hidden');
   const aboutOpen = !document.getElementById('aboutOverlay')?.classList.contains('hidden');
   const histOpen = !overlay.classList.contains('hidden');
+  const langOpen = !document.getElementById('languageOverlay')?.classList.contains('hidden');
 
-  if (!helpOpen && !apiOpen && !typeOpen && !renameOpen && !closeOpen && !sysOpen && !aboutOpen && !histOpen) {
+  if (!helpOpen && !apiOpen && !typeOpen && !renameOpen && !closeOpen && !sysOpen && !aboutOpen && !histOpen && !langOpen) {
     document.body.classList.remove('modal-open');
   }
   historyIndexCache = null;
@@ -1122,7 +1050,7 @@ async function renderHistoryPage() {
   const pageLabel = document.getElementById('historyPageLabel');
 
   if (hintEl) {
-    hintEl.textContent = `Max history size is ${appSettings.historyMax}. Older entries are removed automatically.`;
+    hintEl.textContent = tFmt('history.hint', { max: appSettings.historyMax }, `Max history size is ${appSettings.historyMax}. Older entries are removed automatically.`);
   }
 
   const idx = historyIndexCache || loadHistoryIndex();
@@ -1138,7 +1066,7 @@ async function renderHistoryPage() {
     if (!slice.length) {
       const empty = document.createElement('div');
       empty.className = 'history-hint';
-      empty.textContent = items.length ? 'No items on this page.' : 'No history yet.';
+      empty.textContent = items.length ? t('history.emptyPage', 'No items on this page.') : t('history.emptyAll', 'No history yet.');
       listEl.replaceChildren(empty);
     } else {
       const frag = document.createDocumentFragment();
@@ -1171,7 +1099,7 @@ async function renderHistoryPage() {
         const openBtn = document.createElement('button');
         openBtn.type = 'button';
         openBtn.className = 'modal-ok history-open-btn';
-        openBtn.textContent = 'Open in new tab';
+        openBtn.textContent = t('history.openInNewTab', 'Open in new tab');
         openBtn.dataset.action = 'open-history';
         openBtn.dataset.historyId = it.id;
 
@@ -1184,29 +1112,14 @@ async function renderHistoryPage() {
     }
   }
 
-  if (pageLabel) pageLabel.textContent = `Page ${historyPage + 1} of ${totalPages}`;
+  if (pageLabel) pageLabel.textContent = tFmt('history.pageLabel', { page: historyPage + 1, total: totalPages }, `Page ${historyPage + 1} of ${totalPages}`);
   if (prevBtn) prevBtn.disabled = historyPage <= 0;
   if (nextBtn) nextBtn.disabled = historyPage >= (totalPages - 1);
 }
 
-function addTabAndSelect(tab) {
-  const prevId = activeTabId;
-  saveActiveTabFromDom();
-  tabs.push(tab);
-  activeTabId = tab.id;
-  applyTabToDom(tab);
-  const list = getTabsListEl();
-  if (list) {
-    const row = ensureTabRow(tab);
-    updateTabRowFor(tab);
-    list.appendChild(row);
-    try { row.scrollIntoView({ block: 'nearest' }); } catch {}
-  }
-  if (prevId) {
-    const prevTab = tabs.find(t => t.id === prevId);
-    if (prevTab) updateTabRowFor(prevTab);
-  }
-}
+// NOTE: addTabAndSelect is provided by ./tabs.js via createTabsManager().
+// (Local implementation removed to avoid duplicate declarations.)
+ 
 
 function doesSystemPromptExist(id) {
   const store = systemPromptStore || ensureSystemPromptStore();
@@ -1235,9 +1148,11 @@ function buildDiffHtml(originalText, modifiedText) {
 async function openHistoryItemInNewTab(historyId) {
   const payload = await loadHistoryPayload(historyId);
   if (!payload) {
-    alert('Could not load this history item (it may have been cleared or storage is corrupted).');
+    alert(t('history.loadFailed', 'Could not load this history item (it may have been cleared or storage is corrupted).'));
     return;
   }
+  // Safety: ensure tabs module is wired (in case history opens early)
+  initTabsManagerOnce();
 
   ensureSystemPromptStore();
   const fileName = (payload.inputFileName || 'file.txt').trim() || 'file.txt';
@@ -1382,439 +1297,101 @@ let tabSeq = 1;
 let renamingTabId = null;
 let closingTabId = null;
 
-// --- Fast vertical tabstrip: keep DOM rows, update incrementally ---
-const tabRowById = new Map();
-let _tabsListEl = null;
-function getTabsListEl() {
-  if (_tabsListEl) return _tabsListEl;
-  _tabsListEl = document.getElementById('tabsList');
-  return _tabsListEl;
-}
+// Tabs/workspaces extracted to ./tabs.js
+let tabsMgr = null;
+let ensureTabsListDelegation, ensureTabRow, updateTabRowFor, renderTabsFull, focusAdjacentTab;
+let ensureTabDiffDom, makeTab, getActiveTab, saveActiveTabFromDom, applyTabToDom, selectTab, newTab, initTabs, addTabAndSelect, doCloseTab;
 
-function ensureTabsListDelegation() {
-  const list = getTabsListEl();
-  if (!list || list.dataset.delegated === '1') return;
-  list.dataset.delegated = '1';
+function initTabsManagerOnce() {
+  if (tabsMgr) return tabsMgr;
 
-  // Click: select tab OR close button
-  list.addEventListener('click', (e) => {
-    const closeBtn = e.target?.closest?.('button.tab-close');
-    if (closeBtn) {
-      e.preventDefault();
-      e.stopPropagation();
-      const row = closeBtn.closest('.tab-item');
-      if (row?.dataset?.tabId) openTabCloseModal(row.dataset.tabId);
-      return;
-    }
-    const row = e.target?.closest?.('.tab-item');
-    if (row?.dataset?.tabId) selectTab(row.dataset.tabId);
+  tabsMgr = createTabsManager({
+    state: {
+      get tabs() { return tabs; },
+      set tabs(v) { tabs = v; },
+      get activeTabId() { return activeTabId; },
+      set activeTabId(v) { activeTabId = v; },
+      get tabSeq() { return tabSeq; },
+      set tabSeq(v) { tabSeq = v; },
+    },
+    t,
+    tFmt,
+    DEFAULT_SYS_PROMPT_ID,
+    MAX_RETRIES,
+    getMainScrollEl,
+    computeDiffNavVisible,
+    updateDiffNavButtons,
+    syncDiff2HtmlTheme,
+    autoResizeIfExpanded,
+    setModelTimeUi,
+    updateSystemPromptButtonForTab,
+    openTabRenameModal,
+    openTabCloseModal,
+    getOriginalFileName: () => originalFileName,
+    setOriginalFileName: (v) => { originalFileName = (v || 'file.txt'); },
   });
 
-  // Double click: rename (ignore double-click on close button)
-  list.addEventListener('dblclick', (e) => {
-    if (e.target?.closest?.('.tab-close')) return;
-    const row = e.target?.closest?.('.tab-item');
-    if (row?.dataset?.tabId) openTabRenameModal(row.dataset.tabId);
-  });
+  ({
+    ensureTabsListDelegation,
+    ensureTabRow,
+    updateTabRowFor,
+    renderTabsFull,
+    focusAdjacentTab,
+    ensureTabDiffDom,
+    makeTab,
+    getActiveTab,
+    saveActiveTabFromDom,
+    applyTabToDom,
+    selectTab,
+    newTab,
+    initTabs,
+    addTabAndSelect,
+    doCloseTab,
+  } = tabsMgr);
 
-  // Keyboard on tab rows
-  list.addEventListener('keydown', (e) => {
-    const row = e.target?.closest?.('.tab-item');
-    if (!row?.dataset?.tabId) return;
-    const id = row.dataset.tabId;
+  return tabsMgr;
+ }
 
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
-      selectTab(id);
-      return;
-    }
-    if (e.key === 'Backspace' || e.key === 'Delete') {
-      e.preventDefault();
-      openTabCloseModal(id);
-      return;
-    }
-    if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
-      e.preventDefault();
-      focusAdjacentTab(id, e.key === 'ArrowUp' ? -1 : 1, { select: true });
-    }
-  });
-}
-
-function ensureTabRow(tab) {
-  const list = getTabsListEl();
-  if (!list || !tab) return null;
-  let row = tabRowById.get(tab.id);
-  if (row) return row;
-
-  row = document.createElement('div');
-  row.className = 'tab-item';
-  row.dataset.tabId = tab.id;
-  row.setAttribute('role', 'tab');
-
-  const label = document.createElement('div');
-  label.className = 'tab-label';
-  row.appendChild(label);
-
-  const spin = document.createElement('span');
-  spin.className = 'tab-spinner hidden';
-  spin.setAttribute('aria-hidden', 'true');
-  row.appendChild(spin);
-
-  const closeBtn = document.createElement('button');
-  closeBtn.type = 'button';
-  closeBtn.className = 'tab-close';
-  closeBtn.textContent = '×';
-  closeBtn.setAttribute('aria-label', 'Close tab');
-  row.appendChild(closeBtn);
-
-  tabRowById.set(tab.id, row);
-  return row;
-}
-
-function updateTabRowFor(tab) {
-  if (!tab) return;
-  const row = ensureTabRow(tab);
-  if (!row) return;
-
-  const isActive = tab.id === activeTabId;
-  const isBusy = !!tab.inFlight;
-
-  row.classList.toggle('active', isActive);
-  row.classList.toggle('busy', isBusy);
-  row.setAttribute('aria-selected', isActive ? 'true' : 'false');
-  row.setAttribute('aria-busy', isBusy ? 'true' : 'false');
-  row.tabIndex = isActive ? 0 : -1;
-
-  const label = row.querySelector('.tab-label');
-  if (label && label.textContent !== (tab.label || '')) label.textContent = tab.label || '';
-
-  const spin = row.querySelector('.tab-spinner');
-  if (spin) spin.classList.toggle('hidden', !isBusy);
-
-  if (isBusy) row.title = 'Processing…';
-  else row.removeAttribute('title');
-}
-
-function renderTabsFull() {
-  const list = getTabsListEl();
-  if (!list) return;
-
-  const keep = new Set(tabs.map(t => t.id));
-  for (const [id, row] of tabRowById.entries()) {
-    if (!keep.has(id)) {
-      try { row.remove(); } catch {}
-      tabRowById.delete(id);
-    }
-  }
-
-  const frag = document.createDocumentFragment();
-  for (const t of tabs) {
-    const row = ensureTabRow(t);
-    updateTabRowFor(t);
-    frag.appendChild(row);
-  }
-  list.replaceChildren(frag);
-}
-
-function focusAdjacentTab(fromId, dir /* -1|1 */, { select = false } = {}) {
-  const n = tabs.length;
-  if (!n) return;
-  const idx = Math.max(0, tabs.findIndex(t => t.id === fromId));
-  const next = tabs[(idx + dir + n) % n];
-  if (!next) return;
-  const row = tabRowById.get(next.id);
-  if (row) row.focus();
-  if (select) selectTab(next.id);
-}
-
-// --- Diff DOM caching: avoid innerHTML stringify/parse on every switch ---
-function ensureTabDiffDom(tab) {
-  if (!tab) return null;
-  if (!tab.diffDom) tab.diffDom = document.createElement('div');
-  return tab.diffDom;
-}
-
-function stashDiffDomIntoTab(tab) {
-  const diffView = document.getElementById('diffView');
-  if (!tab || !diffView) return;
-  const holder = ensureTabDiffDom(tab);
-  if (!holder) return;
-  holder.replaceChildren();
-  // Typically there is a single .d2h-wrapper root => O(1) move
-  while (diffView.firstChild) holder.appendChild(diffView.firstChild);
-}
-
-function restoreDiffDomFromTab(tab) {
-  const diffView = document.getElementById('diffView');
-  if (!tab || !diffView) return;
-  diffView.replaceChildren();
-  // If we have cached DOM, move it back (fast)
-  if (tab.diffDom && tab.diffDom.firstChild) {
-    while (tab.diffDom.firstChild) diffView.appendChild(tab.diffDom.firstChild);
-    return;
-  }
-  // Fallback for older state (if any)
-  if (tab.diffHtml) {
-    diffView.innerHTML = tab.diffHtml;
-    tab.diffHtml = ''; // stop re-parsing later
-  }
-}
-
-function makeTab(label) {
-  const id = `tab-${Date.now()}-${Math.random().toString(16).slice(2)}`;
-  return {
-    id,
-    label,
-    labelCustomized: false,
-    selectedModel: (localStorage.getItem('selectedModel') || document.getElementById('modelSelect')?.value || 'grok-4-fast-reasoning'),
-    systemPromptId: DEFAULT_SYS_PROMPT_ID,
-    diffText: '',
-    modelText: '',
-    originalFileName: 'file.txt',
-    modifiedText: '',
-    diffHtml: '',   // legacy fallback only
-    diffDom: null,  // DOM cache for diff view (fast tab switching)
-    errorText: '',
-    retryCount: 0,
-    // Per-tab main scroll position
-    scrollTop: 0,
-    // NEW
-    requestSeq: 0,
-    inFlightToken: null,
-    inFlight: false,
-    lastDurationMs: null,
-    lastTokenCount: null
-  };
-}
-
-function getActiveTab() {
-  return tabs.find(t => t.id === activeTabId) || null;
-}
-
-function saveActiveTabFromDom() {
-  const tab = getActiveTab();
-  if (!tab) return;
-
-  tab.selectedModel = document.getElementById('modelSelect')?.value || tab.selectedModel;
-  tab.diffText = document.getElementById('diff').value || '';
-  tab.modelText = document.getElementById('model').value || '';
-  tab.modifiedText = document.getElementById('output').textContent || '';
-  // Diff view: cache DOM, not innerHTML
-  stashDiffDomIntoTab(tab);
-  tab.errorText = document.getElementById('error').textContent || '';
-  tab.originalFileName = originalFileName;
-  // Save main scroll per tab
-  const mainScroll = getMainScrollEl();
-  tab.scrollTop = mainScroll ? mainScroll.scrollTop : 0;
-}
-
-function applyTabToDom(tab) {
-  // Restore per-tab model selection into the shared dropdown
-  const modelSelect = document.getElementById('modelSelect');
-  if (modelSelect) {
-    const desired = tab.selectedModel || localStorage.getItem('selectedModel') || modelSelect.value;
-    // only set if it's a valid option
-    const ok = Array.from(modelSelect.options).some(o => o.value === desired);
-    if (ok) modelSelect.value = desired;
-  }
-
-  document.getElementById('diff').value = tab.diffText || '';
-  document.getElementById('model').value = tab.modelText || '';
-  document.getElementById('output').textContent = tab.modifiedText || '';
-  restoreDiffDomFromTab(tab);
-  // If the diff HTML was saved under a different theme, fix its wrapper class now
-  syncDiff2HtmlTheme();
-  document.getElementById('error').textContent = tab.errorText || '';
-  // Output header right-side timing
-  setModelTimeUi(tab);
-  // System prompt button label (per-tab)
-  updateSystemPromptButtonForTab(tab);
-
-  // If any area is currently expanded, re-fit it to the newly applied content
-  autoResizeIfExpanded(document.getElementById('diff'));
-  autoResizeIfExpanded(document.getElementById('model'));
-  autoResizeIfExpanded(document.getElementById('output'));
-
-  originalFileName = tab.originalFileName || 'file.txt';
-
-  // reset file inputs (cannot be set programmatically; safest is to clear)
-  const diffFile = document.getElementById('diffFile');
-  const modelFile = document.getElementById('modelFile');
-  if (diffFile) diffFile.value = '';
-  if (modelFile) modelFile.value = '';
-
-  // Restore per-tab scroll AFTER content is in DOM
-  const mainScroll = getMainScrollEl();
-  if (mainScroll) {
-    const desired = Number.isFinite(tab.scrollTop) ? tab.scrollTop : 0;
-    requestAnimationFrame(() => {
-      const max = Math.max(0, mainScroll.scrollHeight - mainScroll.clientHeight);
-      mainScroll.scrollTop = Math.min(Math.max(0, desired), max);
-      // Force recompute so we don't rely on IO callback timing
-      computeDiffNavVisible();
-      updateDiffNavButtons();
-    });
-  } else {
-    computeDiffNavVisible();
-    updateDiffNavButtons();
-  }
-
-  // buttons visibility
-  const downloadBtn = document.getElementById('download');
-  const copyBtn = document.getElementById('copyBtn');
-  const retryBtn = document.getElementById('retryBtn');
-
-  const hasOutput = !!(tab.modifiedText && tab.modifiedText.trim());
-  downloadBtn.classList.toggle('hidden', !hasOutput);
-  copyBtn.classList.toggle('hidden', !hasOutput);
-
-  const canRetry = !!(tab.errorText && tab.retryCount > 0 && tab.retryCount < MAX_RETRIES);
-  retryBtn.classList.toggle('hidden', !canRetry);
-
-  const applyBtn = document.getElementById('applyBtn');
-  const loadingEl = document.getElementById('loading');
-
-  if (applyBtn) applyBtn.disabled = !!tab.inFlight;
-  if (loadingEl) loadingEl.classList.toggle('hidden', !tab.inFlight);
+// -------------------------
+// API keys: extracted manager (./apikeys.js)
+// -------------------------
+let apiKeysMgr = null;
+function initApiKeysManagerOnce() {
+  if (apiKeysMgr) return apiKeysMgr;
+  apiKeysMgr = createApiKeyManager({ t, tFmt, ipcRenderer });
+  return apiKeysMgr;
 }
 
 function updateSystemPromptButtonForTab(tab) {
   const btn = document.getElementById('sysPromptBtn');
   if (!btn) return;
   const p = getSystemPromptById(tab?.systemPromptId || DEFAULT_SYS_PROMPT_ID);
-  const nm = p?.name || 'Default';
-  btn.textContent = `Prompt - ${nm}`;
-  btn.title = `System prompt: ${nm}`;
-}
-
-// NOTE: renderTabs() replaced by incremental tabstrip (renderTabsFull + updateTabRowFor)
-
-function selectTab(tabId) {
-  if (tabId === activeTabId) return;
-  const prevId = activeTabId;
-  saveActiveTabFromDom();
-  activeTabId = tabId;
-  const tab = getActiveTab();
-  if (tab) applyTabToDom(tab);
-  // Update only two rows
-  if (prevId) {
-    const prevTab = tabs.find(t => t.id === prevId);
-    if (prevTab) updateTabRowFor(prevTab);
-  }
-  if (tab) updateTabRowFor(tab);
-}
-
-function newTab() {
-  const prevId = activeTabId;
-  saveActiveTabFromDom();
-  const curModel = document.getElementById('modelSelect')?.value || localStorage.getItem('selectedModel') || 'grok-4-fast-reasoning';
-  const tab = makeTab(`Tab ${tabSeq++}`);
-  tab.selectedModel = curModel;
-  tabs.push(tab);
-  activeTabId = tab.id;
-  applyTabToDom(tab);
-  // Append only the new row
-  const list = getTabsListEl();
-  if (list) {
-    const row = ensureTabRow(tab);
-    updateTabRowFor(tab);
-    list.appendChild(row);
-    try { row.scrollIntoView({ block: 'nearest' }); } catch {}
-  }
-  // Update previous active row
-  if (prevId) {
-    const prevTab = tabs.find(t => t.id === prevId);
-    if (prevTab) updateTabRowFor(prevTab);
-  }
-}
-
-function initTabs() {
-  const curModel = document.getElementById('modelSelect')?.value || localStorage.getItem('selectedModel') || 'grok-4-fast-reasoning';
-  tabs = [makeTab('Tab 1')];
-  tabs[0].selectedModel = curModel;
-  tabSeq = 2;
-  activeTabId = tabs[0].id;
-  applyTabToDom(tabs[0]);
-  ensureTabsListDelegation();
-  renderTabsFull();
-}
-
-function openTabRenameModal(tabId) {
-  const overlay = document.getElementById('tabRenameOverlay');
-  const input = document.getElementById('tabRenameInput');
-  const tab = tabs.find(t => t.id === tabId);
-  if (!overlay || !input || !tab) return;
-
-  renamingTabId = tabId;
-  overlay.classList.remove('hidden');
-  document.body.classList.add('modal-open');
-
-  input.value = tab.label || '';
-  input.disabled = false;
-  setTimeout(() => {
-    input.focus();
-    input.select();
-  }, 0);
-}
-
-function closeTabRenameModal() {
-  const overlay = document.getElementById('tabRenameOverlay');
-  if (!overlay) return;
-  overlay.classList.add('hidden');
-
-  // Only remove modal-open if *no* other modal is open
-  const helpOpen = !document.getElementById('helpOverlay')?.classList.contains('hidden');
-  const apiOpen = !document.getElementById('apiKeyOverlay')?.classList.contains('hidden');
-  const typeOpen = !document.getElementById('keyTypeOverlay')?.classList.contains('hidden');
-  const renameOpen = !overlay.classList.contains('hidden');
-  const closeOpen = !document.getElementById('tabCloseOverlay')?.classList.contains('hidden');
-  const sysOpen = !document.getElementById('sysPromptOverlay')?.classList.contains('hidden');
-  const aboutOpen = !document.getElementById('aboutOverlay')?.classList.contains('hidden');
-  const historyOpen = !document.getElementById('historyOverlay')?.classList.contains('hidden');
-
-  if (!helpOpen && !apiOpen && !typeOpen && !renameOpen && !closeOpen && !sysOpen && !aboutOpen && !historyOpen) {
-    document.body.classList.remove('modal-open');
-  }
-
-  renamingTabId = null;
-}
-
-function saveTabRename() {
-  const input = document.getElementById('tabRenameInput');
-  if (!input || !renamingTabId) return;
-
-  const next = (input.value || '').trim();
-  if (!next) return;
-
-  const tab = tabs.find(t => t.id === renamingTabId);
-  if (!tab) return;
-
-  tab.label = next;
-  tab.labelCustomized = true;
-  updateTabRowFor(tab);
-  closeTabRenameModal();
+  const rawName = p?.name || 'Default';
+  const nm = (p?.id === DEFAULT_SYS_PROMPT_ID) ? t('sysPrompt.defaultName', rawName) : rawName;
+  btn.textContent = tFmt('sysPrompt.buttonLabel', { name: nm }, `Prompt - ${nm}`);
+  btn.title = tFmt('sysPrompt.buttonTitle', { name: nm }, `System prompt: ${nm}`);
  }
 
- function openTabCloseModal(tabId) {
-   const overlay = document.getElementById('tabCloseOverlay');
-   const nameEl = document.getElementById('tabCloseName');
+ function openTabRenameModal(tabId) {
+   const overlay = document.getElementById('tabRenameOverlay');
+   const input = document.getElementById('tabRenameInput');
    const tab = tabs.find(t => t.id === tabId);
-   if (!overlay || !tab) return;
+   if (!overlay || !input || !tab) return;
 
-   closingTabId = tabId;
-   if (nameEl) nameEl.textContent = tab.label || 'this tab';
-
+   renamingTabId = tabId;
    overlay.classList.remove('hidden');
    document.body.classList.add('modal-open');
 
-   // Focus Cancel by default (safer)
+   input.value = tab.label || '';
+   input.disabled = false;
    setTimeout(() => {
-     document.getElementById('tabCloseCancelBtn')?.focus();
+     input.focus();
+     input.select();
    }, 0);
  }
 
- function closeTabCloseModal() {
-   const overlay = document.getElementById('tabCloseOverlay');
+ function closeTabRenameModal() {
+   const overlay = document.getElementById('tabRenameOverlay');
    if (!overlay) return;
    overlay.classList.add('hidden');
 
@@ -1822,411 +1399,90 @@ function saveTabRename() {
    const helpOpen = !document.getElementById('helpOverlay')?.classList.contains('hidden');
    const apiOpen = !document.getElementById('apiKeyOverlay')?.classList.contains('hidden');
    const typeOpen = !document.getElementById('keyTypeOverlay')?.classList.contains('hidden');
-   const renameOpen = !document.getElementById('tabRenameOverlay')?.classList.contains('hidden');
-   const closeOpen = !overlay.classList.contains('hidden');
+   const renameOpen = !overlay.classList.contains('hidden');
+   const closeOpen = !document.getElementById('tabCloseOverlay')?.classList.contains('hidden');
    const sysOpen = !document.getElementById('sysPromptOverlay')?.classList.contains('hidden');
    const aboutOpen = !document.getElementById('aboutOverlay')?.classList.contains('hidden');
    const historyOpen = !document.getElementById('historyOverlay')?.classList.contains('hidden');
+   const langOpen = !document.getElementById('languageOverlay')?.classList.contains('hidden');
 
-   if (!helpOpen && !apiOpen && !typeOpen && !renameOpen && !closeOpen && !sysOpen && !aboutOpen && !historyOpen) {
+   if (!helpOpen && !apiOpen && !typeOpen && !renameOpen && !closeOpen && !sysOpen && !aboutOpen && !historyOpen && !langOpen) {
      document.body.classList.remove('modal-open');
    }
 
-   closingTabId = null;
+   renamingTabId = null;
  }
 
- function doCloseTab(tabId) {
-   const idx = tabs.findIndex(t => t.id === tabId);
-   if (idx === -1) return;
+ function saveTabRename() {
+   const input = document.getElementById('tabRenameInput');
+   if (!input || !renamingTabId) return;
 
-   const t = tabs[idx];
-   // If something is in flight, invalidate token so its response is ignored
-   t.inFlightToken = null;
-   t.inFlight = false;
+   const next = (input.value || '').trim();
+   if (!next) return;
 
-   const wasActive = activeTabId === tabId;
-   tabs.splice(idx, 1);
+   const tab = tabs.find(t => t.id === renamingTabId);
+   if (!tab) return;
 
-   // Always keep at least one tab alive
-   if (tabs.length === 0) {
-     const fresh = makeTab('Tab 1');
-     tabs = [fresh];
-     tabSeq = 2;
-     activeTabId = fresh.id;
-     applyTabToDom(fresh);
-     ensureTabsListDelegation();
-     renderTabsFull();
-     return;
-   }
+   tab.label = next;
+   tab.labelCustomized = true;
+   updateTabRowFor(tab);
+   closeTabRenameModal();
+  }
 
-   if (wasActive) {
-     // pick the next tab (same index after removal) or previous
-     const next = tabs[Math.min(idx, tabs.length - 1)] || tabs[0];
-     activeTabId = next.id;
-     applyTabToDom(next);
-   }
+  function openTabCloseModal(tabId) {
+    const overlay = document.getElementById('tabCloseOverlay');
+    const nameEl = document.getElementById('tabCloseName');
+    const bodyEl = document.getElementById('tabCloseBody');
+    const tab = tabs.find(t => t.id === tabId);
+    if (!overlay || !tab) return;
 
-   // Remove the row (if present) and refresh active state
-   const row = tabRowById.get(tabId);
-   if (row) {
-     try { row.remove(); } catch {}
-   }
-   tabRowById.delete(tabId);
-   tabs.forEach(updateTabRowFor);
- }
-
- function confirmTabClose() {
-   if (!closingTabId) return;
-   doCloseTab(closingTabId);
-   closeTabCloseModal();
- }
-
-function getStoredApiKey(provider) {
-  return sessionApiKeys[provider] || '';
-}
-
-function setApiKeyRowLocked(apiInput, editBtn, maskLen) {
-  if (!apiInput || !editBtn) return;
-  apiInput.type = 'text'; // show literal asterisks
-  apiInput.value = '*'.repeat(Math.max(0, maskLen || 0));
-  apiInput.disabled = true; // greyed out via CSS
-  editBtn.textContent = 'Update';
-  editBtn.dataset.mode = 'locked';
-}
-
-function setApiKeyRowEdit(apiInput, editBtn, value = '') {
-  if (!apiInput || !editBtn) return;
-  apiInput.disabled = false;
-  apiInput.type = 'password'; // hide actual key while typing
-  apiInput.value = value || '';
-  editBtn.textContent = 'Save';
-  editBtn.dataset.mode = 'edit';
-  setTimeout(() => {
-    try {
-      apiInput.focus();
-      apiInput.select();
-    } catch {}
-  }, 0);
-}
-
-function openApiKeyModal({ provider = PROVIDER_XAI, mode = 'manage', blocking = false, hint = '', prefillKey = '', askPin = true } = {}) {
-  const overlay = document.getElementById('apiKeyOverlay');
-  const apiInput = document.getElementById('apiKeyModalInput');
-  const pinInput = document.getElementById('apiKeyPinInput'); // hidden aggregator
-  const pinBoxesWrap = document.getElementById('apiKeyPinBoxes');
-  const pinLabel = document.getElementById('apiKeyPinLabel');
-  const primaryBtn = document.getElementById('apiKeyPrimaryBtn');
-  const editBtn = document.getElementById('apiKeyEditBtn');
-  const apiKeyRow = document.getElementById('apiKeyInputRow');
-  const cancelBtn = document.getElementById('apiKeyCancelBtn');
-  const closeBtn = document.getElementById('apiKeyCloseBtn');
-  const hintEl = document.getElementById('apiKeyModalHint');
-  const apiLabel = document.getElementById('apiKeyModalLabel');
-  const titleEl = document.getElementById('apiKeyTitle');
-  const introEl = document.getElementById('apiKeyModalIntro');
-
-  if (!overlay || !primaryBtn || !pinBoxesWrap || !pinInput) return;
-
-  apiModalMode = mode;
-  apiModalBlocking = !!blocking;
-  apiModalProvider = provider;
-  apiModalAskPin = !!askPin;
-
-  const ui = getProviderUi(provider);
-  if (titleEl) titleEl.textContent = ui.title;
-  if (apiInput && ui.placeholder) apiInput.setAttribute('placeholder', ui.placeholder);
-
-  if (introEl) {
-    if (mode === 'unlock') {
-      introEl.innerHTML = 'Enter your <b>6-digit PIN</b> to unlock and decrypt saved keys for this session.';
-    } else if (!apiModalAskPin && isValidPin(sessionPin)) {
-      introEl.innerHTML = `Enter your <b>${ui.introKey} API Key</b>. It will be encrypted locally using the PIN already unlocked for this session.`;
-    } else {
-      introEl.innerHTML = `Enter your <b>${ui.introKey} API Key</b> and a <b>6-digit PIN</b>. The key is encrypted locally and stored in this app (localStorage). The PIN is not stored.`;
+    closingTabId = tabId;
+    const tabName = tab.label || t('tabs.fallbackName', 'this tab');
+    if (bodyEl) {
+      // Replace full sentence to support languages with different word order
+      bodyEl.innerHTML = tFmt('tabs.closeBodyHtml', { tabName }, `Close <b id="tabCloseName">${tabName}</b>? Any unsaved input in this tab will be lost.`);
     }
+    // Ensure we still set the <b id="tabCloseName"> if present (template keeps it)
+    const nameEl2 = document.getElementById('tabCloseName') || nameEl;
+    if (nameEl2) nameEl2.textContent = tabName;
+
+    overlay.classList.remove('hidden');
+    document.body.classList.add('modal-open');
+
+    // Focus Cancel by default (safer)
+    setTimeout(() => {
+      document.getElementById('tabCloseCancelBtn')?.focus();
+    }, 0);
   }
 
-  if (hintEl) hintEl.textContent = hint || '';
+  function closeTabCloseModal() {
+    const overlay = document.getElementById('tabCloseOverlay');
+    if (!overlay) return;
+    overlay.classList.add('hidden');
 
-  overlay.classList.remove('hidden');
-  document.body.classList.add('modal-open');
+    // Only remove modal-open if *no* other modal is open
+    const helpOpen = !document.getElementById('helpOverlay')?.classList.contains('hidden');
+    const apiOpen = !document.getElementById('apiKeyOverlay')?.classList.contains('hidden');
+    const typeOpen = !document.getElementById('keyTypeOverlay')?.classList.contains('hidden');
+    const renameOpen = !document.getElementById('tabRenameOverlay')?.classList.contains('hidden');
+    const closeOpen = !overlay.classList.contains('hidden');
+    const sysOpen = !document.getElementById('sysPromptOverlay')?.classList.contains('hidden');
+    const aboutOpen = !document.getElementById('aboutOverlay')?.classList.contains('hidden');
+    const historyOpen = !document.getElementById('historyOverlay')?.classList.contains('hidden');
+    const langOpen = !document.getElementById('languageOverlay')?.classList.contains('hidden');
 
-  // show/hide API key field depending on mode
-  const showKey = mode !== 'unlock';
-  if (apiLabel) apiLabel.classList.toggle('hidden', !showKey);
-  if (apiKeyRow) apiKeyRow.classList.toggle('hidden', !showKey);
-  if (editBtn) editBtn.classList.toggle('hidden', !showKey);
-  if (apiInput) apiInput.value = '';
-
-  // API key row behavior:
-  // - If key exists: show masked, disabled, button "Update"
-  // - If no key: editable, button "Save"
-  if (showKey && apiInput && editBtn) {
-    const hasKey = hasEncryptedApiKey(apiModalProvider);
-    if (hasKey) {
-      const maskLen = getEncryptedApiKeyLength(apiModalProvider) || 0;
-      setApiKeyRowLocked(apiInput, editBtn, maskLen);
-    } else {
-      setApiKeyRowEdit(apiInput, editBtn, prefillKey || '');
-    }
-  }
-
-  // PIN UI: show only if askPin=true (or unlock mode)
-  const showPinUi = (mode === 'unlock') ? true : apiModalAskPin;
-  if (pinLabel) pinLabel.classList.toggle('hidden', !showPinUi);
-  pinBoxesWrap.classList.toggle('hidden', !showPinUi);
-  if (pinInput) pinInput.value = '';
-  clearPinBoxes({ focusIndex: 0 });
-
-  // button labels
-  primaryBtn.textContent = 'Unlock';
-  primaryBtn.classList.toggle('hidden', mode !== 'unlock');
-
-  // non-disposable / blocking behavior
-  if (closeBtn) closeBtn.classList.toggle('hidden', apiModalBlocking);
-  if (cancelBtn) cancelBtn.classList.toggle('hidden', apiModalBlocking);
-
-  // focus
-  setTimeout(() => {
-    if (mode === 'unlock') {
-      // focus first PIN box
-      focusPinBox(0);
-    } else if (apiInput && editBtn) {
-      // If locked, focus the Update button; else focus input
-      if (apiInput.disabled) editBtn.focus();
-      else {
-        apiInput.focus();
-        apiInput.select();
-      }
-    } else {
-      pinInput.focus();
-      pinInput.select();
-    }
-  }, 0);
-}
-
-function closeApiKeyModal({ force = false } = {}) {
-  if (apiModalBlocking && !force) return;
-
-  const overlay = document.getElementById('apiKeyOverlay');
-  if (!overlay) return;
-  overlay.classList.add('hidden');
-
-  // Only remove modal-open if *no* other modal is open
-  const helpOpen = !document.getElementById('helpOverlay')?.classList.contains('hidden');
-  const renameOpen = !document.getElementById('tabRenameOverlay')?.classList.contains('hidden');
-  const apiOpen = !overlay.classList.contains('hidden');
-  const closeOpen = !document.getElementById('tabCloseOverlay')?.classList.contains('hidden');
-  const typeOpen = !document.getElementById('keyTypeOverlay')?.classList.contains('hidden');
-  const sysOpen = !document.getElementById('sysPromptOverlay')?.classList.contains('hidden');
-  const aboutOpen = !document.getElementById('aboutOverlay')?.classList.contains('hidden');
-  const historyOpen = !document.getElementById('historyOverlay')?.classList.contains('hidden');
-
-  if (!helpOpen && !renameOpen && !apiOpen && !closeOpen && !typeOpen && !sysOpen && !aboutOpen && !historyOpen) {
-    document.body.classList.remove('modal-open');
-  }
-
-  // reset
-  apiModalBlocking = false;
-  apiModalMode = 'manage';
-  // clear PIN UI on close
-  clearPinBoxes({ focusIndex: 0 });
-}
-
-async function handleApiKeyPrimaryClick() {
-  // Primary button is ONLY for Unlock mode. If somehow triggered otherwise, treat as Save/Update.
-  if (apiModalMode !== 'unlock') {
-    await handleApiKeyEditBtnClick();
-    return;
-  }
-
-  const apiInput = document.getElementById('apiKeyModalInput');
-  const pinInput = document.getElementById('apiKeyPinInput'); // hidden aggregator
-  const hintEl = document.getElementById('apiKeyModalHint');
-
-  const pin = apiModalAskPin ? getPinFromBoxes() : (sessionPin || '');
-  const key = (apiInput?.value || '').trim();
-
-  if (hintEl) hintEl.textContent = '';
-
-  if (!webCrypto?.subtle) {
-    if (hintEl) hintEl.textContent = 'WebCrypto is not available in this environment.';
-    return;
-  }
-
-  // Validate PIN only when required (unlock or first-time setup)
-  if (apiModalMode === 'unlock' || apiModalAskPin) {
-    if (!isValidPin(pin)) {
-      if (hintEl) hintEl.textContent = 'PIN must be exactly 6 digits.';
-      clearPinBoxes({ focusIndex: 0 });
-      return;
-    }
-  }
-
-  // UNLOCK MODE: decrypt all saved encrypted keys (xAI + OpenAI) in one go
-  if (apiModalMode === 'unlock') {
-    try {
-      let any = false;
-      for (const p of PROVIDERS) {
-        const payload = loadEncryptedPayload(p);
-        if (!payload) continue;
-        const dec = await decryptApiKeyWithPin(payload, pin);
-        if (dec && dec.trim()) {
-          sessionApiKeys[p] = dec.trim();
-          any = true;
-        }
-      }
-
-      if (!any) {
-        if (hintEl) hintEl.textContent = 'No encrypted keys found (or data is corrupted).';
-        return;
-      }
-
-      sessionPin = pin; // keep PIN in RAM for this session
-
-      // close even if blocking (success path)
-      closeApiKeyModal({ force: true });
-    } catch {
-      if (hintEl) hintEl.textContent = 'Invalid PIN (or corrupted stored key). Try again.';
-      clearPinBoxes({ focusIndex: 0 });
-    }
-    return;
-  }
-
-  // Non-unlock paths are handled by the same-row Update/Save button.
- }
-
-async function handleApiKeyEditBtnClick() {
-  const apiInput = document.getElementById('apiKeyModalInput');
-  const editBtn = document.getElementById('apiKeyEditBtn');
-  const hintEl = document.getElementById('apiKeyModalHint');
-
-  if (!apiInput || !editBtn) return;
-  if (hintEl) hintEl.textContent = '';
-
-  const mode = editBtn.dataset.mode || 'edit';
-
-  // Locked -> enable editing
-  if (mode === 'locked') {
-    setApiKeyRowEdit(apiInput, editBtn, '');
-    return;
-  }
-
-  // Edit -> Save
-  const key = (apiInput.value || '').trim();
-  if (!key) {
-    if (hintEl) hintEl.textContent = 'API key is required.';
-    try { apiInput.focus(); } catch {}
-    return;
-  }
-
-  if (!webCrypto?.subtle) {
-    if (hintEl) hintEl.textContent = 'WebCrypto is not available in this environment.';
-    return;
-  }
-
-  const pin = apiModalAskPin ? getPinFromBoxes() : (sessionPin || '');
-  if (apiModalAskPin && !isValidPin(pin)) {
-    if (hintEl) hintEl.textContent = 'PIN must be exactly 6 digits.';
-    clearPinBoxes({ focusIndex: 0 });
-    return;
-  }
-
-  try {
-    const effectivePin = apiModalAskPin ? pin : sessionPin;
-    if (!isValidPin(effectivePin)) {
-      if (hintEl) hintEl.textContent = 'PIN is not available in this session. Please unlock first.';
-      return;
+    if (!helpOpen && !apiOpen && !typeOpen && !renameOpen && !closeOpen && !sysOpen && !aboutOpen && !historyOpen && !langOpen) {
+      document.body.classList.remove('modal-open');
     }
 
-    const provider = apiModalProvider || PROVIDER_XAI;
-    const payload = await encryptApiKeyWithPin(key, effectivePin);
-    saveEncryptedPayload(provider, payload);
-    sessionApiKeys[provider] = key;
-    sessionPin = effectivePin; // keep PIN in RAM for this session
-
-    // If this modal was blocking (startup / apply flow), close immediately after save.
-    if (apiModalBlocking) {
-      closeApiKeyModal({ force: true });
-      return;
-    }
-
-    // Otherwise, lock + mask in-place.
-    setApiKeyRowLocked(apiInput, editBtn, key.length);
-    if (hintEl) hintEl.textContent = 'Saved.';
-    // Clear PIN boxes if shown (optional hygiene)
-    if (apiModalAskPin) clearPinBoxes({ focusIndex: 0 });
-  } catch (e) {
-    if (hintEl) hintEl.textContent = `Failed to encrypt and save: ${e?.message || e}`;
-  }
- }
-
-function bootstrapApiKeyFlow() {
-  // Any encrypted keys exist -> ask once for PIN and decrypt BOTH keys into RAM
-  if (hasAnyEncryptedApiKey()) {
-    openApiKeyModal({
-      provider: 'all',
-      mode: 'unlock',
-      blocking: true,
-      askPin: true,
-      hint: 'Enter your 6-digit PIN to unlock saved keys for this session.'
-    });
-    return;
+    closingTabId = null;
   }
 
-  // Legacy plaintext migration (pick first provider with legacy)
-  for (const p of PROVIDERS) {
-    const legacy = loadLegacyPlain(p);
-    if (legacy) {
-      openApiKeyModal({
-        provider: p,
-        mode: 'setup',
-        blocking: true,
-        askPin: true,
-        hint: 'Set a 6-digit PIN to encrypt your existing saved API key.',
-        prefillKey: legacy
-      });
-      return;
-    }
+  function confirmTabClose() {
+    if (!closingTabId) return;
+    doCloseTab(closingTabId);
+    closeTabCloseModal();
   }
-
-  // No keys at all -> force provider selection first
-  openKeyTypeModal({ blocking: true });
-}
-
-function openKeyTypeModal({ blocking = true, hint = '' } = {}) {
-  const overlay = document.getElementById('keyTypeOverlay');
-  const hintEl = document.getElementById('keyTypeHint');
-  if (!overlay) return;
-  keyTypeBlocking = !!blocking;
-  if (hintEl) hintEl.textContent = hint || '';
-  overlay.classList.remove('hidden');
-  document.body.classList.add('modal-open');
-  setTimeout(() => {
-    document.getElementById('keyTypeXaiBtn')?.focus();
-  }, 0);
-}
-
-function closeKeyTypeModal({ force = false } = {}) {
-  if (keyTypeBlocking && !force) return;
-  const overlay = document.getElementById('keyTypeOverlay');
-  if (!overlay) return;
-  overlay.classList.add('hidden');
-
-  // Only remove modal-open if *no* other modal is open
-  const helpOpen = !document.getElementById('helpOverlay')?.classList.contains('hidden');
-  const apiOpen = !document.getElementById('apiKeyOverlay')?.classList.contains('hidden');
-  const renameOpen = !document.getElementById('tabRenameOverlay')?.classList.contains('hidden');
-  const closeOpen = !document.getElementById('tabCloseOverlay')?.classList.contains('hidden');
-  const typeOpen = !overlay.classList.contains('hidden');
-  const sysOpen = !document.getElementById('sysPromptOverlay')?.classList.contains('hidden');
-  const aboutOpen = !document.getElementById('aboutOverlay')?.classList.contains('hidden');
-  const historyOpen = !document.getElementById('historyOverlay')?.classList.contains('hidden');
-  if (!helpOpen && !apiOpen && !renameOpen && !closeOpen && !typeOpen && !sysOpen && !aboutOpen && !historyOpen) {
-    document.body.classList.remove('modal-open');
-  }
-  keyTypeBlocking = false;
-}
 
 function openHelp() {
   const overlay = document.getElementById('helpOverlay');
@@ -2250,8 +1506,9 @@ function closeHelp() {
   const sysOpen = !document.getElementById('sysPromptOverlay')?.classList.contains('hidden');
   const aboutOpen = !document.getElementById('aboutOverlay')?.classList.contains('hidden');
   const historyOpen = !document.getElementById('historyOverlay')?.classList.contains('hidden');
+  const langOpen = !document.getElementById('languageOverlay')?.classList.contains('hidden');
  
-  if (!apiOpen && !typeOpen && !renameOpen && !closeOpen && !helpOpen && !sysOpen && !aboutOpen && !historyOpen) {
+  if (!apiOpen && !typeOpen && !renameOpen && !closeOpen && !helpOpen && !sysOpen && !aboutOpen && !historyOpen && !langOpen) {
     document.body.classList.remove('modal-open');
   }
  }
@@ -2352,8 +1609,9 @@ function closeAbout() {
   const sysOpen = !document.getElementById('sysPromptOverlay')?.classList.contains('hidden');
   const aboutOpen = !overlay.classList.contains('hidden');
   const historyOpen = !document.getElementById('historyOverlay')?.classList.contains('hidden');
+  const langOpen = !document.getElementById('languageOverlay')?.classList.contains('hidden');
 
-  if (!helpOpen && !apiOpen && !typeOpen && !renameOpen && !closeOpen && !sysOpen && !aboutOpen && !historyOpen) {
+  if (!helpOpen && !apiOpen && !typeOpen && !renameOpen && !closeOpen && !sysOpen && !aboutOpen && !historyOpen && !langOpen) {
     document.body.classList.remove('modal-open');
   }
  }
@@ -2402,7 +1660,7 @@ function renderSysPromptList() {
 
     const name = document.createElement('div');
     name.className = 'sys-prompt-item-name';
-    name.textContent = p.name || '(unnamed)';
+    name.textContent = (p.id === DEFAULT_SYS_PROMPT_ID) ? t('sysPrompt.defaultName', (p.name || 'Default')) : (p.name || t('sysPrompt.unnamed', '(unnamed)'));
 
     const badges = document.createElement('div');
     badges.className = 'sys-prompt-item-badges';
@@ -2410,14 +1668,14 @@ function renderSysPromptList() {
     if (p.id === DEFAULT_SYS_PROMPT_ID) {
       const b = document.createElement('span');
       b.className = 'sys-prompt-badge';
-      b.textContent = 'Default';
+      b.textContent = t('sysPrompt.badgeDefault', 'Default');
       badges.appendChild(b);
     }
 
     if (p.id === inUseId) {
       const b = document.createElement('span');
       b.className = 'sys-prompt-badge';
-      b.textContent = 'In use';
+      b.textContent = t('sysPrompt.badgeInUse', 'In use');
       badges.appendChild(b);
     }
 
@@ -2430,7 +1688,8 @@ function renderSysPromptList() {
   if (listHint) {
     const count = store.prompts.length;
     const remaining = Math.max(0, SYS_PROMPTS_MAX - count);
-    listHint.textContent = `You can save ${remaining} more prompt${remaining === 1 ? '' : 's'} (max ${SYS_PROMPTS_MAX} incl. Default).`;
+    const plural = (remaining === 1) ? '' : 's';
+    listHint.textContent = tFmt('sysPrompt.listHint', { remaining, max: SYS_PROMPTS_MAX, plural }, `You can save ${remaining} more prompt${plural} (max ${SYS_PROMPTS_MAX} incl. Default).`);
   }
 }
 
@@ -2451,7 +1710,7 @@ function setSysPromptEditorFromSelection() {
   text.readOnly = locked;
 
   if (locked) {
-    if (hint) hint.textContent = 'Default prompt cannot be edited. Click “New” or “Duplicate” to create a custom prompt.';
+    if (hint) hint.textContent = t('sysPrompt.defaultLockedHint', 'Default prompt cannot be edited. Click “New” or “Duplicate” to create a custom prompt.');
   }
 
   if (btnSave) btnSave.disabled = locked;
@@ -2511,8 +1770,9 @@ function closeSysPromptModal() {
   const sysOpen = !overlay.classList.contains('hidden');
   const aboutOpen = !document.getElementById('aboutOverlay')?.classList.contains('hidden');
   const historyOpen = !document.getElementById('historyOverlay')?.classList.contains('hidden');
+  const langOpen = !document.getElementById('languageOverlay')?.classList.contains('hidden');
 
-  if (!helpOpen && !apiOpen && !typeOpen && !renameOpen && !closeOpen && !sysOpen && !aboutOpen && !historyOpen) {
+  if (!helpOpen && !apiOpen && !typeOpen && !renameOpen && !closeOpen && !sysOpen && !aboutOpen && !historyOpen && !langOpen) {
     document.body.classList.remove('modal-open');
   }
 
@@ -2537,7 +1797,7 @@ function beginCreatePromptFrom(baseId) {
   if (btnSave) btnSave.disabled = false;
   if (btnDel) btnDel.disabled = true;
 
-  if (hint) hint.textContent = 'Creating a new custom prompt. Enter a name, edit the text, then Save.';
+  if (hint) hint.textContent = t('sysPrompt.createHint', 'Creating a new custom prompt. Enter a name, edit the text, then Save.');
   setTimeout(() => {
     try { name.focus(); name.select(); } catch {}
   }, 0);
@@ -2568,13 +1828,13 @@ function handleSysPromptSave() {
   const content = (text.value || '').trimEnd();
 
   if (sysPromptModalMode === 'create') {
-    if (!nm) { if (hint) hint.textContent = 'Prompt name is required.'; return; }
-    if (nm.toLowerCase() === 'default') { if (hint) hint.textContent = '“Default” is reserved. Choose another name.'; return; }
-    if (isNameTaken(nm, null)) { if (hint) hint.textContent = 'A prompt with this name already exists.'; return; }
-    if (!content.trim()) { if (hint) hint.textContent = 'System prompt text is required.'; return; }
+    if (!nm) { if (hint) hint.textContent = t('sysPrompt.msg.nameRequired', 'Prompt name is required.'); return; }
+    if (nm.toLowerCase() === 'default') { if (hint) hint.textContent = t('sysPrompt.msg.defaultReserved', '“Default” is reserved. Choose another name.'); return; }
+    if (isNameTaken(nm, null)) { if (hint) hint.textContent = t('sysPrompt.msg.nameTaken', 'A prompt with this name already exists.'); return; }
+    if (!content.trim()) { if (hint) hint.textContent = t('sysPrompt.msg.textRequired', 'System prompt text is required.'); return; }
 
     if (store.prompts.length >= SYS_PROMPTS_MAX) {
-      if (hint) hint.textContent = `Max ${SYS_PROMPTS_MAX} prompts allowed (including Default). Delete one to add a new one.`;
+      if (hint) hint.textContent = tFmt('sysPrompt.msg.maxPrompts', { max: SYS_PROMPTS_MAX }, `Max ${SYS_PROMPTS_MAX} prompts allowed (including Default). Delete one to add a new one.`);
       return;
     }
 
@@ -2594,7 +1854,7 @@ function handleSysPromptSave() {
     sysPromptModalSelectedId = id;
     sysPromptModalMode = 'edit';
     sysPromptModalDirty = false;
-    if (hint) hint.textContent = 'Saved.';
+    if (hint) hint.textContent = t('sysPrompt.msg.saved', 'Saved.');
     renderSysPromptList();
     setSysPromptEditorFromSelection();
     return;
@@ -2602,17 +1862,17 @@ function handleSysPromptSave() {
 
   // Editing existing custom prompt
   if (selectedLocked) {
-    if (hint) hint.textContent = 'Default prompt cannot be edited.';
+    if (hint) hint.textContent = t('sysPrompt.msg.cantEditDefault', 'Default prompt cannot be edited.');
     return;
   }
 
-  if (!nm) { if (hint) hint.textContent = 'Prompt name is required.'; return; }
-  if (nm.toLowerCase() === 'default') { if (hint) hint.textContent = '“Default” is reserved. Choose another name.'; return; }
-  if (isNameTaken(nm, selected.id)) { if (hint) hint.textContent = 'A prompt with this name already exists.'; return; }
-  if (!content.trim()) { if (hint) hint.textContent = 'System prompt text is required.'; return; }
+  if (!nm) { if (hint) hint.textContent = t('sysPrompt.msg.nameRequired', 'Prompt name is required.'); return; }
+  if (nm.toLowerCase() === 'default') { if (hint) hint.textContent = t('sysPrompt.msg.defaultReserved', '“Default” is reserved. Choose another name.'); return; }
+  if (isNameTaken(nm, selected.id)) { if (hint) hint.textContent = t('sysPrompt.msg.nameTaken', 'A prompt with this name already exists.'); return; }
+  if (!content.trim()) { if (hint) hint.textContent = t('sysPrompt.msg.textRequired', 'System prompt text is required.'); return; }
 
   const i = store.prompts.findIndex(p => p.id === selected.id);
-  if (i === -1) { if (hint) hint.textContent = 'Could not find this prompt in storage.'; return; }
+  if (i === -1) { if (hint) hint.textContent = t('sysPrompt.msg.notFound', 'Could not find this prompt in storage.'); return; }
 
   store.prompts[i] = {
     ...store.prompts[i],
@@ -2623,7 +1883,7 @@ function handleSysPromptSave() {
   saveSystemPromptStore(store);
   systemPromptStore = store;
   sysPromptModalDirty = false;
-  if (hint) hint.textContent = 'Saved.';
+  if (hint) hint.textContent = t('sysPrompt.msg.saved', 'Saved.');
   renderSysPromptList();
 }
 
@@ -2633,7 +1893,7 @@ function handleSysPromptUse() {
   if (!tab) return;
 
   if (sysPromptModalDirty) {
-    if (hint) hint.textContent = 'You have unsaved changes. Save before using this prompt.';
+    if (hint) hint.textContent = t('sysPrompt.msg.unsaved', 'You have unsaved changes. Save before using this prompt.');
     return;
   }
 
@@ -2649,11 +1909,11 @@ function handleSysPromptDelete() {
   const store = systemPromptStore || ensureSystemPromptStore();
   const p = getSystemPromptById(sysPromptModalSelectedId);
   if (!p || p.id === DEFAULT_SYS_PROMPT_ID || p.locked) {
-    if (hint) hint.textContent = 'Default prompt cannot be deleted.';
+    if (hint) hint.textContent = t('sysPrompt.msg.cantDeleteDefault', 'Default prompt cannot be deleted.');
     return;
   }
 
-  const ok = confirm(`Delete system prompt “${p.name}”?`);
+  const ok = confirm(tFmt('sysPrompt.confirmDelete', { name: p.name }, `Delete system prompt “${p.name}”?`));
   if (!ok) return;
 
   const nextPrompts = store.prompts.filter(x => x.id !== p.id);
@@ -2669,7 +1929,7 @@ function handleSysPromptDelete() {
   sysPromptModalSelectedId = DEFAULT_SYS_PROMPT_ID;
   sysPromptModalMode = 'view';
   sysPromptModalDirty = false;
-  if (hint) hint.textContent = 'Deleted.';
+  if (hint) hint.textContent = t('sysPrompt.msg.deleted', 'Deleted.');
   renderSysPromptList();
   setSysPromptEditorFromSelection();
 
@@ -2684,353 +1944,331 @@ function handleSysPromptDuplicate() {
 
 // Load stored API key and model on app start
 window.addEventListener('load', () => {
-  const storedModel = localStorage.getItem('selectedModel') || 'grok-4-fast-reasoning';
-  document.getElementById('modelSelect').value = storedModel;
+  void (async () => {
+    await initI18n();
+    applyI18nToStaticUi();
+    applyI18nToFilePickers();
 
-  const storedTheme = localStorage.getItem('theme') || 'light';
-  document.body.classList.toggle('dark', storedTheme === 'dark');
-  ipcRenderer.send('theme:state', storedTheme);
+    const storedModel = localStorage.getItem('selectedModel') || 'grok-4-fast-reasoning';
+    document.getElementById('modelSelect').value = storedModel;
 
-  // Header icon + tab active highlight should be ready ASAP
-  void setAppHeaderIcon();
-  syncTabActiveHighlightFromNewTabButton();
+    const storedTheme = localStorage.getItem('theme') || 'light';
+    document.body.classList.toggle('dark', storedTheme === 'dark');
+    ipcRenderer.send('theme:state', storedTheme);
 
-  // Setup context menu
-  document.body.addEventListener('contextmenu', handleContextMenu);
-  // Add event listeners for buttons
-  document.getElementById('applyBtn').addEventListener('click', () => applyPatch({ isRetry: false }));
-  document.getElementById('retryBtn').addEventListener('click', () => applyPatch({ isRetry: true }));
-  document.getElementById('copyBtn').addEventListener('click', copyOutput);
-  document.getElementById('download').addEventListener('click', downloadResult);
-  document.getElementById('modelSelect').addEventListener('change', (e) => {
-    // Per-tab model selection (does NOT change other tabs)
-    const tab = getActiveTab();
-    if (tab) tab.selectedModel = e.target.value;
-    localStorage.setItem('selectedModel', e.target.value); // default for new tabs / next launch
-  });
+    // Header icon + tab active highlight should be ready ASAP
+    void setAppHeaderIcon();
+    syncTabActiveHighlightFromNewTabButton();
 
-  // Tabs
-  ensureSystemPromptStore();
-  initTabs();
-  document.getElementById('newTabBtn')?.addEventListener('click', newTab);
+    // Setup context menu
+    document.body.addEventListener('contextmenu', handleContextMenu);
+    // Add event listeners for buttons
+    document.getElementById('applyBtn').addEventListener('click', () => applyPatch({ isRetry: false }));
+    document.getElementById('retryBtn').addEventListener('click', () => applyPatch({ isRetry: true }));
+    document.getElementById('copyBtn').addEventListener('click', copyOutput);
+    document.getElementById('download').addEventListener('click', downloadResult);
 
-  // Browser-like tab shortcuts (vertical tabs still on the left)
-  window.addEventListener('keydown', (e) => {
-    const isMac = navigator.platform.toLowerCase().includes('mac');
-    const mod = isMac ? e.metaKey : e.ctrlKey;
-    if (!mod) return;
-
-    // Ctrl/Cmd+T => new tab
-    if (e.key.toLowerCase() === 't') {
-      e.preventDefault();
-      newTab();
-      return;
-    }
-
-    // Ctrl/Cmd+W => close tab
-    if (e.key.toLowerCase() === 'w') {
-      e.preventDefault();
-      if (activeTabId) openTabCloseModal(activeTabId);
-      return;
-    }
-
-    // Ctrl/Cmd+Tab / Ctrl/Cmd+Shift+Tab => cycle tabs
-    if (e.key === 'Tab') {
-      e.preventDefault();
-      focusAdjacentTab(activeTabId, e.shiftKey ? -1 : 1, { select: true });
-    }
-  });
-  // Max/Min floating buttons
-  initTextareaExpandCollapse();
-  // Sticky max/min/copy for OUTPUT area while scrolling
-  initStickyTaActions();
-  // --- Help overlay wiring (must be inside load) ---
-  const overlay = document.getElementById('helpOverlay');
-  const closeBtn = document.getElementById('helpCloseBtn');
-  const okBtn = document.getElementById('helpOkBtn');
-
-  if (closeBtn) closeBtn.addEventListener('click', closeHelp);
-  if (okBtn) okBtn.addEventListener('click', closeHelp);
-
-  if (overlay) {
-    overlay.addEventListener('click', (e) => {
-      if (e.target === overlay) closeHelp();
+    // Localized file pickers (custom UI triggers the hidden native inputs)
+    document.getElementById('diffFileBtn')?.addEventListener('click', () => {
+      document.getElementById('diffFile')?.click();
     });
-  }
-
-  // --- About overlay wiring ---
-  const aboutOverlay = document.getElementById('aboutOverlay');
-  const aboutCloseBtn = document.getElementById('aboutCloseBtn');
-  const aboutOkBtn = document.getElementById('aboutOkBtn');
-  const aboutDonateBtn = document.getElementById('aboutDonateBtn');
-  const aboutGitHubBtn = document.getElementById('aboutGitHubBtn');
-
-  if (aboutCloseBtn) aboutCloseBtn.addEventListener('click', closeAbout);
-  if (aboutOkBtn) aboutOkBtn.addEventListener('click', closeAbout);
-
-  if (aboutOverlay) {
-    aboutOverlay.addEventListener('click', (e) => {
-      if (e.target === aboutOverlay) closeAbout();
+    document.getElementById('modelFileBtn')?.addEventListener('click', () => {
+      document.getElementById('modelFile')?.click();
     });
-  }
 
-  // External open for Donate/GitHub (URLs injected on openAbout)
-  if (aboutDonateBtn) {
-    aboutDonateBtn.addEventListener('click', () => {
-      const url = (aboutDonateBtn.dataset.url || '').trim();
-      if (url) ipcRenderer.send('external:open', url);
+    document.getElementById('modelSelect').addEventListener('change', (e) => {
+      // Per-tab model selection (does NOT change other tabs)
+      const tab = getActiveTab();
+      if (tab) tab.selectedModel = e.target.value;
+      localStorage.setItem('selectedModel', e.target.value); // default for new tabs / next launch
     });
-  }
-  if (aboutGitHubBtn) {
-    aboutGitHubBtn.addEventListener('click', () => {
-      const url = (aboutGitHubBtn.dataset.url || '').trim();
-      if (url) ipcRenderer.send('external:open', url);
-    });
-  }
 
-  // --- API key modal wiring ---
-  const apiOverlay = document.getElementById('apiKeyOverlay');
-  const apiCloseBtn = document.getElementById('apiKeyCloseBtn');
-  const apiCancelBtn = document.getElementById('apiKeyCancelBtn');
-  const apiPrimaryBtn = document.getElementById('apiKeyPrimaryBtn');
-  const apiEditBtn = document.getElementById('apiKeyEditBtn');
-  const apiKeyModalInput = document.getElementById('apiKeyModalInput');
+    // Tabs
+    ensureSystemPromptStore();
+    initTabsManagerOnce();
+    initTabs();
+    document.getElementById('newTabBtn')?.addEventListener('click', newTab);
 
-  if (apiCloseBtn) apiCloseBtn.addEventListener('click', closeApiKeyModal);
-  if (apiCancelBtn) apiCancelBtn.addEventListener('click', closeApiKeyModal);
-  if (apiPrimaryBtn) apiPrimaryBtn.addEventListener('click', handleApiKeyPrimaryClick);
-  if (apiEditBtn) apiEditBtn.addEventListener('click', () => { void handleApiKeyEditBtnClick(); });
-  if (apiKeyModalInput) {
-    apiKeyModalInput.addEventListener('keydown', (e) => {
-      if (e.key !== 'Enter') return;
-      if (apiModalMode === 'unlock') return;
-      // Enter triggers Save when in edit mode
-      const btn = document.getElementById('apiKeyEditBtn');
-      if (btn?.dataset?.mode === 'edit') {
+    // Browser-like tab shortcuts (vertical tabs still on the left)
+    window.addEventListener('keydown', (e) => {
+      const isMac = navigator.platform.toLowerCase().includes('mac');
+      const mod = isMac ? e.metaKey : e.ctrlKey;
+      if (!mod) return;
+
+      // Ctrl/Cmd+T => new tab
+      if (e.key.toLowerCase() === 't') {
         e.preventDefault();
-        void handleApiKeyEditBtnClick();
+        newTab();
+        return;
+      }
+
+      // Ctrl/Cmd+W => close tab
+      if (e.key.toLowerCase() === 'w') {
+        e.preventDefault();
+        if (activeTabId) openTabCloseModal(activeTabId);
+        return;
+      }
+
+      // Ctrl/Cmd+Tab / Ctrl/Cmd+Shift+Tab => cycle tabs
+      if (e.key === 'Tab') {
+        e.preventDefault();
+        focusAdjacentTab(activeTabId, e.shiftKey ? -1 : 1, { select: true });
       }
     });
-  }
+    // Max/Min floating buttons
+    initTextareaExpandCollapse();
+    // Sticky max/min/copy for OUTPUT area while scrolling
+    initStickyTaActions();
+    // --- Help overlay wiring (must be inside load) ---
+    const overlay = document.getElementById('helpOverlay');
+    const closeBtn = document.getElementById('helpCloseBtn');
+    const okBtn = document.getElementById('helpOkBtn');
 
-  // PIN boxes wiring (numbers only + auto-advance + backspace)
-  setupPinBoxes();
+    if (closeBtn) closeBtn.addEventListener('click', closeHelp);
+    if (okBtn) okBtn.addEventListener('click', closeHelp);
 
-  if (apiOverlay) {
-    apiOverlay.addEventListener('click', (e) => {
-      if (e.target === apiOverlay) closeApiKeyModal();
-    });
-  }
-
-  // --- API key bootstrap (PIN unlock/setup on startup) ---
-  bootstrapApiKeyFlow();
-
-  // --- Key type overlay wiring ---
-  const keyTypeOverlay = document.getElementById('keyTypeOverlay');
-  const keyTypeXaiBtn = document.getElementById('keyTypeXaiBtn');
-  const keyTypeOpenAiBtn = document.getElementById('keyTypeOpenAiBtn');
-
-  if (keyTypeXaiBtn) keyTypeXaiBtn.addEventListener('click', () => {
-    closeKeyTypeModal({ force: true });
-    openApiKeyModal({
-      provider: PROVIDER_XAI,
-      mode: 'setup',
-      blocking: true,
-      askPin: !isValidPin(sessionPin),
-      hint: 'Enter your xAI API key and a 6-digit PIN to save it.'
-    });
-  });
-  if (keyTypeOpenAiBtn) keyTypeOpenAiBtn.addEventListener('click', () => {
-    closeKeyTypeModal({ force: true });
-    openApiKeyModal({
-      provider: PROVIDER_OPENAI,
-      mode: 'setup',
-      blocking: true,
-      askPin: !isValidPin(sessionPin),
-      hint: 'Enter your OpenAI API key and a 6-digit PIN to save it.'
-    });
-  });
-  if (keyTypeOverlay) {
-    keyTypeOverlay.addEventListener('click', (e) => {
-      if (e.target === keyTypeOverlay) closeKeyTypeModal();
-    });
-  }
-
-  // --- Tab rename modal wiring ---
-  const renameOverlay = document.getElementById('tabRenameOverlay');
-  const renameCloseBtn = document.getElementById('tabRenameCloseBtn');
-  const renameCancelBtn = document.getElementById('tabRenameCancelBtn');
-  const renameSaveBtn = document.getElementById('tabRenameSaveBtn');
-  const renameInput = document.getElementById('tabRenameInput');
-
-  if (renameCloseBtn) renameCloseBtn.addEventListener('click', closeTabRenameModal);
-  if (renameCancelBtn) renameCancelBtn.addEventListener('click', closeTabRenameModal);
-  if (renameSaveBtn) renameSaveBtn.addEventListener('click', saveTabRename);
-
-  if (renameOverlay) {
-    renameOverlay.addEventListener('click', (e) => {
-      if (e.target === renameOverlay) closeTabRenameModal();
-    });
-  }
-
-  if (renameInput) {
-    renameInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') saveTabRename();
-    });
-  }
-
-  // --- Tab close modal wiring ---
-  const tabCloseOverlay = document.getElementById('tabCloseOverlay');
-  const tabCloseCloseBtn = document.getElementById('tabCloseCloseBtn');
-  const tabCloseCancelBtn = document.getElementById('tabCloseCancelBtn');
-  const tabCloseConfirmBtn = document.getElementById('tabCloseConfirmBtn');
-
-  if (tabCloseCloseBtn) tabCloseCloseBtn.addEventListener('click', closeTabCloseModal);
-  if (tabCloseCancelBtn) tabCloseCancelBtn.addEventListener('click', closeTabCloseModal);
-  if (tabCloseConfirmBtn) tabCloseConfirmBtn.addEventListener('click', confirmTabClose);
-
-  if (tabCloseOverlay) {
-    tabCloseOverlay.addEventListener('click', (e) => {
-      if (e.target === tabCloseOverlay) closeTabCloseModal();
-    });
-  }
-
-  // --- Diff nav buttons ---
-  document.getElementById('diffPrevBtn')?.addEventListener('click', () => scrollToChange(-1));
-  document.getElementById('diffNextBtn')?.addEventListener('click', () => scrollToChange(1));
-
-  // --- System prompt button + modal wiring ---
-  const sysBtn = document.getElementById('sysPromptBtn');
-  if (sysBtn) sysBtn.addEventListener('click', () => openSysPromptModal({ tabId: activeTabId }));
-
-  const sp = sysPromptEls();
-  if (sp.btnClose) sp.btnClose.addEventListener('click', closeSysPromptModal);
-  if (sp.btnCancel) sp.btnCancel.addEventListener('click', closeSysPromptModal);
-  if (sp.btnNew) sp.btnNew.addEventListener('click', () => beginCreatePromptFrom(DEFAULT_SYS_PROMPT_ID));
-  if (sp.btnDup) sp.btnDup.addEventListener('click', handleSysPromptDuplicate);
-  if (sp.btnSave) sp.btnSave.addEventListener('click', handleSysPromptSave);
-  if (sp.btnUse) sp.btnUse.addEventListener('click', handleSysPromptUse);
-  if (sp.btnDel) sp.btnDel.addEventListener('click', handleSysPromptDelete);
-
-  if (sp.overlay) {
-    sp.overlay.addEventListener('click', (e) => {
-      if (e.target === sp.overlay) closeSysPromptModal();
-    });
-  }
-
-  if (sp.list && sp.list.dataset.delegated !== '1') {
-    sp.list.dataset.delegated = '1';
-    sp.list.addEventListener('click', (e) => {
-      const row = e.target?.closest?.('.sys-prompt-item');
-      if (!row?.dataset?.promptId) return;
-      if (sysPromptModalDirty) {
-        const ok = confirm('Discard unsaved changes?');
-        if (!ok) return;
-      }
-      sysPromptModalSelectedId = row.dataset.promptId;
-      renderSysPromptList();
-      setSysPromptEditorFromSelection();
-    });
-  }
-
-  // Track dirty state for Save/Use gating
-  if (sp.name) sp.name.addEventListener('input', () => { sysPromptModalDirty = true; });
-  if (sp.text) sp.text.addEventListener('input', () => { sysPromptModalDirty = true; });
-
-  setupDiffNavObserver();
-  updateDiffNavButtons();
-
-  // Optional keyboard shortcuts:
-  // F7 = prev change, F8 = next change
-  window.addEventListener('keydown', (e) => {
-    if (e.key === 'F7') { e.preventDefault(); scrollToChange(-1); }
-    if (e.key === 'F8') { e.preventDefault(); scrollToChange(1); }
-  });
-
-  // ESC should close whichever modal is open
-  window.addEventListener('keydown', (e) => {
-    if (e.key !== 'Escape') return;
-
-    const renameOpen = renameOverlay && !renameOverlay.classList.contains('hidden');
-    const apiOpen = apiOverlay && !apiOverlay.classList.contains('hidden');
-    const helpOpen = overlay && !overlay.classList.contains('hidden');
-    const aboutOpen = aboutOverlay && !aboutOverlay.classList.contains('hidden');
-    const closeOpen = tabCloseOverlay && !tabCloseOverlay.classList.contains('hidden');
-    const sysOpen = sp.overlay && !sp.overlay.classList.contains('hidden');
-    const histOpen = historyOverlay && !historyOverlay.classList.contains('hidden');
-
-    if (histOpen) closeHistoryModal();
-    else if (sysOpen) closeSysPromptModal();
-    else if (aboutOpen) closeAbout();
-    else if (closeOpen) closeTabCloseModal();
-    else if (renameOpen) closeTabRenameModal();
-    else if (apiOpen) {
-      if (!apiModalBlocking) closeApiKeyModal();
-    }
-    else if (helpOpen) closeHelp();
-  });
-
-  // --- History modal wiring ---
-  const historyOverlay = document.getElementById('historyOverlay');
-  const historyCloseBtn = document.getElementById('historyCloseBtn');
-  const historyOkBtn = document.getElementById('historyOkBtn');
-  const historyClearBtn = document.getElementById('historyClearBtn');
-  const historyPrevBtn = document.getElementById('historyPrevBtn');
-  const historyNextBtn = document.getElementById('historyNextBtn');
-  const historyList = document.getElementById('historyList');
-
-  if (historyCloseBtn) historyCloseBtn.addEventListener('click', closeHistoryModal);
-  if (historyOkBtn) historyOkBtn.addEventListener('click', closeHistoryModal);
-  if (historyPrevBtn) historyPrevBtn.addEventListener('click', () => { historyPage = Math.max(0, historyPage - 1); void renderHistoryPage(); });
-  if (historyNextBtn) historyNextBtn.addEventListener('click', () => { historyPage = historyPage + 1; void renderHistoryPage(); });
-
-  if (historyClearBtn) {
-    historyClearBtn.addEventListener('click', () => {
-      const ok = confirm('Clear all history? This cannot be undone.');
-      if (!ok) return;
-      clearAllHistory();
-      historyIndexCache = loadHistoryIndex();
-      historyPage = 0;
-      void renderHistoryPage();
-    });
-  }
-
-  if (historyOverlay) {
-    historyOverlay.addEventListener('click', (e) => {
-      if (e.target === historyOverlay) closeHistoryModal();
-    });
-  }
-
-  if (historyList && historyList.dataset.delegated !== '1') {
-    historyList.dataset.delegated = '1';
-    historyList.addEventListener('click', (e) => {
-      const btn = e.target?.closest?.('button[data-action="open-history"]');
-      const id = btn?.dataset?.historyId;
-      if (!id) return;
-      void openHistoryItemInNewTab(id).then(() => {
-        closeHistoryModal();
+    if (overlay) {
+      overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) closeHelp();
       });
+    }
+
+    // --- About overlay wiring ---
+    const aboutOverlay = document.getElementById('aboutOverlay');
+    const aboutCloseBtn = document.getElementById('aboutCloseBtn');
+    const aboutOkBtn = document.getElementById('aboutOkBtn');
+    const aboutDonateBtn = document.getElementById('aboutDonateBtn');
+    const aboutGitHubBtn = document.getElementById('aboutGitHubBtn');
+
+    if (aboutCloseBtn) aboutCloseBtn.addEventListener('click', closeAbout);
+    if (aboutOkBtn) aboutOkBtn.addEventListener('click', closeAbout);
+
+    if (aboutOverlay) {
+      aboutOverlay.addEventListener('click', (e) => {
+        if (e.target === aboutOverlay) closeAbout();
+      });
+    }
+
+    // External open for Donate/GitHub (URLs injected on openAbout)
+    if (aboutDonateBtn) {
+      aboutDonateBtn.addEventListener('click', () => {
+        const url = (aboutDonateBtn.dataset.url || '').trim();
+        if (url) ipcRenderer.send('external:open', url);
+      });
+    }
+    if (aboutGitHubBtn) {
+      aboutGitHubBtn.addEventListener('click', () => {
+        const url = (aboutGitHubBtn.dataset.url || '').trim();
+        if (url) ipcRenderer.send('external:open', url);
+      });
+    }
+
+    // --- API keys / local encryption flow (extracted to ./apikeys.js) ---
+    const apiKeys = initApiKeysManagerOnce();
+    apiKeys.wireDomEvents();       // attaches API key + key-type modal listeners
+    apiKeys.bootstrapApiKeyFlow(); // startup unlock/setup flow
+
+    // Keep handle for ESC logic below
+    const apiOverlay = document.getElementById('apiKeyOverlay');
+ 
+    // --- Tab rename modal wiring ---
+    const renameOverlay = document.getElementById('tabRenameOverlay');
+    const renameCloseBtn = document.getElementById('tabRenameCloseBtn');
+    const renameCancelBtn = document.getElementById('tabRenameCancelBtn');
+    const renameSaveBtn = document.getElementById('tabRenameSaveBtn');
+    const renameInput = document.getElementById('tabRenameInput');
+
+    if (renameCloseBtn) renameCloseBtn.addEventListener('click', closeTabRenameModal);
+    if (renameCancelBtn) renameCancelBtn.addEventListener('click', closeTabRenameModal);
+    if (renameSaveBtn) renameSaveBtn.addEventListener('click', saveTabRename);
+
+    if (renameOverlay) {
+      renameOverlay.addEventListener('click', (e) => {
+        if (e.target === renameOverlay) closeTabRenameModal();
+      });
+    }
+
+    if (renameInput) {
+      renameInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') saveTabRename();
+      });
+    }
+
+    // --- Tab close modal wiring ---
+    const tabCloseOverlay = document.getElementById('tabCloseOverlay');
+    const tabCloseCloseBtn = document.getElementById('tabCloseCloseBtn');
+    const tabCloseCancelBtn = document.getElementById('tabCloseCancelBtn');
+    const tabCloseConfirmBtn = document.getElementById('tabCloseConfirmBtn');
+
+    if (tabCloseCloseBtn) tabCloseCloseBtn.addEventListener('click', closeTabCloseModal);
+    if (tabCloseCancelBtn) tabCloseCancelBtn.addEventListener('click', closeTabCloseModal);
+    if (tabCloseConfirmBtn) tabCloseConfirmBtn.addEventListener('click', confirmTabClose);
+
+    if (tabCloseOverlay) {
+      tabCloseOverlay.addEventListener('click', (e) => {
+        if (e.target === tabCloseOverlay) closeTabCloseModal();
+      });
+    }
+
+    // --- Diff nav buttons ---
+    document.getElementById('diffPrevBtn')?.addEventListener('click', () => scrollToChange(-1));
+    document.getElementById('diffNextBtn')?.addEventListener('click', () => scrollToChange(1));
+
+    // --- Language overlay wiring ---
+    ipcRenderer.on('language:open', () => { void openLanguageModal(); });
+    const langOverlay = document.getElementById('languageOverlay');
+    const langCloseBtn = document.getElementById('languageCloseBtn');
+    if (langCloseBtn) langCloseBtn.addEventListener('click', closeLanguageModal);
+    if (langOverlay) {
+      langOverlay.addEventListener('click', (e) => {
+        if (e.target === langOverlay) closeLanguageModal();
+      });
+    }
+
+    // Also allow menu-triggered open even before anything else
+    // (main will send language:open)
+
+    // --- System prompt button + modal wiring ---
+    const sysBtn = document.getElementById('sysPromptBtn');
+    if (sysBtn) sysBtn.addEventListener('click', () => openSysPromptModal({ tabId: activeTabId }));
+
+    const sp = sysPromptEls();
+    if (sp.btnClose) sp.btnClose.addEventListener('click', closeSysPromptModal);
+    if (sp.btnCancel) sp.btnCancel.addEventListener('click', closeSysPromptModal);
+    if (sp.btnNew) sp.btnNew.addEventListener('click', () => beginCreatePromptFrom(DEFAULT_SYS_PROMPT_ID));
+    if (sp.btnDup) sp.btnDup.addEventListener('click', handleSysPromptDuplicate);
+    if (sp.btnSave) sp.btnSave.addEventListener('click', handleSysPromptSave);
+    if (sp.btnUse) sp.btnUse.addEventListener('click', handleSysPromptUse);
+    if (sp.btnDel) sp.btnDel.addEventListener('click', handleSysPromptDelete);
+
+    if (sp.overlay) {
+      sp.overlay.addEventListener('click', (e) => {
+        if (e.target === sp.overlay) closeSysPromptModal();
+      });
+    }
+
+    if (sp.list && sp.list.dataset.delegated !== '1') {
+      sp.list.dataset.delegated = '1';
+      sp.list.addEventListener('click', (e) => {
+        const row = e.target?.closest?.('.sys-prompt-item');
+        if (!row?.dataset?.promptId) return;
+        if (sysPromptModalDirty) {
+          const ok = confirm('Discard unsaved changes?');
+          if (!ok) return;
+        }
+        sysPromptModalSelectedId = row.dataset.promptId;
+        renderSysPromptList();
+        setSysPromptEditorFromSelection();
+      });
+    }
+
+    // Track dirty state for Save/Use gating
+    if (sp.name) sp.name.addEventListener('input', () => { sysPromptModalDirty = true; });
+    if (sp.text) sp.text.addEventListener('input', () => { sysPromptModalDirty = true; });
+
+    setupDiffNavObserver();
+    updateDiffNavButtons();
+
+    // Optional keyboard shortcuts:
+    // F7 = prev change, F8 = next change
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'F7') { e.preventDefault(); scrollToChange(-1); }
+      if (e.key === 'F8') { e.preventDefault(); scrollToChange(1); }
     });
-  }
 
-  // --- Go to top (appears when scrolling the main body) ---
-  const mainScroll = document.getElementById('mainScroll');
-  const goTopBtn = document.getElementById('goTopBtn');
+    // ESC should close whichever modal is open
+    window.addEventListener('keydown', (e) => {
+      if (e.key !== 'Escape') return;
 
-  if (mainScroll && goTopBtn) {
-    const updateGoTop = () => {
-      resetDiffNav(); // user scrolled manually -> next/prev should re-anchor from viewport
-      const show = mainScroll.scrollTop > 120;
-      goTopBtn.classList.toggle('hidden', !show);
-    };
+      const renameOpen = renameOverlay && !renameOverlay.classList.contains('hidden');
+      const apiOpen = apiOverlay && !apiOverlay.classList.contains('hidden');
+      const helpOpen = overlay && !overlay.classList.contains('hidden');
+      const aboutOpen = aboutOverlay && !aboutOverlay.classList.contains('hidden');
+      const closeOpen = tabCloseOverlay && !tabCloseOverlay.classList.contains('hidden');
+      const sysOpen = sp.overlay && !sp.overlay.classList.contains('hidden');
+      const histOpen = historyOverlay && !historyOverlay.classList.contains('hidden');
+      const langOpen = langOverlay && !langOverlay.classList.contains('hidden');
 
-    mainScroll.addEventListener('scroll', updateGoTop);
-    updateGoTop();
-
-    goTopBtn.addEventListener('click', () => {
-      mainScroll.scrollTo({ top: 0, behavior: 'smooth' });
+      if (langOpen) closeLanguageModal();
+      else if (histOpen) closeHistoryModal();
+      else if (sysOpen) closeSysPromptModal();
+      else if (aboutOpen) closeAbout();
+      else if (closeOpen) closeTabCloseModal();
+      else if (renameOpen) closeTabRenameModal();
+      else if (apiOpen) {
+        initApiKeysManagerOnce().closeApiKeyModal();
+      }
+      else if (helpOpen) closeHelp();
     });
-  }
+
+    // --- History modal wiring ---
+    const historyOverlay = document.getElementById('historyOverlay');
+    const historyCloseBtn = document.getElementById('historyCloseBtn');
+    const historyOkBtn = document.getElementById('historyOkBtn');
+    const historyClearBtn = document.getElementById('historyClearBtn');
+    const historyPrevBtn = document.getElementById('historyPrevBtn');
+    const historyNextBtn = document.getElementById('historyNextBtn');
+    const historyList = document.getElementById('historyList');
+
+    if (historyCloseBtn) historyCloseBtn.addEventListener('click', closeHistoryModal);
+    if (historyOkBtn) historyOkBtn.addEventListener('click', closeHistoryModal);
+    if (historyPrevBtn) historyPrevBtn.addEventListener('click', () => { historyPage = Math.max(0, historyPage - 1); void renderHistoryPage(); });
+    if (historyNextBtn) historyNextBtn.addEventListener('click', () => { historyPage = historyPage + 1; void renderHistoryPage(); });
+
+    if (historyClearBtn) {
+      historyClearBtn.addEventListener('click', () => {
+        const ok = confirm('Clear all history? This cannot be undone.');
+        if (!ok) return;
+        clearAllHistory();
+        historyIndexCache = loadHistoryIndex();
+        historyPage = 0;
+        void renderHistoryPage();
+      });
+    }
+
+    if (historyOverlay) {
+      historyOverlay.addEventListener('click', (e) => {
+        if (e.target === historyOverlay) closeHistoryModal();
+      });
+    }
+
+    if (historyList && historyList.dataset.delegated !== '1') {
+      historyList.dataset.delegated = '1';
+      historyList.addEventListener('click', (e) => {
+        const btn = e.target?.closest?.('button[data-action="open-history"]');
+        const id = btn?.dataset?.historyId;
+        if (!id) return;
+        void openHistoryItemInNewTab(id).then(() => {
+          closeHistoryModal();
+        });
+      });
+    }
+
+    // --- Go to top (appears when scrolling the main body) ---
+    const mainScroll = document.getElementById('mainScroll');
+    const goTopBtn = document.getElementById('goTopBtn');
+
+    if (mainScroll && goTopBtn) {
+      const updateGoTop = () => {
+        resetDiffNav(); // user scrolled manually -> next/prev should re-anchor from viewport
+        const show = mainScroll.scrollTop > 120;
+        goTopBtn.classList.toggle('hidden', !show);
+      };
+
+      mainScroll.addEventListener('scroll', updateGoTop);
+      updateGoTop();
+
+      goTopBtn.addEventListener('click', () => {
+        mainScroll.scrollTo({ top: 0, behavior: 'smooth' });
+      });
+    }
+
+    })(); // end async load wrapper
+});
+
+// Optional: one global listener (in case other modules want it later)
+window.addEventListener('i18n:changed', () => {
+  // hooks already call refreshUiAfterLanguageChange(), but this is harmless
 });
 
 ipcRenderer.on('theme:set', (_evt, theme) => {
@@ -3073,318 +2311,263 @@ ipcRenderer.on('history:open', () => {
 });
 
 ipcRenderer.on('apikey:open', (_evt, payload) => {
-  const provider = payload?.provider === PROVIDER_OPENAI ? PROVIDER_OPENAI : PROVIDER_XAI;
-
-  // If PIN isn't in RAM but keys exist, force unlock first
-  if (!isValidPin(sessionPin) && hasAnyEncryptedApiKey()) {
-    openApiKeyModal({
-      provider: 'all',
-      mode: 'unlock',
-      blocking: true,
-      askPin: true,
-      hint: 'Enter your 6-digit PIN to unlock saved keys for this session.'
-    });
-    return;
-  }
-
-  openApiKeyModal({
-    provider,
-    mode: hasEncryptedApiKey(provider) ? 'manage' : 'setup',
-    blocking: false,
-    askPin: !isValidPin(sessionPin),
-    hint: isValidPin(sessionPin)
-      ? 'Enter a new API key to re-encrypt and save (PIN already unlocked for this session).'
-      : 'Enter an API key and 6-digit PIN to encrypt and save.'
-  });
+  initApiKeysManagerOnce().openFromMenu(payload);
  });
 
-async function applyPatch({ isRetry = false } = {}) {
-  const tab = getActiveTab();
-  if (!tab) return;
+ async function applyPatch({ isRetry = false } = {}) {
+   const tab = getActiveTab();
+   if (!tab) return;
 
-  const tabId = tab.id;
+   const tabId = tab.id;
 
-  // Prevent double-submit for same tab
-  if (tab.inFlight) {
-    const errorEl = document.getElementById('error');
-    if (errorEl) errorEl.textContent = 'This tab already has a request running.';
-    return;
-  }
-
-  const diffText = document.getElementById('diff').value;
-  const modelContent = document.getElementById('model').value;
-  const selectedModelSnapshot = document.getElementById('modelSelect').value;
-  const provider = providerForModel(selectedModelSnapshot);
-  // lock model choice into the originating tab + request
-  // lock model choice into the originating tab + request
-  tab.selectedModel = selectedModelSnapshot;
-
-  // Lock system prompt choice into the originating tab + request
-  const systemPromptIdSnapshot = tab.systemPromptId || DEFAULT_SYS_PROMPT_ID;
-  tab.systemPromptId = systemPromptIdSnapshot;
-  const systemPromptSnapshot = getSystemPromptById(systemPromptIdSnapshot)?.content || DEFAULT_SYSTEM_PROMPT;
-
-  const outputEl = document.getElementById('output');
-  const errorEl = document.getElementById('error');
-  const loadingEl = document.getElementById('loading');
-  const applyBtn = document.getElementById('applyBtn');
-  const retryBtn = document.getElementById('retryBtn');
-  const downloadBtn = document.getElementById('download');
-  const copyBtn = document.getElementById('copyBtn');
-  const diffViewEl = document.getElementById('diffView');
-
-  errorEl.textContent = '';
-  outputEl.textContent = '';
-  diffViewEl.innerHTML = '';
-
-  // Reset timing for this run (will be set when the model replies)
-  tab.lastDurationMs = null;
-  tab.lastTokenCount = null;
-  if (activeTabId === tabId) setModelTimeUi(tab);
-  // Also clear cached diff for this tab (we are recomputing)
-  if (tab.diffDom) tab.diffDom.replaceChildren();
-  tab.diffHtml = '';
-  resetDiffNav();
-  diffNavVisible = false;
-  updateDiffNavButtons();
-  downloadBtn.classList.add('hidden');
-  copyBtn.classList.add('hidden');
-  retryBtn.classList.add('hidden');
-
-  if (!isRetry) tab.retryCount = 0;
-
-  if (!diffText || !modelContent) {
-    errorEl.textContent = 'Please fill Diff Patch and File Content.';
-    return;
-  }
-
-  // Ensure the correct provider key is available (xAI for grok-*, OpenAI for gpt-*)
-  // 1) If PIN is in RAM and key is stored encrypted but not yet decrypted in this session -> decrypt silently
-  await maybeDecryptProviderInSession(provider);
-
-  const apiKey = getStoredApiKey(provider);
-  if (!apiKey) {
-    // If NO keys exist at all -> choose provider first
-    const anyStored = hasAnyEncryptedApiKey() || PROVIDERS.some(p => loadLegacyPlain(p));
-    if (!anyStored) {
-      openKeyTypeModal({ blocking: true, hint: 'Choose a provider to set up an API key.' });
-      return;
-    }
-
-    // If keys exist but PIN not unlocked in this session -> unlock once (decrypt both)
-    if (hasAnyEncryptedApiKey() && !isValidPin(sessionPin)) {
-      openApiKeyModal({
-        provider: 'all',
-        mode: 'unlock',
-        blocking: true,
-        askPin: true,
-        hint: 'Enter your 6-digit PIN to unlock saved keys for this session.'
-      });
-      return;
-    }
-
-    // Otherwise, we need to set up the missing provider key.
-    // If PIN already unlocked in RAM, DO NOT ask for it again.
-    openApiKeyModal({
-      provider,
-      mode: 'setup',
-      blocking: true,
-      askPin: !isValidPin(sessionPin),
-      hint: isValidPin(sessionPin)
-        ? `Enter your ${provider === PROVIDER_OPENAI ? 'OpenAI' : 'xAI'} API key to save it (PIN already unlocked for this session).`
-        : `Enter your ${provider === PROVIDER_OPENAI ? 'OpenAI' : 'xAI'} API key and a 6-digit PIN to save it.`
-    });
-    return;
-  }
-
-  // Approximate size check (textarea content)
-  const contentSizeMB = new Blob([modelContent]).size / (1024 * 1024);
-  if (contentSizeMB > MAX_FILE_SIZE_MB) {
-    if (!confirm(`Content is ${contentSizeMB.toFixed(2)}MB. May exceed API limits. Proceed?`)) {
-      return;
-    }
-  }
-
-  // Snapshot inputs at the time you clicked Apply
-  const diffTextSnapshot = diffText;
-  const modelContentSnapshot = modelContent;
-
-  // Mark tab as in-flight with a unique token
-  const token = `${tabId}:${++tab.requestSeq}:${Date.now()}`;
-  tab.inFlightToken = token;
-  tab.inFlight = true;
-  updateTabRowFor(tab); // fast spinner update
-
-  // Keep tab state consistent even if user switches tabs
-  tab.diffText = diffTextSnapshot || '';
-  tab.modelText = modelContentSnapshot || '';
-
-  if (activeTabId === tabId) {
-    applyBtn.disabled = true;
-    loadingEl.classList.remove('hidden');
-  }
-
-  try {
-    const openai = new OpenAI({
-      apiKey,
-      baseURL: baseUrlForProvider(provider),
-      dangerouslyAllowBrowser: true  // Enable for Electron renderer; key is user-provided and local
-    });
-    console.log('OpenAI SDK initialized with browser allowance.');
-
-    const userPrompt = `Original file content:\n\n${modelContentSnapshot}\n\nDiff patch to apply:\n\n${diffTextSnapshot}\n\nApply the patch and output the exact resulting file.`;
-    const messages = [
-      { role: 'system', content: systemPromptSnapshot },
-      { role: 'user', content: userPrompt }
-    ];
-
-    const t0 = _nowMs();
-    const completion = await openai.chat.completions.create({
-      model: selectedModelSnapshot,
-      messages,
-      temperature: 0.2,
-      max_tokens: 32768  // Higher for large files; per docs
-    });
-
-    const durationMs = _nowMs() - t0;
-    const usageTotalTokens = getUsageTotalTokens(completion);
-
-    let modified = completion.choices[0].message.content;
-    // Strip any potential code fences
-    modified = modified.replace(/^```[\w]*\n?|\n?```$/g, '').trim();
-
-    // If this response is stale (user started a newer run), ignore it
-    if (tab.inFlightToken !== token) {
-      return;
-    }
-
-    // Store + render timing (model replied)
-    tab.lastDurationMs = Math.max(0, Math.round(durationMs));
-    // Prefer API-reported usage when present; otherwise estimate total tokens for (system+user+assistant)
-    if (Number.isFinite(usageTotalTokens)) {
-      tab.lastTokenCount = usageTotalTokens;
-    } else {
-      tab.lastTokenCount = estimateChatTokens([...messages, { role: 'assistant', content: modified }]);
-    }
-    if (activeTabId === tabId) setModelTimeUi(tab);
-
-    // If model returned a congruency error, show it as an app error (not as file output)
-    if (/^ERROR:/i.test(modified)) {
-      tab.modifiedText = '';
-      tab.diffHtml = '';
-      tab.errorText = modified;
-      tab.retryCount = 0;
-
-      if (activeTabId === tabId) {
-        outputEl.textContent = '';
-        diffViewEl.innerHTML = '';
-        updateDiffNavButtons();
-        downloadBtn.classList.add('hidden');
-        copyBtn.classList.add('hidden');
-        retryBtn.classList.add('hidden');
-        errorEl.textContent = modified;
-      }
-      return;
-    }
-
-    // Build diff HTML
-    const unifiedDiff = createTwoFilesPatch(
-      'original',
-      'modified',
-      modelContentSnapshot,
-      modified,
-      '',
-      '',
-      { context: Number.MAX_SAFE_INTEGER }
-    );
-
-    const html = Diff2Html.html(unifiedDiff, {
-      drawFileList: false,
-      matching: 'none',
-      outputFormat: 'side-by-side',
-      synchronisedScroll: true,
-      colorScheme: document.body.classList.contains('dark') ? 'dark' : 'light'
-    });
-
-    // Save into the originating tab
-    tab.modifiedText = modified;
-    tab.diffHtml = ''; // legacy fallback not needed
-    tab.errorText = '';
-    tab.retryCount = 0;
-
-    // ✅ Store history at the moment we have a successful output (all heavy fields compressed)
-    try {
-      const spObj = getSystemPromptById(systemPromptIdSnapshot || DEFAULT_SYS_PROMPT_ID);
-      void addHistoryEntry({
-        ts: Date.now(),
-        model: selectedModelSnapshot,
-        provider,
-        sysPromptId: systemPromptIdSnapshot,
-        sysPromptName: spObj?.name || 'Default',
-        sysPromptContent: systemPromptSnapshot,
-        diffText: diffTextSnapshot,
-        inputText: modelContentSnapshot,
-        outputText: modified,
-        inputFileName: tab.originalFileName || originalFileName || 'file.txt',
-        durationMs: tab.lastDurationMs,
-        tokenCount: tab.lastTokenCount
-      });
-    } catch {}
-
-    // If user is NOT viewing that tab, parse diff into the tab's hidden DOM cache now
-    // (so switching later is instant; no innerHTML parse on tab switch)
-    if (activeTabId !== tabId) {
-     const holder = ensureTabDiffDom(tab);
-     if (holder) holder.innerHTML = html;
-     updateTabRowFor(tab);
+   // Prevent double-submit for same tab
+   if (tab.inFlight) {
+     const errorEl = document.getElementById('error');
+     if (errorEl) errorEl.textContent = 'This tab already has a request running.';
      return;
    }
 
-    // Only paint UI if user is still viewing that tab
-    if (activeTabId === tabId) {
-      outputEl.textContent = modified;
-      autoResizeIfExpanded(outputEl);
-      diffViewEl.innerHTML = html;
-      syncDiff2HtmlTheme();
-      requestAnimationFrame(() => {
-        computeDiffNavVisible();
-        updateDiffNavButtons();
-      });
-      errorEl.textContent = '';
-      downloadBtn.classList.remove('hidden');
-      copyBtn.classList.remove('hidden');
+   const diffText = document.getElementById('diff').value;
+   const modelContent = document.getElementById('model').value;
+   const selectedModelSnapshot = document.getElementById('modelSelect').value;
+   const apiKeys = initApiKeysManagerOnce();
+   const provider = apiKeys.providerForModel(selectedModelSnapshot);
+   // lock model choice into the originating tab + request
+   // lock model choice into the originating tab + request
+   tab.selectedModel = selectedModelSnapshot;
+
+   // Lock system prompt choice into the originating tab + request
+   const systemPromptIdSnapshot = tab.systemPromptId || DEFAULT_SYS_PROMPT_ID;
+   tab.systemPromptId = systemPromptIdSnapshot;
+   const systemPromptSnapshot = getSystemPromptById(systemPromptIdSnapshot)?.content || DEFAULT_SYSTEM_PROMPT;
+
+   const outputEl = document.getElementById('output');
+   const errorEl = document.getElementById('error');
+   const loadingEl = document.getElementById('loading');
+   const applyBtn = document.getElementById('applyBtn');
+   const retryBtn = document.getElementById('retryBtn');
+   const downloadBtn = document.getElementById('download');
+   const copyBtn = document.getElementById('copyBtn');
+   const diffViewEl = document.getElementById('diffView');
+
+   errorEl.textContent = '';
+   outputEl.textContent = '';
+   diffViewEl.innerHTML = '';
+
+   // Reset timing for this run (will be set when the model replies)
+   tab.lastDurationMs = null;
+   tab.lastTokenCount = null;
+   if (activeTabId === tabId) setModelTimeUi(tab);
+   // Also clear cached diff for this tab (we are recomputing)
+   if (tab.diffDom) tab.diffDom.replaceChildren();
+   tab.diffHtml = '';
+   resetDiffNav();
+   diffNavVisible = false;
+   updateDiffNavButtons();
+   downloadBtn.classList.add('hidden');
+   copyBtn.classList.add('hidden');
+   retryBtn.classList.add('hidden');
+
+   if (!isRetry) tab.retryCount = 0;
+
+   if (!diffText || !modelContent) {
+     errorEl.textContent = 'Please fill Diff Patch and File Content.';
+     return;
+   }
+
+   // Ensure the correct provider key is available (xAI for grok-*, OpenAI for gpt-*)
+   await apiKeys.maybeDecryptProviderInSession(provider);
+   const apiKey = apiKeys.getStoredApiKey(provider);
+   if (!apiKey) { apiKeys.ensureKeyOrPrompt({ provider, blocking: true }); return; }
+ 
+   // Approximate size check (textarea content)
+   const contentSizeMB = new Blob([modelContent]).size / (1024 * 1024);
+   if (contentSizeMB > MAX_FILE_SIZE_MB) {
+     if (!confirm(`Content is ${contentSizeMB.toFixed(2)}MB. May exceed API limits. Proceed?`)) {
+       return;
+     }
+   }
+
+   // Snapshot inputs at the time you clicked Apply
+   const diffTextSnapshot = diffText;
+   const modelContentSnapshot = modelContent;
+
+   // Mark tab as in-flight with a unique token
+   const token = `${tabId}:${++tab.requestSeq}:${Date.now()}`;
+   tab.inFlightToken = token;
+   tab.inFlight = true;
+   updateTabRowFor(tab); // fast spinner update
+
+   // Keep tab state consistent even if user switches tabs
+   tab.diffText = diffTextSnapshot || '';
+   tab.modelText = modelContentSnapshot || '';
+
+   if (activeTabId === tabId) {
+     applyBtn.disabled = true;
+     loadingEl.classList.remove('hidden');
+   }
+
+   try {
+     const openai = new OpenAI({
+       apiKey,
+       baseURL: apiKeys.baseUrlForProvider(provider),
+       dangerouslyAllowBrowser: true  // Enable for Electron renderer; key is user-provided and local
+     });
+     console.log('OpenAI SDK initialized with browser allowance.');
+
+     const userPrompt = `Original file content:\n\n${modelContentSnapshot}\n\nDiff patch to apply:\n\n${diffTextSnapshot}\n\nApply the patch and output the exact resulting file.`;
+     const messages = [
+       { role: 'system', content: systemPromptSnapshot },
+       { role: 'user', content: userPrompt }
+     ];
+
+     const t0 = _nowMs();
+     const completion = await openai.chat.completions.create({
+       model: selectedModelSnapshot,
+       messages,
+       temperature: 0.2,
+       max_tokens: 32768  // Higher for large files; per docs
+     });
+
+     const durationMs = _nowMs() - t0;
+     const usageTotalTokens = getUsageTotalTokens(completion);
+
+     let modified = completion.choices[0].message.content;
+     // Strip any potential code fences
+     modified = modified.replace(/^```[\w]*\n?|\n?```$/g, '').trim();
+
+     // If this response is stale (user started a newer run), ignore it
+     if (tab.inFlightToken !== token) {
+       return;
+     }
+
+     // Store + render timing (model replied)
+     tab.lastDurationMs = Math.max(0, Math.round(durationMs));
+     // Prefer API-reported usage when present; otherwise estimate total tokens for (system+user+assistant)
+     if (Number.isFinite(usageTotalTokens)) {
+       tab.lastTokenCount = usageTotalTokens;
+     } else {
+       tab.lastTokenCount = estimateChatTokens([...messages, { role: 'assistant', content: modified }]);
+     }
+     if (activeTabId === tabId) setModelTimeUi(tab);
+
+     // If model returned a congruency error, show it as an app error (not as file output)
+     if (/^ERROR:/i.test(modified)) {
+       tab.modifiedText = '';
+       tab.diffHtml = '';
+       tab.errorText = modified;
+       tab.retryCount = 0;
+
+       if (activeTabId === tabId) {
+         outputEl.textContent = '';
+         diffViewEl.innerHTML = '';
+         updateDiffNavButtons();
+         downloadBtn.classList.add('hidden');
+         copyBtn.classList.add('hidden');
+         retryBtn.classList.add('hidden');
+         errorEl.textContent = modified;
+       }
+       return;
+     }
+
+     // Build diff HTML
+     const unifiedDiff = createTwoFilesPatch(
+       'original',
+       'modified',
+       modelContentSnapshot,
+       modified,
+       '',
+       '',
+       { context: Number.MAX_SAFE_INTEGER }
+     );
+
+     const html = Diff2Html.html(unifiedDiff, {
+       drawFileList: false,
+       matching: 'none',
+       outputFormat: 'side-by-side',
+       synchronisedScroll: true,
+       colorScheme: document.body.classList.contains('dark') ? 'dark' : 'light'
+     });
+
+     // Save into the originating tab
+     tab.modifiedText = modified;
+     tab.diffHtml = ''; // legacy fallback not needed
+     tab.errorText = '';
+     tab.retryCount = 0;
+
+     // ✅ Store history at the moment we have a successful output (all heavy fields compressed)
+     try {
+       const spObj = getSystemPromptById(systemPromptIdSnapshot || DEFAULT_SYS_PROMPT_ID);
+       void addHistoryEntry({
+         ts: Date.now(),
+         model: selectedModelSnapshot,
+         provider,
+         sysPromptId: systemPromptIdSnapshot,
+         sysPromptName: spObj?.name || 'Default',
+         sysPromptContent: systemPromptSnapshot,
+         diffText: diffTextSnapshot,
+         inputText: modelContentSnapshot,
+         outputText: modified,
+         inputFileName: tab.originalFileName || originalFileName || 'file.txt',
+         durationMs: tab.lastDurationMs,
+         tokenCount: tab.lastTokenCount
+       });
+     } catch {}
+
+     // If user is NOT viewing that tab, parse diff into the tab's hidden DOM cache now
+     // (so switching later is instant; no innerHTML parse on tab switch)
+     if (activeTabId !== tabId) {
+      const holder = ensureTabDiffDom(tab);
+      if (holder) holder.innerHTML = html;
+      updateTabRowFor(tab);
+      return;
     }
 
-  } catch (error) {
-    if (tab.inFlightToken !== token) return;
+     // Only paint UI if user is still viewing that tab
+     if (activeTabId === tabId) {
+       outputEl.textContent = modified;
+       autoResizeIfExpanded(outputEl);
+       diffViewEl.innerHTML = html;
+       syncDiff2HtmlTheme();
+       requestAnimationFrame(() => {
+         computeDiffNavVisible();
+         updateDiffNavButtons();
+       });
+       errorEl.textContent = '';
+       downloadBtn.classList.remove('hidden');
+       copyBtn.classList.remove('hidden');
+     }
 
-    tab.errorText = `Error: ${error.message}. `;
-    if (tab.retryCount < MAX_RETRIES) {
-      tab.retryCount++;
-      tab.errorText += `Retry ${tab.retryCount}/${MAX_RETRIES} available.`;
-    } else {
-      tab.errorText += 'Max retries reached.';
-    }
+   } catch (error) {
+     if (tab.inFlightToken !== token) return;
 
-    if (activeTabId === tabId) {
-      errorEl.textContent = tab.errorText;
-      if (tab.retryCount > 0 && tab.retryCount < MAX_RETRIES) retryBtn.classList.remove('hidden');
-    }
+     tab.errorText = `Error: ${error.message}. `;
+     if (tab.retryCount < MAX_RETRIES) {
+       tab.retryCount++;
+       tab.errorText += `Retry ${tab.retryCount}/${MAX_RETRIES} available.`;
+     } else {
+       tab.errorText += 'Max retries reached.';
+     }
 
-    console.error(error);
-  } finally {
-    // Only clear inFlight if this is still the current request for that tab
-    if (tab.inFlightToken === token) {
-      tab.inFlightToken = null;
-      tab.inFlight = false;
-      updateTabRowFor(tab); // fast spinner update
-    }
+     if (activeTabId === tabId) {
+       errorEl.textContent = tab.errorText;
+       if (tab.retryCount > 0 && tab.retryCount < MAX_RETRIES) retryBtn.classList.remove('hidden');
+     }
 
-    if (activeTabId === tabId) {
-      loadingEl.classList.add('hidden');
-      applyBtn.disabled = false;
-    }
-  }
+     console.error(error);
+   } finally {
+     // Only clear inFlight if this is still the current request for that tab
+     if (tab.inFlightToken === token) {
+       tab.inFlightToken = null;
+       tab.inFlight = false;
+       updateTabRowFor(tab); // fast spinner update
+     }
+
+     if (activeTabId === tabId) {
+       loadingEl.classList.add('hidden');
+       applyBtn.disabled = false;
+     }
+   }
 }
 
 function downloadResult() {
@@ -3409,20 +2592,29 @@ function copyOutput() {
 }
 
 // Load diff from file
-document.getElementById('diffFile').addEventListener('change', async (e) => {
-  const text = await e.target.files[0].text();
+document.getElementById('diffFile')?.addEventListener('change', async (e) => {
+  const input = e.target;
+  const file = input?.files?.[0] || null;
+  setFilePickerName('diff', file?.name || '');
+  if (!file) return;
+  const text = await file.text();
   document.getElementById('diff').value = text;
-  const tab = getActiveTab();
+  try { initTabsManagerOnce(); } catch {}
+  const tab = getActiveTab?.();
   if (tab) tab.diffText = text;
 });
 
 // Load model from file
-document.getElementById('modelFile').addEventListener('change', async (e) => {
-  const file = e.target.files[0];
+document.getElementById('modelFile')?.addEventListener('change', async (e) => {
+  const input = e.target;
+  const file = input?.files?.[0] || null;
+  setFilePickerName('model', file?.name || '');
+  if (!file) return;
   const text = await file.text();
   document.getElementById('model').value = text;
   originalFileName = file.name;
-  const tab = getActiveTab();
+  try { initTabsManagerOnce(); } catch {}
+  const tab = getActiveTab?.();
   if (tab) {
     tab.modelText = text;
     tab.originalFileName = file.name;

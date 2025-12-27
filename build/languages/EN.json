@@ -1,0 +1,234 @@
+{
+    "app": {
+        "name": "AI Diff Tool",
+        "iconAlt": "AI Diff Tool icon",
+        "windowTitle": "AI Diff Tool - Grok 4 Patch Applier"
+    },
+    "sidebar": {
+        "workspaces": "Workspaces",
+        "newTab": "New tab",
+        "renameHint": "Double-click a tab to rename"
+    },
+    "nav": {
+        "prevChange": "Prev change",
+        "nextChange": "Next change",
+        "prevChangeTitle": "Previous change",
+        "nextChangeTitle": "Next change",
+        "goTop": "Go to top"
+    },
+    "model": {
+        "selectLabel": "Select Model:"
+    },
+    "loading": {
+        "processing": "Processing..."
+    },
+    "textarea": {
+        "maximize": "Maximize",
+        "minimize": "Minimize"
+    },
+    "labels": {
+        "diffPatch": "Diff Patch (paste or load file):",
+        "fileContent": "File Content (paste or load file):",
+        "outputSection": "Output from Model",
+        "diffSection": "Diff with original"
+    },
+    "output": {
+        "timeFmt": "{mins} mins and {secs} seconds",
+        "tokensEstFmt": "{n} tokens [est.]",
+        "separator": " / "
+    },
+    "buttons": {
+        "retry": "Retry",
+        "applyPatch": "Apply Patch",
+        "copy": "Copy",
+        "download": "Download Modified File",
+        "save": "Save",
+        "update": "Update",
+        "cancel": "Cancel",
+        "close": "Close",
+        "unlock": "Unlock",
+        "duplicate": "Duplicate",
+        "delete": "Delete",
+        "new": "New",
+        "clear": "Clear",
+        "prev": "Prev",
+        "next": "Next"
+    },
+    "about": {
+        "title": "About",
+        "closeAria": "Close about",
+        "thanks": "Thank you for using",
+        "creatorAlt": "Creator",
+        "creatorLabel": "Creator",
+        "emailLabel": "Email",
+        "donate": "Donate",
+        "github": "GitHub Repo",
+        "licenseTitle": "Open Source License",
+        "licenseText": "This project is open-source. See the LICENSE file in the GitHub repository.",
+        "versionPrefix": "Version"
+    },
+    "help": {
+        "title": "AI Diff Tool — Usage",
+        "closeAria": "Close help",
+        "bodyHtml": "<p>This app applies a <b>unified diff patch</b> to a file by asking the selected model (xAI Grok or OpenAI GPT) to produce the patched output. It then shows you the modified file and a side-by-side diff view.</p><h3>Quick steps</h3><ol><li><b>Pick a workspace tab</b> (left sidebar). Each tab keeps its own inputs, model, prompt, output, and diff.</li><li><b>Select Model</b> (top dropdown).</li><li><b>Choose System Prompt</b> (top button: <b>Prompt - ...</b>) if you need stricter/looser behavior.</li><li><b>Paste or load</b> your unified diff patch into <b>Diff Patch</b> (use “Choose file” under the textarea if you prefer).</li><li><b>Paste or load</b> the original file content into <b>File Content</b> (use “Choose file” under the textarea if you prefer).</li><li>Enter your <b>API Key</b> (xAI for <code>grok-*</code>, OpenAI for <code>gpt-*</code>) and <b>6-digit PIN</b>, then <b>Save</b> (stored locally, encrypted).</li><li>Click <b>Apply Patch</b>. Review the output and the “Diff with original”.</li><li>Use <b>Copy</b> or <b>Download Modified File</b> once output is generated.</li></ol><h3>Workspaces (tabs)</h3><ul><li>Create a new tab with the <b>+</b> button (or <b>Cmd/Ctrl + T</b>).</li><li><b>Double-click</b> a tab to rename it.</li><li>Close a tab with the <b>×</b> on the tab (or <b>Cmd/Ctrl + W</b>).</li><li>Cycle tabs with <b>Cmd/Ctrl + Tab</b> (and <b>Cmd/Ctrl + Shift + Tab</b>).</li></ul><h3>System Prompt</h3><ul><li>Open via the top <b>Prompt - ...</b> button, or <b>Edit → System Prompt…</b> (<b>Cmd/Ctrl + Shift + P</b>).</li><li><b>Default</b> is locked. Use <b>New</b> or <b>Duplicate</b> to create a custom prompt.</li><li>Click <b>Use in this tab</b> to apply the selected prompt to the current workspace.</li><li>Prompts are stored locally (in this app's localStorage).</li></ul><h3>API keys (xAI / OpenAI)</h3><ul><li>Open via <b>File → xAI API Key…</b> (<b>Cmd/Ctrl + K</b>) or <b>File → OpenAI API Key…</b> (<b>Cmd/Ctrl + Shift + K</b>).</li><li>Keys are encrypted locally using your <b>6-digit PIN</b>. The PIN is not stored; you unlock keys once per app session.</li><li>The app automatically chooses which provider key to use based on the model name (<code>grok-*</code> vs <code>gpt-*</code>).</li></ul><h3>Output, diff navigation, and tools</h3><ul><li>The model is instructed to output <b>only the final file contents</b> (no code fences, no commentary).</li><li>If the file is large, you may get a size warning before sending.</li><li>The top-right metadata shows <b>time</b> and an <b>estimated token count</b> as: <code>&lt;time&gt; / &lt;tokens&gt;</code>.</li><li><b>Prev change</b> / <b>Next change</b> buttons appear when the diff section is on-screen.</li><li><b>Go to top</b> appears after you scroll down.</li><li>Use the <b>⛶</b>/<b>🗕</b> buttons to expand/collapse Diff, File Content, and Output.</li><li><b>Retry</b> appears when a request fails and retries are available.</li><li><b>Dark Mode</b> can be toggled via the <b>View → Dark Mode</b> menu item (or <b>Cmd/Ctrl + D</b>).</li><li>You can dismiss this help with <b>ESC</b>, the <b>×</b> button, or by clicking the background.</li></ul><h3>Keyboard shortcuts</h3><ul><li><b>F1</b>: Open Usage Help</li><li><b>Cmd/Ctrl + D</b>: Toggle Dark Mode</li><li><b>Cmd/Ctrl + K</b>: xAI API Key</li><li><b>Cmd/Ctrl + Shift + K</b>: OpenAI API Key</li><li><b>Cmd/Ctrl + Shift + P</b>: System Prompt</li><li><b>Cmd/Ctrl + T</b>: New tab</li><li><b>Cmd/Ctrl + W</b>: Close tab</li><li><b>Cmd/Ctrl + Tab</b>: Next tab</li><li><b>Cmd/Ctrl + Shift + Tab</b>: Previous tab</li><li><b>F7</b>: Previous change</li><li><b>F8</b>: Next change</li><li><b>ESC</b>: Close the currently open dialog</li></ul>"
+    },
+    "keyType": {
+        "title": "Choose API Key Type",
+        "introHtml": "No API keys are saved yet. Choose which provider you want to configure first. You’ll set a <b>6-digit PIN</b> once, and it will be used to encrypt/decrypt keys locally."
+    },
+    "providers": {
+        "xai": "xAI",
+        "openai": "OpenAI"
+    },
+    "apiKey": {
+        "closeAria": "Close API key dialog",
+        "label": "API Key",
+        "pinLabel": "6-digit PIN",
+        "xaiTitle": "xAI API Key",
+        "openaiTitle": "OpenAI API Key",
+        "unlockTitle": "Unlock API Keys",
+        "xaiPlaceholder": "xai-...",
+        "openaiPlaceholder": "sk-...",
+        "savedKeys": "saved keys",
+        "introUnlockHtml": "Enter your <b>6-digit PIN</b> to unlock and decrypt saved keys for this session.",
+        "introNoPinHtml": "Enter your <b>{provider} API Key</b>. It will be encrypted locally using the PIN already unlocked for this session.",
+        "introWithPinHtml": "Enter your <b>{provider} API Key</b> and a <b>6-digit PIN</b>. The key is encrypted locally and stored in this app (localStorage). The PIN is not stored.",
+        "webCryptoMissing": "WebCrypto is not available in this environment.",
+        "pinInvalid": "PIN must be exactly 6 digits.",
+        "noEncryptedKeys": "No encrypted keys found (or data is corrupted).",
+        "pinDecryptFailed": "Invalid PIN (or corrupted stored key). Try again.",
+        "keyRequired": "API key is required.",
+        "pinNotInSession": "PIN is not available in this session. Please unlock first.",
+        "saved": "Saved.",
+        "saveFailed": "Failed to encrypt and save: {err}",
+        "unlockHint": "Enter your 6-digit PIN to unlock saved keys for this session.",
+        "migrateHint": "Set a 6-digit PIN to encrypt your existing saved API key."
+    },
+    "tabs": {
+        "processing": "Processing…",
+        "closeAria": "Close tab",
+        "firstTab": "Tab 1",
+        "defaultTab": "Tab {n}",
+        "fallbackName": "this tab",
+        "renameTitle": "Rename tab",
+        "renameCloseAria": "Close rename dialog",
+        "nameLabel": "Tab name",
+        "namePlaceholder": "e.g. auth.js patch",
+        "renameHint": "Press Enter to save",
+        "closeTitle": "Close tab?",
+        "closeCloseAria": "Close close-tab dialog",
+        "closeBodyHtml": "Close <b id=\"tabCloseName\">{tabName}</b>? Any unsaved input in this tab will be lost.",
+        "closeConfirm": "Close tab"
+    },
+    "sysPrompt": {
+        "title": "System Prompt",
+        "closeAria": "Close system prompt dialog",
+        "savedTitle": "Saved prompts",
+        "listAria": "System prompts",
+        "nameLabel": "Prompt name",
+        "namePlaceholder": "e.g. Strict patcher",
+        "textLabel": "System prompt",
+        "useInTab": "Use in this tab",
+        "defaultName": "Default",
+        "buttonLabel": "Prompt - {name}",
+        "buttonTitle": "System prompt: {name}",
+        "unnamed": "(unnamed)",
+        "badgeDefault": "Default",
+        "badgeInUse": "In use",
+        "listHint": "You can save {remaining} more prompt{plural} (max {max} incl. Default).",
+        "defaultLockedHint": "Default prompt cannot be edited. Click “New” or “Duplicate” to create a custom prompt.",
+        "createHint": "Creating a new custom prompt. Enter a name, edit the text, then Save.",
+        "confirmDelete": "Delete system prompt “{name}”?",
+        "msg": {
+            "nameRequired": "Prompt name is required.",
+            "defaultReserved": "“Default” is reserved. Choose another name.",
+            "nameTaken": "A prompt with this name already exists.",
+            "textRequired": "System prompt text is required.",
+            "maxPrompts": "Max {max} prompts allowed (including Default). Delete one to add a new one.",
+            "saved": "Saved.",
+            "cantEditDefault": "Default prompt cannot be edited.",
+            "notFound": "Could not find this prompt in storage.",
+            "unsaved": "You have unsaved changes. Save before using this prompt.",
+            "cantDeleteDefault": "Default prompt cannot be deleted.",
+            "deleted": "Deleted."
+        }
+    },
+    "history": {
+        "sectionTitle": "History",
+        "closeAria": "Close history",
+        "clearTitle": "Clear history",
+        "listAria": "History items",
+        "hint": "Max history size is {max}. Older entries are removed automatically.",
+        "pageLabel": "Page {page} of {total}",
+        "emptyPage": "No items on this page.",
+        "emptyAll": "No history yet.",
+        "openInNewTab": "Open in new tab",
+        "loadFailed": "Could not load this history item (it may have been cleared or storage is corrupted)."
+    },
+    "language": {
+        "title": "Language",
+        "closeAria": "Close language",
+        "intro": "Choose a language. The app will reload."
+    },
+    "filePicker": {
+        "chooseFile": "Choose file",
+        "noFileChosen": "No file chosen"
+    },
+    "menu": {
+        "file": {
+            "title": "File",
+            "xaiKey": "xAI API Key…",
+            "openaiKey": "OpenAI API Key…",
+            "close": "Close",
+            "quit": "Quit"
+        },
+        "edit": {
+            "title": "Edit",
+            "undo": "Undo",
+            "redo": "Redo",
+            "cut": "Cut",
+            "copy": "Copy",
+            "paste": "Paste",
+            "pasteMatch": "Paste and Match Style",
+            "delete": "Delete",
+            "selectAll": "Select All",
+            "systemPrompt": "System Prompt…"
+        },
+        "view": {
+            "title": "View",
+            "history": "History…",
+            "language": "Language…",
+            "darkMode": "Dark Mode",
+            "prevChange": "Previous Change",
+            "nextChange": "Next Change",
+            "reload": "Reload",
+            "forceReload": "Force Reload",
+            "devTools": "Toggle Developer Tools",
+            "resetZoom": "Actual Size",
+            "zoomIn": "Zoom In",
+            "zoomOut": "Zoom Out",
+            "fullscreen": "Toggle Full Screen"
+        },
+        "window": {
+            "title": "Window",
+            "minimize": "Minimize",
+            "zoom": "Zoom",
+            "front": "Bring All to Front",
+            "window": "Window",
+            "close": "Close"
+        },
+        "help": {
+            "usage": "Usage",
+            "about": "About…",
+            "title": "Help"
+        },
+        "mac": {
+            "about": "About",
+            "services": "Services",
+            "hide": "Hide",
+            "hideOthers": "Hide Others",
+            "unhide": "Unhide",
+            "quit": "Quit"
+        }
+    }
+}
