@@ -1,6 +1,7 @@
 const OpenAI = require('openai');  // Loaded via Node integration
 const { createTwoFilesPatch } = require('diff');  // For computing diff
 // (no new deps)
+
 const Diff2Html = require('diff2html');  // For rendering as HTML
 const zlib = require('zlib'); // history compression fallback (no new deps)
 const { ipcRenderer } = require('electron');
@@ -64,6 +65,28 @@ function applyI18nToFilePickers() {
   } else {
     if (diffName) { diffName.textContent = none; diffName.dataset.hasFile = '0'; }
     if (modelName) { modelName.textContent = none; modelName.dataset.hasFile = '0'; }
+  }
+}
+
+// -------------------------
+// Copy button labels (floating Copy + topbar Copy Output)
+// -------------------------
+function applyI18nToCopyButtons() {
+  const copyBtn = document.getElementById('copyBtn');
+  const topBtn = document.getElementById('copyOutputTopBtn');
+
+  if (copyBtn && copyBtn.dataset.copyState !== 'copied') {
+    const lbl = t('output.copy', 'Copy');
+    copyBtn.textContent = lbl;
+    copyBtn.title = lbl;
+    copyBtn.setAttribute('aria-label', lbl);
+  }
+
+  if (topBtn && topBtn.dataset.copyState !== 'copied') {
+    const lbl = t('output.copyOutput', 'Copy Output');
+    topBtn.textContent = lbl;
+    topBtn.title = lbl;
+    topBtn.setAttribute('aria-label', lbl);
   }
 }
 
@@ -174,6 +197,8 @@ function refreshUiAfterLanguageChange() {
 
   // 5) Custom file pickers ("Choose file" / "No file chosen")
   try { applyI18nToFilePickers(); } catch {}
+  try { applyI18nToCopyButtons(); } catch {}
+  try { scheduleCopyOutputTopButtonUpdate(); } catch {}
 }
 
 const MAX_RETRIES = 3;
@@ -738,6 +763,84 @@ let diffNavObserver = null;
 let diffNavVisible = false;
 let diffNavIdx = -1; // -1 means "not aligned to a change yet"
 
+// -------------------------
+// Topbar "Copy Output" button visibility
+// Show when:
+// - Output exists (copy button is visible + output text non-empty)
+// - Output section is above/out of view (scrolled past)
+// - Diff section is visible (same time Prev/Next appear)
+// -------------------------
+let copyOutputTopRaf = null;
+
+function updateCopyOutputTopButton() {
+  const btn = document.getElementById('copyOutputTopBtn');
+  if (!btn) return;
+
+  const root = getMainScrollEl();
+  const outWrap = document.getElementById('output-container');
+  const copyBtn = document.getElementById('copyBtn');
+  const outputEl = document.getElementById('output');
+
+  if (!root || !outWrap || !copyBtn || !outputEl) {
+    btn.classList.add('hidden');
+    return;
+  }
+
+  const hasOutput =
+    !copyBtn.classList.contains('hidden') &&
+    (String(outputEl.textContent || '').length > 0);
+
+  if (!hasOutput) {
+    btn.classList.add('hidden');
+    return;
+  }
+
+  // Only show alongside diff nav (user is in diff section)
+  if (!diffNavVisible) {
+    btn.classList.add('hidden');
+    return;
+  }
+
+  const rootRect = root.getBoundingClientRect();
+  const r = outWrap.getBoundingClientRect();
+
+  // "Scrolled past output": output container bottom is above the scroll viewport top
+  const outputAbove = r.bottom <= (rootRect.top + 1);
+  btn.classList.toggle('hidden', !outputAbove);
+}
+
+function scheduleCopyOutputTopButtonUpdate() {
+  if (copyOutputTopRaf) return;
+  copyOutputTopRaf = requestAnimationFrame(() => {
+    copyOutputTopRaf = null;
+    updateCopyOutputTopButton();
+  });
+}
+
+function initCopyOutputTopButton() {
+  const root = getMainScrollEl();
+  const btn = document.getElementById('copyOutputTopBtn');
+  if (!root || !btn) return;
+  if (btn.dataset.wired === '1') return;
+  btn.dataset.wired = '1';
+
+  btn.addEventListener('click', () => copyOutput(btn));
+
+  root.addEventListener('scroll', scheduleCopyOutputTopButtonUpdate, { passive: true });
+  window.addEventListener('resize', scheduleCopyOutputTopButtonUpdate);
+
+  // React immediately when output appears/disappears (tab switch, applyPatch completion)
+  try {
+    const mo = new MutationObserver(scheduleCopyOutputTopButtonUpdate);
+    const copyBtn = document.getElementById('copyBtn');
+    const outputEl = document.getElementById('output');
+    if (copyBtn) mo.observe(copyBtn, { attributes: true, attributeFilter: ['class'] });
+    if (outputEl) mo.observe(outputEl, { childList: true, subtree: true, characterData: true });
+  } catch {}
+
+  scheduleCopyOutputTopButtonUpdate();
+}
+
 function getMainScrollEl() {
   return document.getElementById('mainScroll')
     || document.querySelector('.main-body')   // fallback if you forgot the id
@@ -821,6 +924,7 @@ function updateDiffNavButtons() {
     prevBtn.disabled = !hasTargets;
     nextBtn.disabled = !hasTargets;
   }
+  try { scheduleCopyOutputTopButtonUpdate(); } catch {}
 }
 
 function setupDiffNavObserver() {
@@ -2047,6 +2151,7 @@ window.addEventListener('load', () => {
     await initI18n();
     applyI18nToStaticUi();
     applyI18nToFilePickers();
+    applyI18nToCopyButtons();
 
     const storedModel = localStorage.getItem('selectedModel') || 'grok-4-fast-reasoning';
     document.getElementById('modelSelect').value = storedModel;
@@ -2064,7 +2169,7 @@ window.addEventListener('load', () => {
     // Add event listeners for buttons
     document.getElementById('applyBtn').addEventListener('click', () => applyPatch({ isRetry: false }));
     document.getElementById('retryBtn').addEventListener('click', () => applyPatch({ isRetry: true }));
-    document.getElementById('copyBtn').addEventListener('click', copyOutput);
+    document.getElementById('copyBtn').addEventListener('click', () => copyOutput(document.getElementById('copyBtn')));
     document.getElementById('download').addEventListener('click', downloadResult);
 
     // Localized file pickers (custom UI triggers the hidden native inputs)
@@ -2121,6 +2226,10 @@ window.addEventListener('load', () => {
     initTextareaExpandCollapse();
     // Sticky max/min/copy for OUTPUT area while scrolling
     initStickyTaActions();
+
+    // Topbar "Copy Output" (appears when output is scrolled past, while in diff)
+    initCopyOutputTopButton();
+
     // --- Help overlay wiring (must be inside load) ---
     const overlay = document.getElementById('helpOverlay');
     const closeBtn = document.getElementById('helpCloseBtn');
@@ -2461,6 +2570,7 @@ ipcRenderer.on('apikey:open', (_evt, payload) => {
    updateDiffNavButtons();
    downloadBtn.classList.add('hidden');
    copyBtn.classList.add('hidden');
+   try { scheduleCopyOutputTopButtonUpdate(); } catch {}
    retryBtn.classList.add('hidden');
 
    if (!isRetry) tab.retryCount = 0;
@@ -2631,6 +2741,7 @@ ipcRenderer.on('apikey:open', (_evt, payload) => {
        errorEl.textContent = '';
        downloadBtn.classList.remove('hidden');
        copyBtn.classList.remove('hidden');
+       try { scheduleCopyOutputTopButtonUpdate(); } catch {}
      }
 
    } catch (error) {
@@ -2675,12 +2786,29 @@ function downloadResult() {
   a.click();
 }
 
-function copyOutput() {
+function copyOutput(btnOverride) {
   const outputEl = document.getElementById('output');
-  navigator.clipboard.writeText(outputEl.textContent).then(() => {
-    const btn = document.getElementById('copyBtn');
-    btn.textContent = 'Copied!';
-    setTimeout(() => { btn.textContent = 'Copy'; }, 2000);
+  const text = String(outputEl?.textContent || '');
+  if (!text) return;
+
+  const btn = btnOverride || document.getElementById('copyBtn');
+  const isTop = btn && btn.id === 'copyOutputTopBtn';
+
+  const setBtn = (b, label) => {
+    if (!b) return;
+    b.textContent = label;
+    b.title = label;
+    b.setAttribute('aria-label', label);
+  };
+
+  navigator.clipboard.writeText(text).then(() => {
+    if (!btn) return;
+    btn.dataset.copyState = 'copied';
+    setBtn(btn, t('output.copied', 'Copied!'));
+    setTimeout(() => {
+      btn.dataset.copyState = 'copy';
+      setBtn(btn, isTop ? t('output.copyOutput', 'Copy Output') : t('output.copy', 'Copy'));
+    }, 2000);
   }).catch(err => {
     console.error('Failed to copy:', err);
   });

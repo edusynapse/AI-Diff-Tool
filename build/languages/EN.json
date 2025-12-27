@@ -35,7 +35,10 @@
     "output": {
         "timeFmt": "{mins} mins and {secs} seconds",
         "tokensEstFmt": "{n} tokens [est.]",
-        "separator": " / "
+        "separator": " / ",
+        "copy": "Copy",
+        "copyOutput": "Copy Output",
+        "copied": "Copied!"
     },
     "buttons": {
         "retry": "Retry",

@@ -35,7 +35,10 @@
   "output": {
     "timeFmt": "{mins} मिनट और {secs} सेकंड",
     "tokensEstFmt": "{n} टोकन [अनुमानित]",
-    "separator": " / "
+    "separator": " / ",
+    "copy": "कॉपी करें",
+    "copyOutput": "आउटपुट कॉपी करें",
+    "copied": "कॉपी हो गया!"
   },
   "buttons": {
     "retry": "फिर से प्रयास करें",
