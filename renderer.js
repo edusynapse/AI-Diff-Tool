@@ -1,5 +1,6 @@
 const OpenAI = require('openai');  // Loaded via Node integration
 const { createTwoFilesPatch } = require('diff');  // For computing diff
+// (no new deps)
 const Diff2Html = require('diff2html');  // For rendering as HTML
 const zlib = require('zlib'); // history compression fallback (no new deps)
 const { ipcRenderer } = require('electron');
@@ -55,9 +56,15 @@ function applyI18nToFilePickers() {
     modelBtn.setAttribute('aria-label', choose);
   }
 
-  // Only overwrite the filename display if no file is currently shown
-  if (diffName && diffName.dataset.hasFile !== '1') diffName.textContent = none;
-  if (modelName && modelName.dataset.hasFile !== '1') modelName.textContent = none;
+  // Keep filename displays PER-TAB (do not leak across tabs)
+  let tab = null;
+  try { tab = (typeof getActiveTab === 'function') ? getActiveTab() : null; } catch {}
+  if (tab) {
+    try { syncFilePickerNamesFromTab(tab); } catch {}
+  } else {
+    if (diffName) { diffName.textContent = none; diffName.dataset.hasFile = '0'; }
+    if (modelName) { modelName.textContent = none; modelName.dataset.hasFile = '0'; }
+  }
 }
 
 function setFilePickerName(kind /* 'diff' | 'model' */, name) {
@@ -72,6 +79,83 @@ function setFilePickerName(kind /* 'diff' | 'model' */, name) {
     el.textContent = none;
     el.dataset.hasFile = '0';
   }
+}
+
+// -------------------------
+// Per-tab file picker filename state
+// -------------------------
+function syncFilePickerNamesFromTab(tab) {
+  const diffNm = String(tab?.diffInputFileName || '').trim();
+  const modelNm = String(tab?.modelInputFileName || tab?.originalFileName || '').trim();
+  setFilePickerName('diff', diffNm);
+  setFilePickerName('model', modelNm);
+
+  // Keep legacy global filename in sync for code paths that still rely on it
+  // (download/apply logic elsewhere may read originalFileName)
+  try {
+    if (modelNm) originalFileName = modelNm;
+    else if (tab?.originalFileName) originalFileName = tab.originalFileName;
+  } catch {}
+}
+
+function _pickedFileNameFromInput(inputEl) {
+  try {
+    const f = inputEl?.files?.[0];
+    return f ? String(f.name || '') : '';
+  } catch {
+    return '';
+  }
+}
+
+function initPerTabFilePickerState() {
+  const diffInput = document.getElementById('diffFile');
+  const modelInput = document.getElementById('modelFile');
+
+  if (diffInput && diffInput.dataset.perTabWired !== '1') {
+    diffInput.dataset.perTabWired = '1';
+    diffInput.addEventListener('change', () => {
+      const tab = (typeof getActiveTab === 'function') ? getActiveTab() : null;
+      const nm = _pickedFileNameFromInput(diffInput);
+      if (tab) tab.diffInputFileName = nm;
+      // Update just-picked label immediately
+      setFilePickerName('diff', nm);
+    });
+  }
+
+  if (modelInput && modelInput.dataset.perTabWired !== '1') {
+    modelInput.dataset.perTabWired = '1';
+    modelInput.addEventListener('change', () => {
+      const tab = (typeof getActiveTab === 'function') ? getActiveTab() : null;
+      const nm = _pickedFileNameFromInput(modelInput);
+      if (tab) {
+        tab.modelInputFileName = nm;
+        if (nm) tab.originalFileName = nm;
+      }
+      if (nm) originalFileName = nm;
+      setFilePickerName('model', nm);
+    });
+  }
+}
+
+let filePickerTabSyncObserver = null;
+function initFilePickerTabSyncObserver() {
+  const tabsRoot = document.getElementById('tabsList');
+  if (!tabsRoot || filePickerTabSyncObserver) return;
+
+  const schedule = () => {
+    try {
+      const tab = (typeof getActiveTab === 'function') ? getActiveTab() : null;
+      if (tab) syncFilePickerNamesFromTab(tab);
+    } catch {}
+  };
+
+  filePickerTabSyncObserver = new MutationObserver(schedule);
+  filePickerTabSyncObserver.observe(tabsRoot, {
+    subtree: true,
+    attributes: true,
+    attributeFilter: ['class', 'aria-selected']
+  });
+  schedule();
 }
 
 function refreshUiAfterLanguageChange() {
@@ -641,7 +725,7 @@ function initStickyTaActions() {
   // If any textarea expands/collapses, container heights change:
   try {
     const ro = new ResizeObserver(schedule);
-    for (const { wrap } of containers) ro.observe(wrap);
+    for (const { wrap } of containers) ro.observe(wr);
   } catch {}
 
   schedule();
@@ -1165,6 +1249,9 @@ async function openHistoryItemInNewTab(historyId) {
   tab.diffText = payload.diffText || '';
   tab.modelText = payload.inputText || '';
   tab.originalFileName = fileName;
+  // keep the custom file picker filename displays correct per-tab
+  tab.modelInputFileName = fileName;
+  tab.diffInputFileName = tab.diffInputFileName || '';
   tab.modifiedText = payload.outputText || '';
   tab.errorText = '';
   tab.retryCount = 0;
@@ -1544,14 +1631,12 @@ function fillAboutUi(info) {
   const creatorNameEl = document.getElementById('aboutCreatorName');
   const creatorEmailEl = document.getElementById('aboutCreatorEmail');
   const versionEl = document.getElementById('aboutVersion');
-  const donateBtn = document.getElementById('aboutDonateBtn');
   const githubBtn = document.getElementById('aboutGitHubBtn');
 
   const appName = (info?.appName || 'AI Diff Tool').trim();
   const creatorName = (info?.creatorName || '').trim();
   const creatorEmail = (info?.creatorEmail || '').trim();
   const version = (info?.version || '').trim();
-  const donationUrl = (info?.donationUrl || '').trim();
   const githubUrl = (info?.githubUrl || '').trim();
 
   if (appNameEl) appNameEl.textContent = appName;
@@ -1565,17 +1650,30 @@ function fillAboutUi(info) {
 
   if (versionEl) versionEl.textContent = version || '';
 
-  if (donateBtn) {
-    donateBtn.dataset.url = donationUrl;
-    const enabled = !!donationUrl;
-    donateBtn.disabled = !enabled;
-    donateBtn.title = enabled ? 'Open donation page' : 'Donation link not configured (set it in ABOUT_SETTINGS before build)';
-  }
-
   if (githubBtn) {
     githubBtn.dataset.url = githubUrl;
     githubBtn.disabled = !githubUrl;
     githubBtn.title = githubUrl ? 'Open GitHub repository' : 'GitHub URL not configured';
+  }
+ }
+
+async function mountRazorpayButtonInAbout() {
+  const frame = document.getElementById('aboutRazorpayFrame');
+  if (!frame) return;
+  if (frame.dataset.loaded === '1') return;
+
+  // IMPORTANT:
+  // - Razorpay fails inside file:// / sandboxed srcdoc because Origin becomes 'null'
+  // - We instead load the button from a local http://127.0.0.1 page served by main
+  //   so the iframe has a real origin and CORS preflight succeeds.
+  try {
+    const donateUrl = await ipcRenderer.invoke('razorpay:getDonateUrl');
+    const u = String(donateUrl || '').trim();
+    if (!u) return;
+    frame.src = u;
+    frame.dataset.loaded = '1';
+  } catch {
+    // no-op
   }
 }
 
@@ -1589,6 +1687,7 @@ async function openAbout() {
   // Load once per session (fast), but still safe if null
   if (!aboutInfoCache) aboutInfoCache = await getAboutInfo();
   fillAboutUi(aboutInfoCache || {});
+  await mountRazorpayButtonInAbout();
 
   await setAboutCreatorImage();  // ✅ THIS is “renderer placement”
 
@@ -1975,6 +2074,8 @@ window.addEventListener('load', () => {
     document.getElementById('modelFileBtn')?.addEventListener('click', () => {
       document.getElementById('modelFile')?.click();
     });
+    // Track chosen filenames PER TAB (prevents "leaking" labels across tabs)
+    initPerTabFilePickerState();
 
     document.getElementById('modelSelect').addEventListener('change', (e) => {
       // Per-tab model selection (does NOT change other tabs)
@@ -1988,6 +2089,7 @@ window.addEventListener('load', () => {
     initTabsManagerOnce();
     initTabs();
     document.getElementById('newTabBtn')?.addEventListener('click', newTab);
+    initFilePickerTabSyncObserver();
 
     // Browser-like tab shortcuts (vertical tabs still on the left)
     window.addEventListener('keydown', (e) => {
@@ -2037,7 +2139,6 @@ window.addEventListener('load', () => {
     const aboutOverlay = document.getElementById('aboutOverlay');
     const aboutCloseBtn = document.getElementById('aboutCloseBtn');
     const aboutOkBtn = document.getElementById('aboutOkBtn');
-    const aboutDonateBtn = document.getElementById('aboutDonateBtn');
     const aboutGitHubBtn = document.getElementById('aboutGitHubBtn');
 
     if (aboutCloseBtn) aboutCloseBtn.addEventListener('click', closeAbout);
@@ -2050,12 +2151,6 @@ window.addEventListener('load', () => {
     }
 
     // External open for Donate/GitHub (URLs injected on openAbout)
-    if (aboutDonateBtn) {
-      aboutDonateBtn.addEventListener('click', () => {
-        const url = (aboutDonateBtn.dataset.url || '').trim();
-        if (url) ipcRenderer.send('external:open', url);
-      });
-    }
     if (aboutGitHubBtn) {
       aboutGitHubBtn.addEventListener('click', () => {
         const url = (aboutGitHubBtn.dataset.url || '').trim();

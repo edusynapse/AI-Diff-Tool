@@ -1,6 +1,7 @@
 const { app, BrowserWindow, Menu, ipcMain, shell } = require('electron');
 const path = require('path');
 const fs = require('fs');
+const http = require('http');
 
 let isDark = false;
 
@@ -138,6 +139,147 @@ const ABOUT_SETTINGS = Object.freeze({
   donationUrl: '' // set before build
 });
 
+// -------------------------
+// Razorpay Donate: serve the payment button from a local HTTP origin
+// Why:
+// - Loading Razorpay inside file:// (or sandboxed srcdoc) yields Origin: null
+// - Razorpay APIs block CORS preflight from 'null' origin
+// - This local server gives the iframe a real http://127.0.0.1 origin
+// -------------------------
+const RAZORPAY_PAYMENT_BUTTON_ID = 'pl_RwZR8RzepB0ABH';
+let donateServer = null;
+let donateServerUrl = '';
+let donateServerPromise = null;
+
+function buildRazorpayDonateHtml() {
+  // Keep this page minimal and self-contained.
+  // NOTE: this page runs in an iframe (renderer subframe).
+  return `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta http-equiv="Content-Security-Policy" content="
+      default-src 'self';
+      script-src 'self' 'unsafe-inline' 'unsafe-eval' https://checkout.razorpay.com https://cdn.razorpay.com https://browser.sentry-cdn.com;
+      style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.razorpay.com https://*.razorpay.com;
+      font-src https://fonts.gstatic.com data:;
+      img-src 'self' data: https://*.razorpay.com https://razorpay.com;
+      connect-src https://api.razorpay.com https://*.razorpay.com https://razorpay.com https://*.sentry.io;
+      frame-src https://*.razorpay.com https://razorpay.com;
+      form-action 'self' https://*.razorpay.com https://razorpay.com;
+    " />
+    <style>
+      html, body { margin: 0; padding: 0; background: transparent; }
+      body { margin: 0; padding: 0; }
+      form { margin: 0; padding: 0; }
+    </style>
+  </head>
+  <body>
+    <form>
+      <script
+        src="https://checkout.razorpay.com/v1/payment-button.js"
+        data-payment_button_id="${RAZORPAY_PAYMENT_BUTTON_ID}"
+        async
+      ></script>
+    </form>
+
+    <script>
+      (function () {
+        function getH() {
+          var de = document.documentElement;
+          var b = document.body;
+          var h1 = de ? (de.scrollHeight || de.offsetHeight || 0) : 0;
+          var h2 = b ? (b.scrollHeight || b.offsetHeight || 0) : 0;
+          return Math.max(h1, h2, 0);
+        }
+
+        var last = 0;
+        var raf = null;
+
+        function send(force) {
+          var h = getH();
+          if (!h) return;
+          if (!force && h === last) return;
+          last = h;
+          try {
+            window.parent && window.parent.postMessage({ type: 'rzp:resize', height: h }, '*');
+          } catch (e) {}
+        }
+
+        function schedule(force) {
+          if (raf) return;
+          raf = requestAnimationFrame(function () {
+            raf = null;
+            send(!!force);
+          });
+        }
+
+        window.addEventListener('load', function () { schedule(true); });
+        setTimeout(function () { schedule(true); }, 300);
+        setTimeout(function () { schedule(true); }, 900);
+
+        try {
+          var mo = new MutationObserver(function () { schedule(true); });
+          mo.observe(document.documentElement, { childList: true, subtree: true, attributes: true });
+        } catch (e) {}
+      })();
+    </script>
+  </body>
+</html>`;
+}
+
+function ensureDonateServer() {
+  if (donateServerUrl) return Promise.resolve(donateServerUrl);
+  if (donateServerPromise) return donateServerPromise;
+
+  donateServerPromise = new Promise((resolve) => {
+    try {
+      donateServer = http.createServer((req, res) => {
+        try {
+          const url = String(req.url || '').split('?')[0];
+          if (url !== '/razorpay-donate') {
+            res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
+            res.end('Not Found');
+            return;
+          }
+          const html = buildRazorpayDonateHtml();
+          res.writeHead(200, {
+            'Content-Type': 'text/html; charset=utf-8',
+            'Cache-Control': 'no-store',
+            'X-Content-Type-Options': 'nosniff'
+          });
+          res.end(html);
+        } catch {
+          try {
+            res.writeHead(500, { 'Content-Type': 'text/plain; charset=utf-8' });
+            res.end('Server Error');
+          } catch {}
+        }
+      });
+
+      donateServer.once('error', () => {
+        donateServerUrl = '';
+        donateServerPromise = null;
+        resolve('');
+      });
+
+      donateServer.listen(0, '127.0.0.1', () => {
+        const addr = donateServer.address();
+        const port = (addr && typeof addr === 'object') ? addr.port : null;
+        donateServerUrl = port ? `http://127.0.0.1:${port}/razorpay-donate` : '';
+        resolve(donateServerUrl);
+      });
+    } catch {
+      donateServerUrl = '';
+      donateServerPromise = null;
+      resolve('');
+    }
+  });
+
+  return donateServerPromise;
+}
+
 const iconPath = app.isPackaged
   ? path.join(process.resourcesPath, 'icons', '512x512.png')
   : path.join(__dirname, 'build', 'icons', '512x512.png');
@@ -181,6 +323,10 @@ ipcMain.handle('about:getInfo', () => {
     version: app.getVersion(),
     ...ABOUT_SETTINGS
   };
+});
+
+ipcMain.handle('razorpay:getDonateUrl', async () => {
+  return await ensureDonateServer();
 });
 
 ipcMain.handle("creator-image-path", () => {
@@ -433,10 +579,44 @@ function createWindow() {
     height: 700,
     webPreferences: {
       nodeIntegration: true,
-      contextIsolation: false
+      contextIsolation: false,
+      // Explicit hardening: never expose Node in iframes/subframes.
+      // (Default is false in Electron, but we set it explicitly.)
+      nodeIntegrationInSubFrames: false
     },
     icon: iconPath
   });
+
+  // IMPORTANT: prevent external pages opened via window.open from inheriting Node integration.
+  // Razorpay checkout/payment flows may open popups; we allow them but force a locked-down window.
+  try {
+    win.webContents.setWindowOpenHandler(({ url }) => {
+      const u = String(url || '').trim();
+
+      const isHttp = /^https?:\/\//i.test(u);
+      const isAboutBlank = /^about:blank/i.test(u);
+
+      // Allow http(s) + about:blank, but in a sandboxed, no-Node window.
+      if (isHttp || isAboutBlank) {
+        return {
+          action: 'allow',
+          overrideBrowserWindowOptions: {
+            width: 520,
+            height: 720,
+            autoHideMenuBar: true,
+            webPreferences: {
+              nodeIntegration: false,
+              contextIsolation: true,
+              sandbox: true
+            }
+          }
+        };
+      }
+
+      // Block everything else by default.
+      return { action: 'deny' };
+    });
+  } catch {}
 
   win.loadFile('index.html');
   //win.webContents.openDevTools();
@@ -453,6 +633,13 @@ app.whenReady().then(() => {
 
   createWindow();
   createAppMenu();
+});
+
+app.on('before-quit', () => {
+  try { donateServer?.close?.(); } catch {}
+  donateServer = null;
+  donateServerUrl = '';
+  donateServerPromise = null;
 });
 
 app.on('window-all-closed', () => {
