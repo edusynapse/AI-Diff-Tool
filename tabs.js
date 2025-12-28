@@ -227,12 +227,56 @@ function createTabsManager(opts) {
       inFlightToken: null,
       inFlight: false,
       lastDurationMs: null,
-      lastTokenCount: null
+      lastTokenCount: null,
+      diffTaExpanded: '0',
+      diffTaCollapsedH: '',
+      modelTaExpanded: '0',
+      modelTaCollapsedH: '',
+      outputTaExpanded: '0'
     };
   }
 
   function getActiveTab() {
     return (state.tabs || []).find(tt => tt.id === state.activeTabId) || null;
+  }
+
+  // --- Per-tab expand/minimize state for #diff/#model/#output ---
+  // The DOM is shared across workspace tabs, so we must persist + restore the
+  // expanded state per tab; otherwise expanding in one tab "leaks" to others.
+  function _getTaExpanded(el) {
+    if (!el) return '0';
+    const v = el.dataset?.taExpanded;
+    if (v === '1' || v === '0') return v;
+    return el.classList.contains('ta-expanded') ? '1' : '0';
+  }
+
+  function _applyTaState(el, expanded, collapsedH) {
+    if (!el) return;
+
+    // Clear any inline sizing from a different tab (prevents cross-tab leakage).
+    try { el.style.height = ''; } catch {}
+    try { el.style.overflowY = ''; } catch {}
+
+    if (expanded) {
+      el.classList.add('ta-expanded');
+      el.dataset.taExpanded = '1';
+    } else {
+      el.classList.remove('ta-expanded');
+      el.dataset.taExpanded = '0';
+    }
+
+    if (el.tagName === 'TEXTAREA') {
+      if (collapsedH) el.dataset.taCollapsedH = String(collapsedH);
+      else try { delete el.dataset.taCollapsedH; } catch {}
+    }
+
+    const wrap = el.closest?.('.ta-container');
+    if (wrap) {
+      const maxBtn = wrap.querySelector('button[data-ta-action="max"]');
+      const minBtn = wrap.querySelector('button[data-ta-action="min"]');
+      if (maxBtn) maxBtn.disabled = !!expanded;
+      if (minBtn) minBtn.disabled = !expanded;
+    }
   }
 
   function saveActiveTabFromDom() {
@@ -245,6 +289,17 @@ function createTabsManager(opts) {
     tab.modifiedText = document.getElementById('output')?.textContent || '';
     stashDiffDomIntoTab(tab);
     tab.errorText = document.getElementById('error')?.textContent || '';
+
+    // Persist expand/minimize per tab
+    const diffEl = document.getElementById('diff');
+    const modelEl = document.getElementById('model');
+    const outEl = document.getElementById('output');
+    tab.diffTaExpanded = _getTaExpanded(diffEl);
+    tab.diffTaCollapsedH = diffEl?.dataset?.taCollapsedH || '';
+    tab.modelTaExpanded = _getTaExpanded(modelEl);
+    tab.modelTaCollapsedH = modelEl?.dataset?.taCollapsedH || '';
+    tab.outputTaExpanded = _getTaExpanded(outEl);
+
     tab.originalFileName = (typeof getOriginalFileName === 'function' ? getOriginalFileName() : tab.originalFileName) || 'file.txt';
     const mainScroll = typeof getMainScrollEl === 'function' ? getMainScrollEl() : null;
     tab.scrollTop = mainScroll ? mainScroll.scrollTop : 0;
@@ -262,6 +317,11 @@ function createTabsManager(opts) {
     const modelEl = document.getElementById('model');
     const outEl = document.getElementById('output');
     const errEl = document.getElementById('error');
+
+    // Restore expand/minimize per tab BEFORE any auto-resize runs
+    _applyTaState(diffEl, (tab.diffTaExpanded || '0') === '1', tab.diffTaCollapsedH || '');
+    _applyTaState(modelEl, (tab.modelTaExpanded || '0') === '1', tab.modelTaCollapsedH || '');
+    _applyTaState(outEl, (tab.outputTaExpanded || '0') === '1', '');
 
     if (diffEl) diffEl.value = tab.diffText || '';
     if (modelEl) modelEl.value = tab.modelText || '';

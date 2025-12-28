@@ -162,6 +162,18 @@ function createI18nManager({
 
   function _byId(id) { return doc ? doc.getElementById(id) : null; }
 
+  function setBtnLabelById(id, keyPath, fallbackText = '') {
+    const el = _byId(id);
+    if (!el) return;
+    const lbl = el.querySelector ? el.querySelector('.btn-label') : null;
+    const next = t(keyPath, fallbackText || (lbl ? lbl.textContent : el.textContent) || '');
+    if (lbl) {
+      lbl.textContent = next;
+    } else {
+      el.textContent = next;
+    }
+  }
+
   function setTextById(id, keyPath, fallbackText = '') {
     const el = _byId(id);
     if (!el) return;
@@ -196,11 +208,11 @@ function createI18nManager({
     setTextById('mainAppTitle', 'app.name', 'AI Diff Tool');
     setAttrById('appIconImg', 'alt', 'app.iconAlt', 'AI Diff Tool icon');
 
-    setTextById('diffPrevBtn', 'nav.prevChange', 'Prev change');
+    setBtnLabelById('diffPrevBtn', 'nav.prevChange', 'Prev change');
     setAttrById('diffPrevBtn', 'title', 'nav.prevChangeTitle', 'Previous change');
-    setTextById('diffNextBtn', 'nav.nextChange', 'Next change');
+    setBtnLabelById('diffNextBtn', 'nav.nextChange', 'Next change');
     setAttrById('diffNextBtn', 'title', 'nav.nextChangeTitle', 'Next change');
-    setTextById('goTopBtn', 'nav.goTop', 'Go to top');
+    setBtnLabelById('goTopBtn', 'nav.goTop', 'Go to top');
 
     // Main labels/buttons
     setTextById('modelSelectLabel', 'model.selectLabel', 'Select Model:');
