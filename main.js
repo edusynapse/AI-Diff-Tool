@@ -338,6 +338,37 @@ ipcMain.handle('app:getSettings', () => {
   return APP_SETTINGS;
 });
 
+// Full "clean reset":
+// - Delete main-process language selection file (ui_language.json)
+// - Reset main process language to EN and theme to light (best-effort)
+ipcMain.handle('app:cleanReset', async () => {
+  // Remove persisted language file (if any)
+  try {
+    if (langSettingsPath && fs.existsSync(langSettingsPath)) {
+      await fsp.unlink(langSettingsPath);
+    }
+  } catch {
+    // ignore
+  }
+
+  // Reset main-process state to defaults
+  try { currentLang = LANG_FALLBACK; } catch {}
+  try { isDark = false; } catch {}
+
+  // Rebuild menu so labels + dark checkbox reset
+  try { createAppMenu(); } catch {}
+
+  // Tell renderer to switch to light (renderer will also clear localStorage + reload)
+  try {
+    const win = BrowserWindow.getFocusedWindow() || BrowserWindow.getAllWindows()[0];
+    if (win && !win.isDestroyed()) {
+      win.webContents.send('theme:set', 'light');
+    }
+  } catch {}
+
+  return { ok: true };
+});
+
 ipcMain.handle('about:getInfo', () => {
   return {
     appName: app.getName(),
@@ -422,6 +453,25 @@ function createAppMenu() {
             const win = BrowserWindow.getFocusedWindow() || BrowserWindow.getAllWindows()[0];
             if (win && !win.isDestroyed()) {
               win.webContents.send('apikey:open', { provider: 'openai' });
+            }
+          }
+        },
+        { type: 'separator' },
+        {
+          label: tMenu('menu.file.pinChange', 'PIN Change…'),
+          click: () => {
+            const win = BrowserWindow.getFocusedWindow() || BrowserWindow.getAllWindows()[0];
+            if (win && !win.isDestroyed()) {
+              win.webContents.send('pinchange:open');
+            }
+          }
+        },
+        {
+          label: tMenu('menu.file.cleanReset', 'Clean and Reset…'),
+          click: () => {
+            const win = BrowserWindow.getFocusedWindow() || BrowserWindow.getAllWindows()[0];
+            if (win && !win.isDestroyed()) {
+              win.webContents.send('cleanreset:open');
             }
           }
         },
@@ -530,28 +580,6 @@ function createAppMenu() {
         { role: 'togglefullscreen', label: tMenu('menu.view.fullscreen', 'Toggle Full Screen') }
       ]
     },
-
-    // Window
-    ...(isMac
-      ? [
-          {
-            label: tMenu('menu.window.title', 'Window'),
-            submenu: [
-              { role: 'minimize', label: tMenu('menu.window.minimize', 'Minimize') },
-              { role: 'zoom', label: tMenu('menu.window.zoom', 'Zoom') },
-              { type: 'separator' },
-              { role: 'front', label: tMenu('menu.window.front', 'Bring All to Front') },
-              { type: 'separator' },
-              { role: 'window', label: tMenu('menu.window.window', 'Window') }
-            ]
-          }
-        ]
-      : [
-          {
-            label: tMenu('menu.window.title', 'Window'),
-            submenu: [{ role: 'minimize', label: tMenu('menu.window.minimize', 'Minimize') }, { role: 'close', label: tMenu('menu.window.close', 'Close') }]
-          }
-        ]),
 
     // Help
     {

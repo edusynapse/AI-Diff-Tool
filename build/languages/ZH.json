@@ -37,7 +37,7 @@
         "prevChangeTitle": "上一个变更",
         "nextChangeTitle": "下一个变更",
         "goTop": "返回顶部",
-        "goToOutputDiff": "输出差异" 
+        "goToOutputDiff": "输出差异"
     },
     "model": {
         "selectLabel": "选择模型："
@@ -206,7 +206,9 @@
             "xaiKey": "xAI API Key…",
             "openaiKey": "OpenAI API Key…",
             "close": "关闭",
-            "quit": "退出"
+            "quit": "退出",
+            "pinChange": "PIN 更改…",
+            "cleanReset": "清理并重置…"
         },
         "edit": {
             "title": "编辑",
@@ -256,5 +258,28 @@
             "unhide": "全部显示",
             "quit": "退出"
         }
+    },
+    "pinChange": {
+        "title": "PIN 更改",
+        "intro": "输入您的当前 PIN 并选择一个新的 6 位 PIN。您的保存的 API 密钥将使用新 PIN 在本地重新加密。",
+        "oldPinLabel": "旧 PIN (6 位数)",
+        "newPinLabel": "新 PIN (6 位数)",
+        "confirmPinLabel": "确认新 PIN",
+        "apply": "更改 PIN",
+        "cancel": "取消",
+        "noKeys": "未找到要重新加密的保存的 API 密钥。",
+        "pinInvalid": "请输入 6 位数字。",
+        "pinsDontMatch": "新 PIN 和确认不匹配。",
+        "decryptFailed": "旧 PIN 不正确（或存储的数据已损坏）。",
+        "reencryptFailed": "重新加密并保存密钥失败。",
+        "success": "PIN 已更新。保存的密钥已重新加密。"
+    },
+    "cleanReset": {
+        "title": "清理并重置",
+        "bodyHtml": "这将 <b>删除所有本地应用数据</b>（API 密钥、历史记录、提示、标签页和设置）。您需要重新设置应用。",
+        "confirm": "是的，重置一切",
+        "cancel": "取消",
+        "inProgress": "正在重置…",
+        "failed": "重置失败。请重试。"
     }
 }

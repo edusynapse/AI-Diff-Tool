@@ -206,7 +206,9 @@
             "xaiKey": "xAI API 키…",
             "openaiKey": "OpenAI API 키…",
             "close": "닫기",
-            "quit": "종료"
+            "quit": "종료",
+            "pinChange": "PIN 변경…",
+            "cleanReset": "지우기 및 재설정…"
         },
         "edit": {
             "title": "편집",
@@ -256,5 +258,28 @@
             "unhide": "모두 보이기",
             "quit": "종료"
         }
+    },
+    "pinChange": {
+        "title": "PIN 변경",
+        "intro": "현재 PIN을 입력하고 새로운 6자리 PIN을 선택하세요. 저장된 API 키는 새 PIN을 사용하여 로컬에서 다시 암호화됩니다.",
+        "oldPinLabel": "기존 PIN (6자리)",
+        "newPinLabel": "새 PIN (6자리)",
+        "confirmPinLabel": "새 PIN 확인",
+        "apply": "PIN 변경",
+        "cancel": "취소",
+        "noKeys": "다시 암호화할 저장된 API 키를 찾을 수 없습니다.",
+        "pinInvalid": "6자리를 입력하세요.",
+        "pinsDontMatch": "새 PIN과 확인이 일치하지 않습니다.",
+        "decryptFailed": "기존 PIN이 올바르지 않습니다 (또는 저장된 데이터가 손상되었습니다).",
+        "reencryptFailed": "키를 다시 암호화하고 저장하는 데 실패했습니다.",
+        "success": "PIN이 업데이트되었습니다. 저장된 키가 다시 암호화되었습니다."
+    },
+    "cleanReset": {
+        "title": "초기화 및 재설정",
+        "bodyHtml": "이 작업은 <b>모든 로컬 앱 데이터</b> (API 키, 히스토리, 프롬프트, 탭 및 설정)를 제거합니다. 앱을 다시 설정해야 합니다.",
+        "confirm": "예, 모든 것 초기화",
+        "cancel": "취소",
+        "inProgress": "초기화 중…",
+        "failed": "초기화 실패. 다시 시도해 주세요."
     }
 }

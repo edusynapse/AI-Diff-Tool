@@ -206,7 +206,9 @@
             "xaiKey": "Clé API xAI…",
             "openaiKey": "Clé API OpenAI…",
             "close": "Fermer",
-            "quit": "Quitter"
+            "quit": "Quitter",
+            "pinChange": "Changement de PIN…",
+            "cleanReset": "Nettoyer et réinitialiser…"
         },
         "edit": {
             "title": "Édition",
@@ -256,5 +258,28 @@
             "unhide": "Afficher tout",
             "quit": "Quitter"
         }
+    },
+    "pinChange": {
+        "title": "Changement de PIN",
+        "intro": "Entrez votre PIN actuel et choisissez un nouveau PIN à 6 chiffres. Vos clés API sauvegardées seront re-chiffrées localement avec le nouveau PIN.",
+        "oldPinLabel": "Ancien PIN (6 chiffres)",
+        "newPinLabel": "Nouveau PIN (6 chiffres)",
+        "confirmPinLabel": "Confirmer le nouveau PIN",
+        "apply": "Changer le PIN",
+        "cancel": "Annuler",
+        "noKeys": "Aucune clé API sauvegardée trouvée à re-chiffrer.",
+        "pinInvalid": "Entrez 6 chiffres.",
+        "pinsDontMatch": "Le nouveau PIN et la confirmation ne correspondent pas.",
+        "decryptFailed": "L'ancien PIN est incorrect (ou les données stockées sont corrompues).",
+        "reencryptFailed": "Échec du re-chiffrement et de la sauvegarde des clés.",
+        "success": "PIN mis à jour. Les clés sauvegardées ont été re-chiffrées."
+    },
+    "cleanReset": {
+        "title": "Nettoyer et réinitialiser",
+        "bodyHtml": "Cela <b>supprimera toutes les données locales de l'application</b> (clés API, historique, prompts, onglets et paramètres). Vous devrez configurer l'application à nouveau.",
+        "confirm": "Oui, réinitialiser tout",
+        "cancel": "Annuler",
+        "inProgress": "Réinitialisation en cours…",
+        "failed": "Échec de la réinitialisation. Veuillez réessayer."
     }
 }

@@ -393,6 +393,88 @@
       </div>
     </div>
   </div>
+
+  <!-- PIN Change overlay (opened from File → PIN Change…) -->
+  <div id="pinChangeOverlay" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="pinChangeTitle">
+    <div class="modal-content modal-sm" role="document">
+      <div class="modal-header">
+        <h2 id="pinChangeTitle">PIN Change</h2>
+        <button id="pinChangeCloseBtn" class="modal-close" aria-label="Close pin change">×</button>
+      </div>
+
+      <div class="modal-body">
+        <p id="pinChangeIntro" class="modal-hint">
+          Enter your current PIN and choose a new 6-digit PIN. Your saved keys will be re-encrypted locally.
+        </p>
+
+        <label id="pinChangeOldPinLabel">Old PIN (6 digits)</label>
+        <div id="pinChangeOldPinBoxes" class="pin-boxes" role="group" aria-labelledby="pinChangeOldPinLabel">
+          <input class="pin-box" type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="1" aria-label="Old PIN digit 1" autocomplete="one-time-code">
+          <input class="pin-box" type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="1" aria-label="Old PIN digit 2" autocomplete="one-time-code">
+          <input class="pin-box" type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="1" aria-label="Old PIN digit 3" autocomplete="one-time-code">
+          <input class="pin-box" type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="1" aria-label="Old PIN digit 4" autocomplete="one-time-code">
+          <input class="pin-box" type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="1" aria-label="Old PIN digit 5" autocomplete="one-time-code">
+          <input class="pin-box" type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="1" aria-label="Old PIN digit 6" autocomplete="one-time-code">
+        </div>
+        <!-- hidden aggregator (JS keeps this in sync with the 6 boxes) -->
+        <input type="hidden" id="pinChangeOldPin" inputmode="numeric" maxlength="6" autocomplete="off">
+
+        <label id="pinChangeNewPinLabel" style="margin-top: 10px;">New PIN (6 digits)</label>
+        <div id="pinChangeNewPinBoxes" class="pin-boxes" role="group" aria-labelledby="pinChangeNewPinLabel">
+          <input class="pin-box" type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="1" aria-label="New PIN digit 1" autocomplete="one-time-code">
+          <input class="pin-box" type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="1" aria-label="New PIN digit 2" autocomplete="one-time-code">
+          <input class="pin-box" type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="1" aria-label="New PIN digit 3" autocomplete="one-time-code">
+          <input class="pin-box" type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="1" aria-label="New PIN digit 4" autocomplete="one-time-code">
+          <input class="pin-box" type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="1" aria-label="New PIN digit 5" autocomplete="one-time-code">
+          <input class="pin-box" type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="1" aria-label="New PIN digit 6" autocomplete="one-time-code">
+        </div>
+        <!-- hidden aggregator -->
+        <input type="hidden" id="pinChangeNewPin" inputmode="numeric" maxlength="6" autocomplete="off">
+
+        <label id="pinChangeConfirmPinLabel" style="margin-top: 10px;">Confirm new PIN</label>
+        <div id="pinChangeConfirmPinBoxes" class="pin-boxes" role="group" aria-labelledby="pinChangeConfirmPinLabel">
+          <input class="pin-box" type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="1" aria-label="Confirm PIN digit 1" autocomplete="one-time-code">
+          <input class="pin-box" type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="1" aria-label="Confirm PIN digit 2" autocomplete="one-time-code">
+          <input class="pin-box" type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="1" aria-label="Confirm PIN digit 3" autocomplete="one-time-code">
+          <input class="pin-box" type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="1" aria-label="Confirm PIN digit 4" autocomplete="one-time-code">
+          <input class="pin-box" type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="1" aria-label="Confirm PIN digit 5" autocomplete="one-time-code">
+          <input class="pin-box" type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="1" aria-label="Confirm PIN digit 6" autocomplete="one-time-code">
+        </div>
+        <!-- hidden aggregator -->
+        <input type="hidden" id="pinChangeConfirmPin" inputmode="numeric" maxlength="6" autocomplete="off">
+
+         <div id="pinChangeHint" class="modal-hint"></div>
+       </div>
+
+       <div class="modal-footer">
+         <button id="pinChangeApplyBtn" class="modal-ok" type="button">Change PIN</button>
+         <button id="pinChangeCancelBtn" class="modal-ok" type="button">Cancel</button>
+       </div>
+     </div>
+   </div>
+
+  <!-- Clean and Reset overlay (opened from File → Clean and Reset…) -->
+  <div id="cleanResetOverlay" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="cleanResetTitle">
+    <div class="modal-content modal-sm" role="document">
+      <div class="modal-header">
+        <h2 id="cleanResetTitle">Clean and Reset</h2>
+        <button id="cleanResetCloseBtn" class="modal-close" aria-label="Close clean reset">×</button>
+      </div>
+
+      <div class="modal-body">
+        <p id="cleanResetBody" class="modal-hint">
+          This will remove all local app data (API keys, history, prompts, tabs, and settings).
+        </p>
+        <div id="cleanResetHint" class="modal-hint"></div>
+      </div>
+
+      <div class="modal-footer">
+        <button id="cleanResetConfirmBtn" class="modal-ok" type="button">Yes, reset everything</button>
+        <button id="cleanResetCancelBtn" class="modal-ok" type="button">Cancel</button>
+      </div>
+    </div>
+  </div>
+
 <!-- Tab Rename overlay -->
 <div id="tabRenameOverlay" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="tabRenameTitle">
   <div class="modal-content modal-sm" role="document">

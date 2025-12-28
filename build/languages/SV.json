@@ -206,7 +206,9 @@
             "xaiKey": "xAI API-nyckel…",
             "openaiKey": "OpenAI API-nyckel…",
             "close": "Stäng",
-            "quit": "Avsluta"
+            "quit": "Avsluta",
+            "pinChange": "Ändra PIN…",
+            "cleanReset": "Rensa och återställ…"
         },
         "edit": {
             "title": "Redigera",
@@ -256,5 +258,28 @@
             "unhide": "Visa alla",
             "quit": "Avsluta"
         }
+    },
+    "pinChange": {
+        "title": "PIN-ändring",
+        "intro": "Ange din nuvarande PIN och välj en ny 6-siffrig PIN. Dina sparade API-nycklar kommer att krypteras om lokalt med den nya PIN-koden.",
+        "oldPinLabel": "Gammal PIN (6 siffror)",
+        "newPinLabel": "Ny PIN (6 siffror)",
+        "confirmPinLabel": "Bekräfta ny PIN",
+        "apply": "Ändra PIN",
+        "cancel": "Avbryt",
+        "noKeys": "Inga sparade API-nycklar hittades att kryptera om.",
+        "pinInvalid": "Ange 6 siffror.",
+        "pinsDontMatch": "Ny PIN och bekräftelse stämmer inte överens.",
+        "decryptFailed": "Gammal PIN är felaktig (eller lagrad data är korrupt).",
+        "reencryptFailed": "Misslyckades med att kryptera om och spara nycklar.",
+        "success": "PIN uppdaterad. Sparade nycklar har krypterats om."
+    },
+    "cleanReset": {
+        "title": "Rensa och återställ",
+        "bodyHtml": "Detta kommer att <b>ta bort all lokal appdata</b> (API-nycklar, historik, prompts, flikar och inställningar). Du kommer att behöva ställa in appen igen.",
+        "confirm": "Ja, återställ allt",
+        "cancel": "Avbryt",
+        "inProgress": "Återställer…",
+        "failed": "Återställning misslyckades. Försök igen."
     }
 }

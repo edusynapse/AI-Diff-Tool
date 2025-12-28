@@ -206,7 +206,9 @@
             "xaiKey": "xAI API Key…",
             "openaiKey": "OpenAI API Key…",
             "close": "Schließen",
-            "quit": "Beenden"
+            "quit": "Beenden",
+            "pinChange": "PIN ändern…",
+            "cleanReset": "Bereinigen und zurücksetzen…"
         },
         "edit": {
             "title": "Bearbeiten",
@@ -256,5 +258,28 @@
             "unhide": "Einblenden",
             "quit": "Beenden"
         }
+    },
+    "pinChange": {
+        "title": "PIN-Änderung",
+        "intro": "Geben Sie Ihre aktuelle PIN ein und wählen Sie eine neue 6-stellige PIN. Ihre gespeicherten API-Schlüssel werden lokal mit der neuen PIN neu verschlüsselt.",
+        "oldPinLabel": "Alte PIN (6 Ziffern)",
+        "newPinLabel": "Neue PIN (6 Ziffern)",
+        "confirmPinLabel": "Neue PIN bestätigen",
+        "apply": "PIN ändern",
+        "cancel": "Abbrechen",
+        "noKeys": "Keine gespeicherten API-Schlüssel zum Neuverschlüsseln gefunden.",
+        "pinInvalid": "Geben Sie 6 Ziffern ein.",
+        "pinsDontMatch": "Neue PIN und Bestätigung stimmen nicht überein.",
+        "decryptFailed": "Alte PIN ist falsch (oder gespeicherte Daten sind beschädigt).",
+        "reencryptFailed": "Fehler beim Neuverschlüsseln und Speichern der Schlüssel.",
+        "success": "PIN aktualisiert. Gespeicherte Schlüssel wurden neu verschlüsselt."
+    },
+    "cleanReset": {
+        "title": "Bereinigen und Zurücksetzen",
+        "bodyHtml": "Dies wird <b>alle lokalen App-Daten entfernen</b> (API-Schlüssel, Verlauf, Prompts, Tabs und Einstellungen). Sie müssen die App erneut einrichten.",
+        "confirm": "Ja, alles zurücksetzen",
+        "cancel": "Abbrechen",
+        "inProgress": "Wird zurückgesetzt…",
+        "failed": "Zurücksetzen fehlgeschlagen. Bitte versuchen Sie es erneut."
     }
 }

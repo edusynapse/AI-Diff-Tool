@@ -23,6 +23,8 @@ function closeAllModalsForLanguageChange() {
   try { closeTabRenameModal(); } catch {}
   try { closeTabCloseModal(); } catch {}
   try { closeLanguageModal({ force: true }); } catch {}
+  try { closePinChangeModal({ force: true }); } catch {}
+  try { closeCleanResetModal({ force: true }); } catch {}
 
   try {
     const api = initApiKeysManagerOnce();
@@ -223,12 +225,375 @@ function refreshUiAfterLanguageChange() {
   try { applyI18nToGoOutputDiffButton(); } catch {}
   try { scheduleCopyOutputTopButtonUpdate(); } catch {}
   try { scheduleGoOutputDiffButtonUpdate(); } catch {}
+  try { applyI18nToPinChangeModal(); } catch {}
+  try { applyI18nToCleanResetModal(); } catch {}
 }
 
-const MAX_RETRIES = 3;
-const MAX_FILE_SIZE_MB = 5;  // Warn if larger; adjust based on API limits
-let originalFileName = 'file.txt';  // Default for pasted content
-let isApiKeyEditable = true;
+// -------------------------
+ // PIN Change + Clean Reset modals
+ // -------------------------
+ const PIN_CHANGE_LEN = 6;
+
+ function _pinBoxesIn(wrapId) {
+   const wrap = document.getElementById(wrapId);
+   if (!wrap) return [];
+   return Array.from(wrap.querySelectorAll('input.pin-box'));
+ }
+
+ function _focusPinBoxIn(wrapId, idx) {
+   const boxes = _pinBoxesIn(wrapId);
+   const el = boxes[idx];
+   if (!el) return;
+   el.focus();
+   try { el.setSelectionRange(0, el.value.length); } catch {}
+ }
+
+ function _readPinFromBoxes(wrapId) {
+   const boxes = _pinBoxesIn(wrapId);
+   return boxes.map(b => (b.value || '').replace(/\D/g, '')).join('').slice(0, PIN_CHANGE_LEN);
+ }
+
+ function _syncHiddenPin(hiddenId, pin) {
+   const hidden = document.getElementById(hiddenId);
+   if (hidden) hidden.value = String(pin || '').slice(0, PIN_CHANGE_LEN);
+ }
+
+ function _clearPinBoxesIn(wrapId, hiddenId, focusIndex = 0) {
+   const boxes = _pinBoxesIn(wrapId);
+   boxes.forEach(b => { b.value = ''; });
+   _syncHiddenPin(hiddenId, '');
+   if (boxes.length) _focusPinBoxIn(wrapId, Math.min(Math.max(focusIndex, 0), boxes.length - 1));
+ }
+
+ function _setPinBoxesFromString(wrapId, hiddenId, pin) {
+   const clean = String(pin || '').replace(/\D/g, '').slice(0, PIN_CHANGE_LEN);
+   const boxes = _pinBoxesIn(wrapId);
+   for (let i = 0; i < boxes.length; i++) boxes[i].value = clean[i] || '';
+   _syncHiddenPin(hiddenId, clean);
+   const nextIdx = Math.min(clean.length, boxes.length - 1);
+   if (boxes.length) _focusPinBoxIn(wrapId, nextIdx);
+ }
+
+ function _wireSixDigitBoxes({ wrapId, hiddenId, onComplete } = {}) {
+   const wrap = document.getElementById(wrapId);
+   if (!wrap) return;
+   if (wrap.dataset.wired === '1') return;
+   wrap.dataset.wired = '1';
+
+   const boxes = _pinBoxesIn(wrapId);
+   if (!boxes.length) return;
+
+   const sync = () => {
+     const v = _readPinFromBoxes(wrapId);
+     _syncHiddenPin(hiddenId, v);
+     return v;
+   };
+
+   boxes.forEach((box, idx) => {
+     box.addEventListener('input', () => {
+       const digits = (box.value || '').replace(/\D/g, '');
+
+       if (digits.length <= 1) {
+         box.value = digits;
+         const v = sync();
+         if (digits && idx < boxes.length - 1) _focusPinBoxIn(wrapId, idx + 1);
+         if (v.length === PIN_CHANGE_LEN) { try { onComplete?.(); } catch {} }
+         return;
+       }
+
+       // spread pasted/fast-typed digits across remaining boxes
+       const spread = digits.split('').slice(0, boxes.length - idx);
+       spread.forEach((ch, j) => { boxes[idx + j].value = ch; });
+       const v = sync();
+       const next = Math.min(idx + spread.length, boxes.length - 1);
+       _focusPinBoxIn(wrapId, next);
+       if (v.length === PIN_CHANGE_LEN) { try { onComplete?.(); } catch {} }
+     });
+
+     box.addEventListener('keydown', (e) => {
+       const key = e.key;
+
+       if (key === 'Enter') {
+         // let Enter behave like "Apply" anywhere in this modal
+         e.preventDefault();
+         void _doPinChange();
+         return;
+       }
+
+       if (key === 'Backspace') {
+         e.preventDefault();
+         if (box.value) {
+           box.value = '';
+           sync();
+           return;
+         }
+         if (idx > 0) {
+           boxes[idx - 1].value = '';
+           sync();
+           _focusPinBoxIn(wrapId, idx - 1);
+         }
+         return;
+       }
+
+       if (key === 'ArrowLeft') {
+         e.preventDefault();
+         if (idx > 0) _focusPinBoxIn(wrapId, idx - 1);
+         return;
+       }
+
+       if (key === 'ArrowRight') {
+         e.preventDefault();
+         if (idx < boxes.length - 1) _focusPinBoxIn(wrapId, idx + 1);
+         return;
+       }
+
+       if (key.length === 1 && !/\d/.test(key)) e.preventDefault();
+     });
+
+     box.addEventListener('paste', (e) => {
+       const txt = (e.clipboardData?.getData('text') || '').trim();
+       const clean = txt.replace(/\D/g, '');
+       if (!clean) return;
+       e.preventDefault();
+       _setPinBoxesFromString(wrapId, hiddenId, clean);
+       const v = sync();
+       if (v.length === PIN_CHANGE_LEN) { try { onComplete?.(); } catch {} }
+     });
+   });
+ }
+
+ function _isOverlayOpen(id) {
+   const el = document.getElementById(id);
+   return !!(el && !el.classList.contains('hidden'));
+ }
+
+ function _syncBodyModalOpen() {
+   const anyOpen = [
+     'helpOverlay',
+     'apiKeyOverlay',
+     'keyTypeOverlay',
+     'tabRenameOverlay',
+     'tabCloseOverlay',
+     'sysPromptOverlay',
+     'aboutOverlay',
+     'historyOverlay',
+     'languageOverlay',
+     'pinChangeOverlay',
+     'cleanResetOverlay'
+   ].some(_isOverlayOpen);
+   document.body.classList.toggle('modal-open', anyOpen);
+ }
+
+ function applyI18nToPinChangeModal() {
+   const title = document.getElementById('pinChangeTitle');
+   const intro = document.getElementById('pinChangeIntro');
+   const oldLbl = document.getElementById('pinChangeOldPinLabel');
+   const newLbl = document.getElementById('pinChangeNewPinLabel');
+   const cfmLbl = document.getElementById('pinChangeConfirmPinLabel');
+   const okBtn = document.getElementById('pinChangeApplyBtn');
+   const cancelBtn = document.getElementById('pinChangeCancelBtn');
+
+   if (title) title.textContent = t('pinChange.title', 'PIN Change');
+   if (intro) intro.textContent = t('pinChange.intro', 'Enter your current PIN and choose a new 6-digit PIN. Your saved API keys will be re-encrypted locally using the new PIN.');
+   if (oldLbl) oldLbl.textContent = t('pinChange.oldPinLabel', 'Old PIN (6 digits)');
+   if (newLbl) newLbl.textContent = t('pinChange.newPinLabel', 'New PIN (6 digits)');
+   if (cfmLbl) cfmLbl.textContent = t('pinChange.confirmPinLabel', 'Confirm new PIN');
+   if (okBtn) okBtn.textContent = t('pinChange.apply', 'Change PIN');
+   if (cancelBtn) cancelBtn.textContent = t('pinChange.cancel', 'Cancel');
+ }
+
+ function applyI18nToCleanResetModal() {
+   const title = document.getElementById('cleanResetTitle');
+   const body = document.getElementById('cleanResetBody');
+   const okBtn = document.getElementById('cleanResetConfirmBtn');
+   const cancelBtn = document.getElementById('cleanResetCancelBtn');
+
+   if (title) title.textContent = t('cleanReset.title', 'Clean and Reset');
+   if (body) body.innerHTML = t('cleanReset.bodyHtml', 'This will <b>remove all local app data</b> (API keys, history, prompts, tabs, and settings). You will need to set up the app again.');
+   if (okBtn) okBtn.textContent = t('cleanReset.confirm', 'Yes, reset everything');
+   if (cancelBtn) cancelBtn.textContent = t('cleanReset.cancel', 'Cancel');
+ }
+
+ function openPinChangeModal() {
+   const overlay = document.getElementById('pinChangeOverlay');
+   if (!overlay) return;
+   applyI18nToPinChangeModal();
+
+   const hint = document.getElementById('pinChangeHint');
+   _clearPinBoxesIn('pinChangeOldPinBoxes', 'pinChangeOldPin', 0);
+   _clearPinBoxesIn('pinChangeNewPinBoxes', 'pinChangeNewPin', 0);
+   _clearPinBoxesIn('pinChangeConfirmPinBoxes', 'pinChangeConfirmPin', 0);
+
+   overlay.classList.remove('hidden');
+   _syncBodyModalOpen();
+   setTimeout(() => { try { _focusPinBoxIn('pinChangeOldPinBoxes', 0); } catch {} }, 0);
+ }
+
+ function closePinChangeModal({ force = false } = {}) {
+   const overlay = document.getElementById('pinChangeOverlay');
+   if (!overlay) return;
+   overlay.classList.add('hidden');
+   _syncBodyModalOpen();
+ }
+
+ async function _doPinChange() {
+   const hint = document.getElementById('pinChangeHint');
+   const oldPin = _readPinFromBoxes('pinChangeOldPinBoxes');
+   const newPin = _readPinFromBoxes('pinChangeNewPinBoxes');
+   const cfmPin = _readPinFromBoxes('pinChangeConfirmPinBoxes');
+
+   if (hint) hint.textContent = '';
+
+   const isValid = (p) => /^\d{6}$/.test(String(p || '').trim());
+   if (!isValid(oldPin) || !isValid(newPin) || !isValid(cfmPin)) {
+     if (hint) hint.textContent = t('pinChange.pinInvalid', 'Enter 6 digits.');
+     return;
+   }
+   if (newPin !== cfmPin) {
+     if (hint) hint.textContent = t('pinChange.pinsDontMatch', 'New PIN and confirmation do not match.');
+     return;
+   }
+
+   const api = initApiKeysManagerOnce();
+   if (!api?.hasAnyEncryptedApiKey?.() ) {
+     if (hint) hint.textContent = t('pinChange.noKeys', 'No saved API keys found to re-encrypt.');
+     return;
+   }
+
+   const res = await api.changePin({ oldPin, newPin });
+   if (!res?.ok) {
+     const reason = String(res?.reason || '');
+     if (reason === 'no_keys') {
+       if (hint) hint.textContent = t('pinChange.noKeys', 'No saved API keys found to re-encrypt.');
+     } else if (reason === 'decrypt_failed') {
+       if (hint) hint.textContent = t('pinChange.decryptFailed', 'Old PIN is incorrect (or stored data is corrupted).');
+     } else if (reason === 'reencrypt_failed') {
+       if (hint) hint.textContent = t('pinChange.reencryptFailed', 'Failed to re-encrypt and save keys.');
+     } else {
+       if (hint) hint.textContent = t('pinChange.reencryptFailed', 'Failed to re-encrypt and save keys.');
+     }
+     return;
+   }
+
+   closePinChangeModal({ force: true });
+ }
+
+ function openCleanResetModal() {
+   const overlay = document.getElementById('cleanResetOverlay');
+   if (!overlay) return;
+   applyI18nToCleanResetModal();
+   const hint = document.getElementById('cleanResetHint');
+   if (hint) hint.textContent = '';
+   overlay.classList.remove('hidden');
+   _syncBodyModalOpen();
+   setTimeout(() => { try { document.getElementById('cleanResetConfirmBtn')?.focus(); } catch {} }, 0);
+ }
+
+ function closeCleanResetModal({ force = false } = {}) {
+   const overlay = document.getElementById('cleanResetOverlay');
+   if (!overlay) return;
+   overlay.classList.add('hidden');
+   _syncBodyModalOpen();
+ }
+
+ async function _doCleanReset() {
+   const hint = document.getElementById('cleanResetHint');
+   const okBtn = document.getElementById('cleanResetConfirmBtn');
+   const cancelBtn = document.getElementById('cleanResetCancelBtn');
+
+   if (hint) hint.textContent = '';
+   if (okBtn) okBtn.disabled = true;
+   if (cancelBtn) cancelBtn.disabled = true;
+   if (hint) hint.textContent = t('cleanReset.inProgress', 'Resetting…');
+
+   try {
+     // 1) Ask main to delete ui_language.json and reset menu/theme
+     try { await ipcRenderer.invoke('app:cleanReset'); } catch {}
+
+     // 2) Clear renderer storage
+     try { localStorage.clear(); } catch {}
+     try { sessionStorage?.clear?.(); } catch {}
+
+     // 3) Reload to a clean boot (language gate will show again)
+     window.location.reload();
+   } catch {
+     if (hint) hint.textContent = t('cleanReset.failed', 'Reset failed. Please try again.');
+     if (okBtn) okBtn.disabled = false;
+     if (cancelBtn) cancelBtn.disabled = false;
+   }
+ }
+
+ let _pinResetWired = false;
+ function wirePinChangeAndResetModalsOnce() {
+   if (_pinResetWired) return;
+   _pinResetWired = true;
+
+   // Menu events from main process
+   try {
+     ipcRenderer.on('pinchange:open', () => openPinChangeModal());
+     ipcRenderer.on('cleanreset:open', () => openCleanResetModal());
+   } catch {}
+
+   // PIN Change modal wiring
+   const pinOverlay = document.getElementById('pinChangeOverlay');
+   const pinClose = document.getElementById('pinChangeCloseBtn');
+   const pinCancel = document.getElementById('pinChangeCancelBtn');
+   const pinApply = document.getElementById('pinChangeApplyBtn');
+   if (pinClose) pinClose.addEventListener('click', () => closePinChangeModal());
+   if (pinCancel) pinCancel.addEventListener('click', () => closePinChangeModal());
+   if (pinApply) pinApply.addEventListener('click', () => { void _doPinChange(); });
+   if (pinOverlay) {
+     pinOverlay.addEventListener('click', (e) => { if (e.target === pinOverlay) closePinChangeModal(); });
+   }
+
+   // Wire the 3x six-box PIN inputs (auto-forward/backspace/paste)
+   _wireSixDigitBoxes({
+     wrapId: 'pinChangeOldPinBoxes',
+     hiddenId: 'pinChangeOldPin',
+     onComplete: () => _focusPinBoxIn('pinChangeNewPinBoxes', 0)
+   });
+   _wireSixDigitBoxes({
+     wrapId: 'pinChangeNewPinBoxes',
+     hiddenId: 'pinChangeNewPin',
+     onComplete: () => _focusPinBoxIn('pinChangeConfirmPinBoxes', 0)
+   });
+   _wireSixDigitBoxes({
+     wrapId: 'pinChangeConfirmPinBoxes',
+     hiddenId: 'pinChangeConfirmPin',
+     onComplete: () => { try { document.getElementById('pinChangeApplyBtn')?.focus?.(); } catch {} }
+   });
+
+   // Clean Reset modal wiring
+   const rsOverlay = document.getElementById('cleanResetOverlay');
+   const rsClose = document.getElementById('cleanResetCloseBtn');
+   const rsCancel = document.getElementById('cleanResetCancelBtn');
+   const rsOk = document.getElementById('cleanResetConfirmBtn');
+   if (rsClose) rsClose.addEventListener('click', () => closeCleanResetModal());
+   if (rsCancel) rsCancel.addEventListener('click', () => closeCleanResetModal());
+   if (rsOk) rsOk.addEventListener('click', () => { void _doCleanReset(); });
+   if (rsOverlay) {
+     rsOverlay.addEventListener('click', (e) => { if (e.target === rsOverlay) closeCleanResetModal(); });
+   }
+
+   // ESC support (only for these two; won’t interfere with others)
+   document.addEventListener('keydown', (e) => {
+     if (e.key !== 'Escape') return;
+     if (_isOverlayOpen('cleanResetOverlay')) { e.preventDefault(); e.stopPropagation(); closeCleanResetModal(); return; }
+     if (_isOverlayOpen('pinChangeOverlay')) { e.preventDefault(); e.stopPropagation(); closePinChangeModal(); return; }
+   }, true);
+ }
+
+ // Ensure wiring happens even if this file is loaded at end of body
+ if (document.readyState === 'loading') {
+   document.addEventListener('DOMContentLoaded', wirePinChangeAndResetModalsOnce, { once: true });
+ } else {
+   wirePinChangeAndResetModalsOnce();
+ }
+
+ const MAX_RETRIES = 3;
+ const MAX_FILE_SIZE_MB = 5;  // Warn if larger; adjust based on API limits
+ let originalFileName = 'file.txt';  // Default for pasted content
+ let isApiKeyEditable = true;
 
 // -------------------------
 // UI Language (i18n) - Renderer (modularized)
@@ -256,6 +621,8 @@ const i18nMgr = createI18nManager({
       'sysPromptOverlay',
       'aboutOverlay',
       'historyOverlay'
+      ,'pinChangeOverlay'
+      ,'cleanResetOverlay'
     ]
   }
 });
@@ -393,6 +760,8 @@ function initHistoryManagerOnce() {
         'aboutOverlay',
         'historyOverlay',
         'languageOverlay'
+        ,'pinChangeOverlay'
+        ,'cleanResetOverlay'
       ]
     }
   });

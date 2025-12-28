@@ -206,7 +206,9 @@
             "xaiKey": "Klucz API xAI…",
             "openaiKey": "Klucz API OpenAI…",
             "close": "Zamknij",
-            "quit": "Zakończ"
+            "quit": "Zakończ",
+            "pinChange": "Zmiana PIN-u…",
+            "cleanReset": "Wyczyść i zresetuj…"
         },
         "edit": {
             "title": "Edycja",
@@ -256,5 +258,28 @@
             "unhide": "Pokaż wszystkie",
             "quit": "Zakończ"
         }
+    },
+    "pinChange": {
+        "title": "Zmiana PIN",
+        "intro": "Wprowadź swój aktualny PIN i wybierz nowy 6-cyfrowy PIN. Twoje zapisane klucze API zostaną ponownie zaszyfrowane lokalnie przy użyciu nowego PIN.",
+        "oldPinLabel": "Stary PIN (6 cyfr)",
+        "newPinLabel": "Nowy PIN (6 cyfr)",
+        "confirmPinLabel": "Potwierdź nowy PIN",
+        "apply": "Zmień PIN",
+        "cancel": "Anuluj",
+        "noKeys": "Nie znaleziono zapisanych kluczy API do ponownego szyfrowania.",
+        "pinInvalid": "Wprowadź 6 cyfr.",
+        "pinsDontMatch": "Nowy PIN i potwierdzenie nie pasują.",
+        "decryptFailed": "Stary PIN jest niepoprawny (lub dane przechowywane są uszkodzone).",
+        "reencryptFailed": "Nie udało się ponownie zaszyfrować i zapisać kluczy.",
+        "success": "PIN zaktualizowany. Zapisane klucze zostały ponownie zaszyfrowane."
+    },
+    "cleanReset": {
+        "title": "Oczyść i zresetuj",
+        "bodyHtml": "To spowoduje <b>usunięcie wszystkich lokalnych danych aplikacji</b> (klucze API, historia, prompty, karty i ustawienia). Będziesz musiał skonfigurować aplikację ponownie.",
+        "confirm": "Tak, zresetuj wszystko",
+        "cancel": "Anuluj",
+        "inProgress": "Resetowanie…",
+        "failed": "Resetowanie nie powiodło się. Spróbuj ponownie."
     }
 }

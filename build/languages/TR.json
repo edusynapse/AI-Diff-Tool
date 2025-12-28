@@ -206,7 +206,9 @@
             "xaiKey": "xAI API Anahtarı…",
             "openaiKey": "OpenAI API Anahtarı…",
             "close": "Kapat",
-            "quit": "Çık"
+            "quit": "Çık",
+            "pinChange": "PIN Değiştir…",
+            "cleanReset": "Temizle ve Sıfırla…"
         },
         "edit": {
             "title": "Düzenle",
@@ -256,5 +258,28 @@
             "unhide": "Tümünü Göster",
             "quit": "Çık"
         }
+    },
+    "pinChange": {
+        "title": "PIN Değişikliği",
+        "intro": "Mevcut PIN'inizi girin ve yeni bir 6 haneli PIN seçin. Kaydedilmiş API anahtarlarınız yeni PIN kullanılarak yerel olarak yeniden şifrelenecek.",
+        "oldPinLabel": "Eski PIN (6 hane)",
+        "newPinLabel": "Yeni PIN (6 hane)",
+        "confirmPinLabel": "Yeni PIN'i Onayla",
+        "apply": "PIN'i Değiştir",
+        "cancel": "İptal",
+        "noKeys": "Yeniden şifrelemek için kaydedilmiş API anahtarı bulunamadı.",
+        "pinInvalid": "6 hane girin.",
+        "pinsDontMatch": "Yeni PIN ve onayı eşleşmiyor.",
+        "decryptFailed": "Eski PIN yanlış (veya depolanan veri bozulmuş).",
+        "reencryptFailed": "Anahtarları yeniden şifreleme ve kaydetme başarısız.",
+        "success": "PIN güncellendi. Kaydedilmiş anahtarlar yeniden şifrelendi."
+    },
+    "cleanReset": {
+        "title": "Temizle ve Sıfırla",
+        "bodyHtml": "Bu, <b>tüm yerel uygulama verilerini silecek</b> (API anahtarları, geçmiş, prompt'lar, sekmeler ve ayarlar). Uygulamayı yeniden kurmanız gerekecek.",
+        "confirm": "Evet, her şeyi sıfırla",
+        "cancel": "İptal",
+        "inProgress": "Sıfırlanıyor…",
+        "failed": "Sıfırlama başarısız oldu. Lütfen tekrar deneyin."
     }
 }

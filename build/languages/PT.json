@@ -206,7 +206,9 @@
             "xaiKey": "Chave API xAI…",
             "openaiKey": "Chave API OpenAI…",
             "close": "Fechar",
-            "quit": "Sair"
+            "quit": "Sair",
+            "pinChange": "Alterar PIN…",
+            "cleanReset": "Limpar e Redefinir…"
         },
         "edit": {
             "title": "Editar",
@@ -256,5 +258,28 @@
             "unhide": "Mostrar Todos",
             "quit": "Sair"
         }
+    },
+    "pinChange": {
+        "title": "Alteração de PIN",
+        "intro": "Digite o seu PIN atual e escolha um novo PIN de 6 dígitos. As suas chaves API guardadas serão re-criptografadas localmente usando o novo PIN.",
+        "oldPinLabel": "PIN Antigo (6 dígitos)",
+        "newPinLabel": "Novo PIN (6 dígitos)",
+        "confirmPinLabel": "Confirmar novo PIN",
+        "apply": "Alterar PIN",
+        "cancel": "Cancelar",
+        "noKeys": "Nenhuma chave API guardada encontrada para re-criptografar.",
+        "pinInvalid": "Digite 6 dígitos.",
+        "pinsDontMatch": "O novo PIN e a confirmação não correspondem.",
+        "decryptFailed": "O PIN antigo está incorreto (ou os dados armazenados estão corrompidos).",
+        "reencryptFailed": "Falha ao re-criptografar e salvar as chaves.",
+        "success": "PIN atualizado. As chaves guardadas foram re-criptografadas."
+    },
+    "cleanReset": {
+        "title": "Limpar e Redefinir",
+        "bodyHtml": "Isso irá <b>remover todos os dados locais do app</b> (chaves de API, histórico, prompts, abas e configurações). Você precisará configurar o app novamente.",
+        "confirm": "Sim, redefinir tudo",
+        "cancel": "Cancelar",
+        "inProgress": "Redefinindo…",
+        "failed": "Redefinição falhou. Por favor, tente novamente."
     }
 }

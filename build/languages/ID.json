@@ -206,7 +206,9 @@
             "xaiKey": "xAI API Key…",
             "openaiKey": "OpenAI API Key…",
             "close": "Tutup",
-            "quit": "Keluar"
+            "quit": "Keluar",
+            "pinChange": "Ubah PIN…",
+            "cleanReset": "Bersihkan dan Atur Ulang…"
         },
         "edit": {
             "title": "Edit",
@@ -256,5 +258,28 @@
             "unhide": "Tampilkan Semua",
             "quit": "Keluar"
         }
+    },
+    "pinChange": {
+        "title": "Perubahan PIN",
+        "intro": "Masukkan PIN saat ini Anda dan pilih PIN baru 6 digit. Kunci API yang disimpan akan dienkripsi ulang secara lokal menggunakan PIN baru.",
+        "oldPinLabel": "PIN Lama (6 digit)",
+        "newPinLabel": "PIN Baru (6 digit)",
+        "confirmPinLabel": "Konfirmasi PIN Baru",
+        "apply": "Ubah PIN",
+        "cancel": "Batal",
+        "noKeys": "Tidak ditemukan kunci API yang disimpan untuk dienkripsi ulang.",
+        "pinInvalid": "Masukkan 6 digit.",
+        "pinsDontMatch": "PIN baru dan konfirmasi tidak cocok.",
+        "decryptFailed": "PIN lama salah (atau data tersimpan rusak).",
+        "reencryptFailed": "Gagal mengenkripsi ulang dan menyimpan kunci.",
+        "success": "PIN diperbarui. Kunci yang disimpan telah dienkripsi ulang."
+    },
+    "cleanReset": {
+        "title": "Bersihkan dan Atur Ulang",
+        "bodyHtml": "Ini akan <b>menghapus semua data aplikasi lokal</b> (kunci API, riwayat, prompt, tab, dan pengaturan). Anda perlu mengatur ulang aplikasi.",
+        "confirm": "Ya, atur ulang semuanya",
+        "cancel": "Batal",
+        "inProgress": "Mengatur ulang…",
+        "failed": "Pengaturan ulang gagal. Silakan coba lagi."
     }
 }

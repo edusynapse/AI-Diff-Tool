@@ -372,6 +372,70 @@ function createApiKeyManager({ t, tFmt, ipcRenderer }) {
   }
 
   // -------------------------
+  // PIN Change (re-encrypt all stored keys with a new PIN)
+  // -------------------------
+  async function changePin({ oldPin, newPin } = {}) {
+    const op = String(oldPin || '').trim();
+    const np = String(newPin || '').trim();
+
+    if (!webCrypto?.subtle) {
+      return { ok: false, reason: 'webcrypto_missing' };
+    }
+    if (!isValidPin(op) || !isValidPin(np)) {
+      return { ok: false, reason: 'pin_invalid' };
+    }
+
+    // Collect decrypted keys first (no partial overwrite)
+    const decrypted = {};
+    let any = false;
+    for (const p of PROVIDERS) {
+      const payload = loadEncryptedPayload(p);
+      if (!payload) continue;
+      try {
+        const dec = await decryptApiKeyWithPin(payload, op);
+        if (dec && dec.trim()) {
+          decrypted[p] = dec.trim();
+          any = true;
+        }
+      } catch {
+        return { ok: false, reason: 'decrypt_failed' };
+      }
+    }
+
+    if (!any) return { ok: false, reason: 'no_keys' };
+
+    // Encrypt + persist
+    try {
+      for (const p of Object.keys(decrypted)) {
+        const payload = await encryptApiKeyWithPin(decrypted[p], np);
+        saveEncryptedPayload(p, payload);
+      }
+
+      // Update session state
+      sessionPin = np;
+      for (const p of Object.keys(decrypted)) {
+        sessionApiKeys[p] = decrypted[p];
+        _emitApiKeysChanged(p);
+      }
+
+      return { ok: true };
+    } catch {
+      return { ok: false, reason: 'reencrypt_failed' };
+    }
+  }
+
+  function clearStoredKeysAndSession() {
+    try {
+      for (const p of PROVIDERS) {
+        localStorage.removeItem(LS[p]?.enc);
+        sessionApiKeys[p] = '';
+        _emitApiKeysChanged(p);
+      }
+      sessionPin = '';
+    } catch {}
+  }
+
+  // -------------------------
   // API key modal UI helpers
   // -------------------------
   function setApiKeyRowLocked(apiInput, editBtn, maskLen) {
@@ -509,8 +573,10 @@ function createApiKeyManager({ t, tFmt, ipcRenderer }) {
     const aboutOpen = !document.getElementById('aboutOverlay')?.classList.contains('hidden');
     const historyOpen = !document.getElementById('historyOverlay')?.classList.contains('hidden');
     const langOpen = !document.getElementById('languageOverlay')?.classList.contains('hidden');
+    const pinOpen = !document.getElementById('pinChangeOverlay')?.classList.contains('hidden');
+    const resetOpen = !document.getElementById('cleanResetOverlay')?.classList.contains('hidden');
 
-    if (!helpOpen && !renameOpen && !apiOpen && !closeOpen && !typeOpen && !sysOpen && !aboutOpen && !historyOpen && !langOpen) {
+    if (!helpOpen && !renameOpen && !apiOpen && !closeOpen && !typeOpen && !sysOpen && !aboutOpen && !historyOpen && !langOpen && !pinOpen && !resetOpen) {
       document.body.classList.remove('modal-open');
     }
 
@@ -665,8 +731,10 @@ function createApiKeyManager({ t, tFmt, ipcRenderer }) {
     const aboutOpen = !document.getElementById('aboutOverlay')?.classList.contains('hidden');
     const historyOpen = !document.getElementById('historyOverlay')?.classList.contains('hidden');
     const langOpen = !document.getElementById('languageOverlay')?.classList.contains('hidden');
+    const pinOpen = !document.getElementById('pinChangeOverlay')?.classList.contains('hidden');
+    const resetOpen = !document.getElementById('cleanResetOverlay')?.classList.contains('hidden');
 
-    if (!helpOpen && !apiOpen && !renameOpen && !closeOpen && !typeOpen && !sysOpen && !aboutOpen && !historyOpen && !langOpen) {
+    if (!helpOpen && !apiOpen && !renameOpen && !closeOpen && !typeOpen && !sysOpen && !aboutOpen && !historyOpen && !langOpen && !pinOpen && !resetOpen) {
       document.body.classList.remove('modal-open');
     }
     keyTypeBlocking = false;
@@ -860,6 +928,10 @@ function createApiKeyManager({ t, tFmt, ipcRenderer }) {
     bootstrapApiKeyFlow,
     ensureKeyOrPrompt,
     openFromMenu,
+
+    // pin + reset helpers
+    changePin,
+    clearStoredKeysAndSession,
 
     // wiring + (optional) escape-close
     wireDomEvents,

@@ -206,7 +206,9 @@
             "xaiKey": "xAI API Key…",
             "openaiKey": "OpenAI API Key…",
             "close": "Sluiten",
-            "quit": "Afsluiten"
+            "quit": "Afsluiten",
+            "pinChange": "PIN wijzigen…",
+            "cleanReset": "Schoonmaken en resetten…"
         },
         "edit": {
             "title": "Bewerken",
@@ -256,5 +258,28 @@
             "unhide": "Toon alles",
             "quit": "Stop"
         }
+    },
+    "pinChange": {
+        "title": "PIN wijzigen",
+        "intro": "Voer uw huidige PIN in en kies een nieuwe 6-cijferige PIN. Uw opgeslagen API-sleutels worden lokaal opnieuw versleuteld met de nieuwe PIN.",
+        "oldPinLabel": "Oude PIN (6 cijfers)",
+        "newPinLabel": "Nieuwe PIN (6 cijfers)",
+        "confirmPinLabel": "Bevestig nieuwe PIN",
+        "apply": "PIN wijzigen",
+        "cancel": "Annuleren",
+        "noKeys": "Geen opgeslagen API-sleutels gevonden om opnieuw te versleutelen.",
+        "pinInvalid": "Voer 6 cijfers in.",
+        "pinsDontMatch": "Nieuwe PIN en bevestiging komen niet overeen.",
+        "decryptFailed": "Oude PIN is onjuist (of opgeslagen gegevens zijn beschadigd).",
+        "reencryptFailed": "Mislukt om sleutels opnieuw te versleutelen en op te slaan.",
+        "success": "PIN bijgewerkt. Opgeslagen sleutels zijn opnieuw versleuteld."
+    },
+    "cleanReset": {
+        "title": "Schoonmaken en Resetten",
+        "bodyHtml": "Dit zal <b>alle lokale app-gegevens verwijderen</b> (API-sleutels, geschiedenis, prompts, tabbladen en instellingen). Je moet de app opnieuw instellen.",
+        "confirm": "Ja, alles resetten",
+        "cancel": "Annuleren",
+        "inProgress": "Resetten…",
+        "failed": "Reset mislukt. Probeer het opnieuw."
     }
 }

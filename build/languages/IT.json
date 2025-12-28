@@ -206,7 +206,9 @@
             "xaiKey": "Chiave API xAI…",
             "openaiKey": "Chiave API OpenAI…",
             "close": "Chiudi",
-            "quit": "Esci"
+            "quit": "Esci",
+            "pinChange": "Cambio PIN…",
+            "cleanReset": "Pulisci e Reimposta…"
         },
         "edit": {
             "title": "Modifica",
@@ -256,5 +258,28 @@
             "unhide": "Mostra Tutti",
             "quit": "Esci"
         }
+    },
+    "pinChange": {
+        "title": "Cambio PIN",
+        "intro": "Inserisci il tuo PIN attuale e scegli un nuovo PIN a 6 cifre. Le tue chiavi API salvate verranno crittografate nuovamente in locale usando il nuovo PIN.",
+        "oldPinLabel": "Vecchio PIN (6 cifre)",
+        "newPinLabel": "Nuovo PIN (6 cifre)",
+        "confirmPinLabel": "Conferma nuovo PIN",
+        "apply": "Cambia PIN",
+        "cancel": "Annulla",
+        "noKeys": "Nessuna chiave API salvata trovata da crittografare nuovamente.",
+        "pinInvalid": "Inserisci 6 cifre.",
+        "pinsDontMatch": "Il nuovo PIN e la conferma non corrispondono.",
+        "decryptFailed": "Il vecchio PIN è incorretto (o i dati memorizzati sono corrotti).",
+        "reencryptFailed": "Impossibile crittografare nuovamente e salvare le chiavi.",
+        "success": "PIN aggiornato. Le chiavi salvate sono state crittografate nuovamente."
+    },
+    "cleanReset": {
+        "title": "Pulisci e Reimposta",
+        "bodyHtml": "Questo <b>rimuoverà tutti i dati locali dell'app</b> (chiavi API, cronologia, prompt, schede e impostazioni). Dovrai configurare nuovamente l'app.",
+        "confirm": "Sì, reimposta tutto",
+        "cancel": "Annulla",
+        "inProgress": "Reimpostazione…",
+        "failed": "Reimpostazione fallita. Riprova."
     }
 }

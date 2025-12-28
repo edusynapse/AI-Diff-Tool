@@ -206,7 +206,9 @@
             "xaiKey": "xAI API Key…",
             "openaiKey": "OpenAI API Key…",
             "close": "Đóng",
-            "quit": "Thoát"
+            "quit": "Thoát",
+            "pinChange": "Thay đổi PIN…",
+            "cleanReset": "Làm sạch và Đặt lại…"
         },
         "edit": {
             "title": "Chỉnh sửa",
@@ -256,5 +258,28 @@
             "unhide": "Hiện tất cả",
             "quit": "Thoát"
         }
+    },
+    "pinChange": {
+        "title": "Thay Đổi PIN",
+        "intro": "Nhập PIN hiện tại của bạn và chọn một PIN mới 6 chữ số. Các khóa API đã lưu sẽ được mã hóa lại cục bộ bằng PIN mới.",
+        "oldPinLabel": "PIN Cũ (6 chữ số)",
+        "newPinLabel": "PIN Mới (6 chữ số)",
+        "confirmPinLabel": "Xác Nhận PIN Mới",
+        "apply": "Thay Đổi PIN",
+        "cancel": "Hủy",
+        "noKeys": "Không tìm thấy khóa API đã lưu để mã hóa lại.",
+        "pinInvalid": "Nhập 6 chữ số.",
+        "pinsDontMatch": "PIN mới và xác nhận không khớp.",
+        "decryptFailed": "PIN cũ không đúng (hoặc dữ liệu lưu trữ bị hỏng).",
+        "reencryptFailed": "Thất bại khi mã hóa lại và lưu khóa.",
+        "success": "PIN đã được cập nhật. Các khóa đã lưu đã được mã hóa lại."
+    },
+    "cleanReset": {
+        "title": "Làm sạch và Đặt lại",
+        "bodyHtml": "Điều này sẽ <b>xóa tất cả dữ liệu ứng dụng cục bộ</b> (khóa API, lịch sử, lời nhắc, tab, và cài đặt). Bạn sẽ cần thiết lập lại ứng dụng.",
+        "confirm": "Có, đặt lại mọi thứ",
+        "cancel": "Hủy",
+        "inProgress": "Đang đặt lại…",
+        "failed": "Đặt lại thất bại. Vui lòng thử lại."
     }
 }

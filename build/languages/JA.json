@@ -37,7 +37,7 @@
         "prevChangeTitle": "前の変更へ移動",
         "nextChangeTitle": "次の変更へ移動",
         "goTop": "トップへ",
-        "goToOutputDiff": "出力差分" 
+        "goToOutputDiff": "出力差分"
     },
     "model": {
         "selectLabel": "モデルを選択:"
@@ -206,7 +206,9 @@
             "xaiKey": "xAI APIキー…",
             "openaiKey": "OpenAI APIキー…",
             "close": "閉じる",
-            "quit": "終了"
+            "quit": "終了",
+            "pinChange": "PIN変更…",
+            "cleanReset": "クリーンリセット…"
         },
         "edit": {
             "title": "編集",
@@ -256,5 +258,28 @@
             "unhide": "すべて表示",
             "quit": "終了"
         }
+    },
+    "pinChange": {
+        "title": "PIN 変更",
+        "intro": "現在のPINを入力し、新しい6桁のPINを選択してください。保存されたAPIキーは新しいPINを使用してローカルで再暗号化されます。",
+        "oldPinLabel": "古いPIN (6桁)",
+        "newPinLabel": "新しいPIN (6桁)",
+        "confirmPinLabel": "新しいPINの確認",
+        "apply": "PINを変更",
+        "cancel": "キャンセル",
+        "noKeys": "再暗号化する保存されたAPIキーが見つかりません。",
+        "pinInvalid": "6桁を入力してください。",
+        "pinsDontMatch": "新しいPINと確認が一致しません。",
+        "decryptFailed": "古いPINが正しくありません (または保存されたデータが破損しています)。",
+        "reencryptFailed": "キーの再暗号化と保存に失敗しました。",
+        "success": "PINが更新されました。保存されたキーが再暗号化されました。"
+    },
+    "cleanReset": {
+        "title": "クリーンとリセット",
+        "bodyHtml": "これにより <b>すべてのローカルアプリデータ</b> (APIキー、履歴、プロンプト、タブ、設定) が削除されます。アプリを再設定する必要があります。",
+        "confirm": "はい、すべてリセット",
+        "cancel": "キャンセル",
+        "inProgress": "リセット中…",
+        "failed": "リセットに失敗しました。もう一度お試しください。"
     }
 }
