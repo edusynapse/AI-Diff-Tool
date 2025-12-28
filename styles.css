@@ -1844,44 +1844,31 @@ body.dark {
   --tab-active-focus: rgba(255, 255, 255, 0.20);
 }
 
-/* Ensure the tab row can host the indicator */
+/* Ensure the tab row can host focus outline */
 #tabsList .tab-item { position: relative; }
 
-/* ACTIVE TAB — background MUST show (defeat hover/other rules) */
-#tabsList .tab-item.active,
-#tabsList .tab-item[aria-selected="true"] {
-  background: var(--tab-active-bg) !important;
-  background-color: var(--tab-active-bg) !important;
-  box-shadow: inset 0 0 0 1px var(--tab-active-border) !important;
-}
+ /* ACTIVE TAB — background MUST show (defeat hover/other rules) */
+ #tabsList .tab-item.active,
+ #tabsList .tab-item[aria-selected="true"] {
+   background: var(--tab-active-bg) !important;
+   background-color: var(--tab-active-bg) !important;
+   box-shadow: none !important; /* active bg already differentiates; avoid jarring outline */
+ }
 
-/* Keep selected background even when hovered */
-#tabsList .tab-item.active:hover,
-#tabsList .tab-item[aria-selected="true"]:hover {
-  background: var(--tab-active-bg) !important;
-  background-color: var(--tab-active-bg) !important;
-}
+ /* Keep selected background even when hovered */
+ #tabsList .tab-item.active:hover,
+ #tabsList .tab-item[aria-selected="true"]:hover {
+   background: var(--tab-active-bg) !important;
+   background-color: var(--tab-active-bg) !important;
+ }
 
-/* Subtle left indicator (NOT a bright contrasting color) */
-#tabsList .tab-item.active::before,
-#tabsList .tab-item[aria-selected="true"]::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 8px;
-  bottom: 8px;
-  width: 2px;
-  border-radius: 2px;
-  background: var(--tab-active-accent);
-  opacity: 0.55;
-  pointer-events: none;
-}
+ /* No extra indicator line — keep the strip calm; active bg is enough. */
 
-/* Keyboard focus */
-#tabsList .tab-item:focus-visible {
-  outline: 2px solid var(--tab-active-focus);
-  outline-offset: 2px;
-}
+ /* Keyboard focus */
+ #tabsList .tab-item:focus-visible {
+   outline: 2px solid var(--tab-active-focus);
+   outline-offset: 2px;
+ }
 /* =========================================================
    Custom file picker: hide native inputs (keep functional)
    ========================================================= */
