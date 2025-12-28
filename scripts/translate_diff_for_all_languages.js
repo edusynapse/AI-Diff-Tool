@@ -11,9 +11,9 @@
  *       HI.json
  *       ES.json
  *       ...
- *       updated.json   (or update.json)  <-- new English updates
  *     scripts/
  *       .env  (gitignored; contains XAI_KEY=...)
+ *       updated.json   (or update.json)  <-- new English updates (kept here so builder doesn't package it)
  *       translate_diff_for_all_languages.js
  *
  * Run:
@@ -133,6 +133,51 @@ function deepMerge(target, source) {
     return out;
   }
   return deepClone(source);
+}
+
+/**
+ * Returns true if `base` contains any key/path that is missing from `updated`.
+ * (i.e. detects deletions in updated relative to base)
+ */
+function hasDeletions(updated, base) {
+  // if base exists but updated is missing => deletion
+  if (base !== undefined && updated === undefined) return true;
+  if (!isPlainObject(base) || !isPlainObject(updated)) return false;
+
+  for (const key of Object.keys(base)) {
+    if (!(key in updated)) return true;
+    if (hasDeletions(updated[key], base[key])) return true;
+  }
+  return false;
+}
+
+/**
+ * Prune `target` to exactly the key-shape of `shape` (recursive).
+ * - Extra keys in target (not in shape) are removed.
+ * - If target is missing a key present in shape, we fall back to shape's value (English),
+ *   to keep JSON complete.
+ */
+function pruneToShape(target, shape) {
+  if (shape === undefined) return undefined;
+
+  // Arrays: keep existing array if present, else fall back to shape
+  if (Array.isArray(shape)) {
+    return Array.isArray(target) ? deepClone(target) : deepClone(shape);
+  }
+
+  // Plain objects: rebuild with only shape keys
+  if (isPlainObject(shape)) {
+    const out = {};
+    const t = isPlainObject(target) ? target : {};
+    for (const k of Object.keys(shape)) {
+      const pruned = pruneToShape(t[k], shape[k]);
+      if (pruned !== undefined) out[k] = pruned;
+    }
+    return out;
+  }
+
+  // Primitives: keep target if defined, else fall back to shape
+  return target !== undefined ? deepClone(target) : deepClone(shape);
 }
 
 /**
@@ -381,15 +426,15 @@ async function main() {
     process.exit(1);
   }
 
-  // updated.json (or update.json) lives alongside EN.json
+  // updated.json (or update.json) lives in scripts/ (so builder doesn't package it)
   const updatedCandidates = ['updated.json', 'update.json'];
   const updatedPath = updatedCandidates
-    .map((f) => path.join(languagesDir, f))
+    .map((f) => path.join(scriptsDir, f))
     .find((p) => fileExists(p));
 
   if (!updatedPath) {
     console.error(
-      `Missing updated.json/update.json in: ${languagesDir}\nExpected one of: ${updatedCandidates.join(', ')}`
+      `Missing updated.json/update.json in: ${scriptsDir}\nExpected one of: ${updatedCandidates.join(', ')}`
     );
     process.exit(1);
   }
@@ -400,12 +445,24 @@ async function main() {
   const sectionDiffs = computeSectionDiffs(updatedEn, baseEn);
   const diffSections = Object.keys(sectionDiffs);
 
-  if (!diffSections.length) {
-    console.log(`No diffs found between ${path.basename(updatedPath)} and EN.json (excluding languageOptions).`);
+  const deletedSomething = hasDeletions(updatedEn, baseEn);
+  const languageOptionsChanged =
+    JSON.stringify(updatedEn.languageOptions) !== JSON.stringify(baseEn.languageOptions);
+
+  const needsWork = diffSections.length > 0 || deletedSomething || languageOptionsChanged;
+
+  if (!needsWork) {
+    console.log(
+      `No additions/changes/deletions found between ${path.basename(updatedPath)} and EN.json.`
+    );
     process.exit(0);
   }
 
-  console.log(`Found diffs in sections: ${diffSections.join(', ')}`);
+  if (diffSections.length) {
+    console.log(`Found diffs in sections: ${diffSections.join(', ')}`);
+  } else {
+    console.log(`No new/changed keys to translate; will only prune/sync keys to match updated EN.`);
+  }
 
   const languages = Object.keys(LANGUAGE_OPTIONS).filter((c) => c !== 'en');
   const perLanguageFailures = [];
@@ -425,45 +482,59 @@ async function main() {
     }
 
     try {
-      for (const sectionName of diffSections) {
-        const diffEnSection = sectionDiffs[sectionName];
+      // 1) Translate only diffs (if any)
+      if (diffSections.length) {
+        for (const sectionName of diffSections) {
+          const diffEnSection = sectionDiffs[sectionName];
 
-        // Provide only relevant existing translations as reference
-        const existingSection = targetJson[sectionName];
-        const existingForDiff = pickByShape(existingSection, diffEnSection);
+          // Provide only relevant existing translations as reference
+          const existingSection = targetJson[sectionName];
+          const existingForDiff = pickByShape(existingSection, diffEnSection);
 
-        // Chunk if needed
-        const chunks = splitObjectByTopKeys(diffEnSection, CHUNK_CHAR_LIMIT);
+          // Chunk if needed
+          const chunks = splitObjectByTopKeys(diffEnSection, CHUNK_CHAR_LIMIT);
 
-        for (let i = 0; i < chunks.length; i++) {
-          const chunk = chunks[i];
-          const existingForChunk = pickByShape(existingSection, chunk);
+          for (let i = 0; i < chunks.length; i++) {
+            const chunk = chunks[i];
+            const existingForChunk = pickByShape(existingSection, chunk);
 
-          console.log(
-            `  • Translating section "${sectionName}"${chunks.length > 1 ? ` (chunk ${i + 1}/${chunks.length})` : ''}…`
-          );
+            console.log(
+              `  • Translating section "${sectionName}"${
+                chunks.length > 1 ? ` (chunk ${i + 1}/${chunks.length})` : ''
+              }…`
+            );
 
-          const prompt = buildSectionPrompt({
-            targetLangCode: langCode,
-            targetLangName: langName,
-            sectionName,
-            diffEn: chunk,
-            existingTargetForDiff: existingForChunk || {},
-          });
+            const prompt = buildSectionPrompt({
+              targetLangCode: langCode,
+              targetLangName: langName,
+              sectionName,
+              diffEn: chunk,
+              existingTargetForDiff: existingForChunk || {},
+            });
 
-          const raw = await xaiChatCompletionWithRetry({
-            apiKey,
-            prompt,
-            model: XAI_MODEL,
-            retries: 4,
-          });
+            const raw = await xaiChatCompletionWithRetry({
+              apiKey,
+              prompt,
+              model: XAI_MODEL,
+              retries: 4,
+            });
 
-          const translatedChunk = parseJsonLoose(raw);
+            const translatedChunk = parseJsonLoose(raw);
 
-          // Merge into target JSON
-          const currentSection = targetJson[sectionName] ?? {};
-          targetJson[sectionName] = deepMerge(currentSection, translatedChunk);
+            // Merge into target JSON
+            const currentSection = targetJson[sectionName] ?? {};
+            targetJson[sectionName] = deepMerge(currentSection, translatedChunk);
+          }
         }
+      }
+
+      // 2) Prune: remove keys that no longer exist in updated EN (and ensure all expected keys exist)
+      console.log(`  • Pruning keys to match updated EN.json…`);
+      targetJson = pruneToShape(targetJson, updatedEn);
+
+      // 3) Sync languageOptions exactly (never translate it, but keep it consistent across files)
+      if (updatedEn.languageOptions !== undefined) {
+        targetJson.languageOptions = deepClone(updatedEn.languageOptions);
       }
 
       // Save language file
