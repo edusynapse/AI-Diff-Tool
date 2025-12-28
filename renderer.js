@@ -186,7 +186,11 @@ function initFilePickerTabSyncObserver() {
   const schedule = () => {
     try {
       const tab = (typeof getActiveTab === 'function') ? getActiveTab() : null;
-      if (tab) syncFilePickerNamesFromTab(tab);
+      if (tab) {
+        syncFilePickerNamesFromTab(tab);
+        // Keep the active tab's model valid vs currently-configured provider keys
+        coerceActiveTabModelToEnabled(tab);
+      }
     } catch {}
   };
 
@@ -361,6 +365,7 @@ function initHistoryManagerOnce() {
     ensureSystemPromptStore,
     doesSystemPromptExist,
     buildDiffHtml,
+    sanitizeModel: coerceModelToEnabled,
     tabs: {
       initTabsManagerOnce: () => initTabsManagerOnce(),
       makeTab: (...args) => makeTab(...args),
@@ -1379,17 +1384,160 @@ function initApiKeysManagerOnce() {
   if (apiKeysMgr) return apiKeysMgr;
   apiKeysMgr = createApiKeyManager({ t, tFmt, ipcRenderer });
 
+  try { initModelProviderGateOnce(); } catch {}
   return apiKeysMgr;
+ }
+
+// -------------------------
+// Model selector gating by configured API keys
+// - If ONLY xAI key exists: disable OpenAI optgroup (greyed + not selectable)
+// - If ONLY OpenAI key exists: disable xAI optgroup (greyed + not selectable)
+// - If both exist (or neither exists): leave both enabled
+// - If a tab model is invalid for current enabled provider(s), coerce to the
+//   LAST option in the other enabled set (per requirement)
+// -------------------------
+let _modelGateWired = false;
+
+function _getModelSelect() {
+  return document.getElementById('modelSelect');
 }
 
-function updateSystemPromptButtonForTab(tab) {
-  const btn = document.getElementById('sysPromptBtn');
-  if (!btn) return;
-  const p = getSystemPromptById(tab?.systemPromptId || DEFAULT_SYS_PROMPT_ID);
-  const rawName = p?.name || 'Default';
-  const nm = (p?.id === DEFAULT_SYS_PROMPT_ID) ? t('sysPrompt.defaultName', rawName) : rawName;
-  btn.textContent = tFmt('sysPrompt.buttonLabel', { name: nm }, `Prompt - ${nm}`);
-  btn.title = tFmt('sysPrompt.buttonTitle', { name: nm }, `System prompt: ${nm}`);
+function _getOptgroupsByProvider() {
+  const sel = _getModelSelect();
+  if (!sel) return { sel: null, xai: null, openai: null };
+  const groups = Array.from(sel.querySelectorAll('optgroup'));
+  const by = { sel, xai: null, openai: null };
+  for (const g of groups) {
+    const p = (g.dataset && g.dataset.provider) ? String(g.dataset.provider) : '';
+    if (p === 'xai') by.xai = g;
+    if (p === 'openai') by.openai = g;
+  }
+  return by;
+}
+
+function _modelsInGroup(groupEl) {
+  if (!groupEl) return [];
+  return Array.from(groupEl.querySelectorAll('option'))
+    .map(o => String(o.value || '').trim())
+    .filter(Boolean);
+}
+
+function _getKeyAvailability() {
+  const api = initApiKeysManagerOnce();
+  const hasXai = !!api?.hasEncryptedApiKey?.(api.PROVIDER_XAI);
+  const hasOpenAi = !!api?.hasEncryptedApiKey?.(api.PROVIDER_OPENAI);
+  return { hasXai, hasOpenAi };
+}
+
+function _modelExistsInDropdown(model) {
+  const sel = _getModelSelect();
+  if (!sel) return false;
+  const m = String(model || '').trim();
+  if (!m) return false;
+  for (const opt of Array.from(sel.querySelectorAll('option'))) {
+    if (String(opt.value || '').trim() === m) return true;
+  }
+  return false;
+}
+
+function coerceModelToEnabled(model) {
+  const api = initApiKeysManagerOnce();
+  const { hasXai, hasOpenAi } = _getKeyAvailability();
+  const { xai, openai } = _getOptgroupsByProvider();
+
+  const xaiModels = _modelsInGroup(xai);
+  const openAiModels = _modelsInGroup(openai);
+
+  const raw = String(model || '').trim();
+  const provider = api?.providerForModel ? api.providerForModel(raw) : (raw.startsWith('gpt-') ? 'openai' : 'xai');
+
+  // If a model was removed from the dropdown, fall back within the same provider (last option),
+  // but still respect enabled-provider gating below.
+  const inDropdown = raw ? _modelExistsInDropdown(raw) : false;
+
+  // Only xAI key exists -> OpenAI disabled -> if model is OpenAI OR missing, go to last xAI option
+  if (hasXai && !hasOpenAi) {
+    if (provider === 'openai' || !inDropdown) {
+      return xaiModels[xaiModels.length - 1] || raw;
+    }
+    return raw;
+  }
+
+  // Only OpenAI key exists -> xAI disabled -> if model is xAI OR missing, go to last OpenAI option
+  if (!hasXai && hasOpenAi) {
+    if (provider === 'xai' || !inDropdown) {
+      return openAiModels[openAiModels.length - 1] || raw;
+    }
+    return raw;
+  }
+
+  // Both exist (or neither exists): keep model if present; otherwise prefer last option of inferred provider
+  if (inDropdown) return raw;
+  if (provider === 'openai') return openAiModels[openAiModels.length - 1] || raw;
+  return xaiModels[xaiModels.length - 1] || raw;
+}
+
+function coerceActiveTabModelToEnabled(tabMaybe) {
+  const tab = tabMaybe || ((typeof getActiveTab === 'function') ? getActiveTab() : null);
+  if (!tab) return;
+
+  const before = String(tab.selectedModel || '').trim();
+  const after = coerceModelToEnabled(before);
+  if (after && after !== before) {
+    tab.selectedModel = after;
+  }
+
+  // Keep the dropdown showing the coerced model (without firing change handlers)
+  const sel = _getModelSelect();
+  if (sel && after && String(sel.value || '').trim() !== after) {
+    sel.value = after;
+  }
+}
+
+function updateModelDropdownGating({ coerceActive = true } = {}) {
+  const { hasXai, hasOpenAi } = _getKeyAvailability();
+  const { xai, openai } = _getOptgroupsByProvider();
+  if (!xai || !openai) return;
+
+  // Default: enable both
+  let disableXai = false;
+  let disableOpenAi = false;
+
+  if (hasXai && !hasOpenAi) {
+    disableOpenAi = true;
+  } else if (!hasXai && hasOpenAi) {
+    disableXai = true;
+  }
+
+  xai.disabled = !!disableXai;
+  openai.disabled = !!disableOpenAi;
+
+  if (coerceActive) coerceActiveTabModelToEnabled();
+}
+
+function initModelProviderGateOnce() {
+  if (_modelGateWired) return;
+  _modelGateWired = true;
+
+  // Initial sync (covers startup + restored tabs)
+  try { updateModelDropdownGating({ coerceActive: true }); } catch {}
+
+  // Recompute gating immediately after a key is added/updated
+  try {
+    window.addEventListener('apikeys:changed', () => {
+      try { updateModelDropdownGating({ coerceActive: true }); } catch {}
+    });
+  } catch {}
+ }
+
+ function updateSystemPromptButtonForTab(tab) {
+   const btn = document.getElementById('sysPromptBtn');
+   if (!btn) return;
+   const p = getSystemPromptById(tab?.systemPromptId || DEFAULT_SYS_PROMPT_ID);
+   const rawName = p?.name || 'Default';
+   const nm = (p?.id === DEFAULT_SYS_PROMPT_ID) ? t('sysPrompt.defaultName', rawName) : rawName;
+   btn.textContent = tFmt('sysPrompt.buttonLabel', { name: nm }, `Prompt - ${nm}`);
+   btn.title = tFmt('sysPrompt.buttonTitle', { name: nm }, `System prompt: ${nm}`);
  }
 
  function openTabRenameModal(tabId) {

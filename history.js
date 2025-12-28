@@ -1,4 +1,3 @@
-
 const zlib = require('zlib'); // history compression fallback (no new deps)
 
 function _defaultBytesToB64(u8) {
@@ -26,6 +25,7 @@ function createHistoryManager(cfg) {
   const ensureSystemPromptStore = cfg.ensureSystemPromptStore;
   const doesSystemPromptExist = cfg.doesSystemPromptExist;
   const buildDiffHtml = cfg.buildDiffHtml;
+  const sanitizeModel = cfg.sanitizeModel;
 
   const tabs = cfg.tabs || {};
   const modal = cfg.modal || {};
@@ -397,7 +397,12 @@ function createHistoryManager(cfg) {
     const tab = tabs.makeTab(`🕘 ${fileName}`);
     tab.labelCustomized = true;
 
-    tab.selectedModel = payload.model || tab.selectedModel;
+    {
+      const raw = payload.model || tab.selectedModel;
+      const next = (typeof sanitizeModel === 'function') ? sanitizeModel(raw) : raw;
+      tab.selectedModel = next || tab.selectedModel;
+    }
+
     tab.systemPromptId = doesSystemPromptExist(payload.sysPromptId) ? payload.sysPromptId : DEFAULT_SYS_PROMPT_ID;
 
     tab.diffText = payload.diffText || '';

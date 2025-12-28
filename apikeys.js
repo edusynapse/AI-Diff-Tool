@@ -59,6 +59,18 @@ function createApiKeyManager({ t, tFmt, ipcRenderer }) {
     return /^\d{6}$/.test((pin || '').trim());
   }
 
+  function _emitApiKeysChanged(provider) {
+    try {
+      if (
+        typeof window !== 'undefined' &&
+        typeof window.dispatchEvent === 'function' &&
+        typeof window.CustomEvent === 'function'
+      ) {
+        window.dispatchEvent(new window.CustomEvent('apikeys:changed', { detail: { provider: String(provider || '') } }));
+      }
+    } catch {}
+  }
+
   function providerForModel(model) {
     const m = (model || '').trim();
     // Convention: OpenAI models start with "gpt-"
@@ -605,6 +617,9 @@ function createApiKeyManager({ t, tFmt, ipcRenderer }) {
       sessionApiKeys[provider] = key;
       sessionPin = effectivePin; // keep PIN in RAM for this session
 
+      // Notify renderer to re-evaluate model dropdown gating
+      _emitApiKeysChanged(provider);
+
       // If this modal was blocking (startup / apply flow), close immediately after save.
       if (apiModalBlocking) {
         closeApiKeyModal({ force: true });
@@ -839,6 +854,7 @@ function createApiKeyManager({ t, tFmt, ipcRenderer }) {
     maybeDecryptProviderInSession,
     getStoredApiKey,
     hasAnyEncryptedApiKey,
+    hasEncryptedApiKey,
 
     // flows
     bootstrapApiKeyFlow,
