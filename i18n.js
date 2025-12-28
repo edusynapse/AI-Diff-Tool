@@ -4,16 +4,13 @@ function createI18nManager({
   ipcRenderer,
   window,
   document,
-  storage,
   modal = {},
   hooks = {}
 } = {}) {
-  const LANG_LS_KEY = 'ui_language_v1';
   const LANG_FALLBACK = 'EN';
 
   const doc = document;
   const win = window;
-  const store = storage;
 
   const hookBeforeChange = (typeof hooks.beforeChange === 'function') ? hooks.beforeChange : null;
   const hookAfterChange = (typeof hooks.afterChange === 'function') ? hooks.afterChange : null;
@@ -26,6 +23,7 @@ function createI18nManager({
   };
 
   let i18n = { code: LANG_FALLBACK, pack: {}, fallback: {} };
+  let configured = false;
 
   function _normLangCode(code) {
     // Accept inputs like: "EN", "en", "EN.json", "build/languages/EN.json"
@@ -34,15 +32,6 @@ function createI18nManager({
     const noExt = raw.replace(/\.json$/i, '');
     const c = noExt.replace(/[^A-Za-z0-9_-]/g, '').toUpperCase();
     return c || LANG_FALLBACK;
-  }
-
-  function _aliasLangKey(k) {
-    // Keep this tiny: only handle known filename-vs-key mismatches.
-    // (Your EN.json uses "zh" but you also ship CN.json.)
-    switch (String(k || '').toLowerCase()) {
-      case 'cn': return 'zh';
-      default: return String(k || '').toLowerCase();
-    }
   }
 
   function _getLanguageOptionsMap() {
@@ -58,7 +47,7 @@ function createI18nManager({
   }
 
   function _getLanguageLabelFromOptions(code, optionsMap) {
-    const key = _aliasLangKey(code);
+    const key = String(code || '').toLowerCase();
     if (optionsMap && typeof optionsMap === 'object' && Object.prototype.hasOwnProperty.call(optionsMap, key)) {
       const v = optionsMap[key];
       if (typeof v === 'string' && v.trim()) return v;
@@ -100,12 +89,10 @@ function createI18nManager({
   async function setLanguage(nextCode) {
     const next = _normLangCode(nextCode);
     if (!next) return i18n.code;
-    if (next === i18n.code) return i18n.code;
+    if (next === i18n.code && configured) return i18n.code;
 
     // Let renderer close modals / stash state etc
     try { hookBeforeChange?.(next); } catch {}
-
-    try { store?.setItem?.(LANG_LS_KEY, next); } catch {}
 
     // Fetch packs (renderer side)
     try {
@@ -124,6 +111,7 @@ function createI18nManager({
       i18n.pack = {};
       i18n.fallback = {};
     }
+    configured = true;
 
     // Let main rebuild menu labels + persist
     try { await ipcRenderer?.invoke?.('language:set', i18n.code); } catch {}
@@ -142,21 +130,19 @@ function createI18nManager({
   }
 
   async function initI18n() {
-    const desired = _normLangCode(store?.getItem?.(LANG_LS_KEY) || LANG_FALLBACK);
     try {
-      const res = await ipcRenderer?.invoke?.('language:getAll', desired);
+      // No renderer-side persistence; main is the source of truth.
+      const res = await ipcRenderer?.invoke?.('language:getAll');
       if (res && typeof res === 'object') {
-        i18n.code = _normLangCode(res.code || desired);
+        i18n.code = _normLangCode(res.code || LANG_FALLBACK);
         i18n.pack = (res.pack && typeof res.pack === 'object') ? res.pack : {};
         i18n.fallback = (res.fallback && typeof res.fallback === 'object') ? res.fallback : {};
-        try { store?.setItem?.(LANG_LS_KEY, i18n.code); } catch {}
+        configured = !!res.configured;
       }
     } catch {
       // keep defaults
     }
 
-    // Let main rebuild menu labels in the chosen language
-    try { await ipcRenderer?.invoke?.('language:set', i18n.code); } catch {}
     return i18n.code;
   }
 
@@ -331,10 +317,33 @@ function createI18nManager({
     });
   }
 
-  async function openLanguageModal() {
+  async function openLanguageModal(opts = {}) {
+    const o = (opts && typeof opts === 'object') ? opts : {};
+    const force = !!o.force;
+    const closeOnSelect = !!o.closeOnSelect;
+    const onSelected = (typeof o.onSelected === 'function') ? o.onSelected : null;
+
     const overlay = _byId(modalCfg.overlayId);
     const buttonsWrap = _byId(modalCfg.buttonsWrapId);
     if (!overlay || !buttonsWrap) return;
+
+    // Force-mode (pre-start): block closing via generic ESC/backdrop handlers
+    // that might call closeLanguageModal() without { force: true }.
+    if (force) overlay.dataset.force = '1';
+    else delete overlay.dataset.force;
+
+    const closeBtn = _byId(modalCfg.closeBtnId);
+    if (closeBtn) {
+      if (force) {
+        closeBtn.classList.add('hidden');
+        closeBtn.setAttribute('aria-hidden', 'true');
+        closeBtn.disabled = true;
+      } else {
+        closeBtn.classList.remove('hidden');
+        closeBtn.removeAttribute('aria-hidden');
+        closeBtn.disabled = false;
+      }
+    }
 
     overlay.classList.remove('hidden');
     doc.body.classList.add('modal-open');
@@ -345,7 +354,7 @@ function createI18nManager({
       if (Array.isArray(list) && list.length) langs = list.map(_normLangCode);
     } catch {}
 
-    const cur = _normLangCode(store?.getItem?.(LANG_LS_KEY) || i18n.code || LANG_FALLBACK);
+    const cur = _normLangCode(i18n.code || LANG_FALLBACK);
 
     // Get languageOptions from the *currently loaded* language JSON (i18n.pack).
     // If it isn't present for any reason, fetch it once via IPC.
@@ -366,7 +375,7 @@ function createI18nManager({
     const frag = doc.createDocumentFragment();
     for (const code of langs) {
       // "languageOptions" keys are lowercase ("en","hi",...)
-      const displayName = _getLanguageLabelFromOptions(String(code || '').toLowerCase(), optionsMap);
+      const displayName = _getLanguageLabelFromOptions(String(code || ''), optionsMap);
 
       const btn = doc.createElement('button');
       btn.type = 'button';
@@ -375,23 +384,36 @@ function createI18nManager({
       btn.title = displayName;
       btn.setAttribute('aria-label', displayName);
       btn.dataset.code = code;
-      btn.disabled = code === cur;
+      // Only disable re-select when language is already configured.
+      btn.disabled = configured && code === cur;
       btn.addEventListener('click', async () => {
         const next = _normLangCode(btn.dataset.code);
         // no reload; keep tabs + content
         await setLanguage(next);
+        if (closeOnSelect) {
+          try { closeLanguageModal({ force: true }); } catch {}
+        }
+        try { onSelected?.(next); } catch {}
       });
       frag.appendChild(btn);
     }
 
     buttonsWrap.replaceChildren(frag);
-    _byId(modalCfg.closeBtnId)?.focus?.();
+    // Focus close button normally; in force-mode focus the first language button
+    if (force) {
+      buttonsWrap.querySelector('button')?.focus?.();
+    } else {
+      _byId(modalCfg.closeBtnId)?.focus?.();
+    }
   }
 
-  function closeLanguageModal() {
+  function closeLanguageModal(opts = {}) {
     const overlay = _byId(modalCfg.overlayId);
     if (!overlay) return;
+    const forceClose = !!(opts && typeof opts === 'object' && opts.force);
+    if (overlay.dataset.force === '1' && !forceClose) return;
     overlay.classList.add('hidden');
+    try { delete overlay.dataset.force; } catch {}
 
     // Only remove modal-open if *no* other modal is open
     const idsToCheck = [
@@ -404,8 +426,6 @@ function createI18nManager({
   }
 
   return {
-    // constants (exported for convenience / future use)
-    LANG_LS_KEY,
     LANG_FALLBACK,
 
     // core api
@@ -413,6 +433,7 @@ function createI18nManager({
     tFmt,
     initI18n,
     applyI18nToStaticUi,
+    isConfigured: () => configured,
 
     // language modal
     setLanguage,

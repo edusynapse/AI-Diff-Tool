@@ -1,4 +1,3 @@
-
 'use strict';
 
 // API Keys + PIN unlock + local encryption + key-type modal
@@ -13,11 +12,11 @@ const PROVIDERS = [PROVIDER_XAI, PROVIDER_OPENAI];
 
 function createApiKeyManager({ t, tFmt, ipcRenderer }) {
   // -------------------------
-  // LocalStorage keys (encrypted payload + legacy plaintext)
+  // LocalStorage keys (encrypted payload)
   // -------------------------
   const LS = {
-    [PROVIDER_XAI]:    { enc: 'api_key_enc_xai_v1',    plain: 'api_key_xai' },
-    [PROVIDER_OPENAI]: { enc: 'api_key_enc_openai_v1', plain: 'api_key_openai' }
+    [PROVIDER_XAI]:    { enc: 'api_key_enc_xai_v1' },
+    [PROVIDER_OPENAI]: { enc: 'api_key_enc_openai_v1' }
   };
 
   // -------------------------
@@ -338,11 +337,6 @@ function createApiKeyManager({ t, tFmt, ipcRenderer }) {
 
   function saveEncryptedPayload(provider, payload) {
     localStorage.setItem(LS[provider]?.enc, JSON.stringify(payload));
-    localStorage.removeItem(LS[provider]?.plain); // remove legacy plaintext if present
-  }
-
-  function loadLegacyPlain(provider) {
-    return (localStorage.getItem(LS[provider]?.plain) || '').trim();
   }
 
   async function maybeDecryptProviderInSession(provider) {
@@ -679,24 +673,11 @@ function createApiKeyManager({ t, tFmt, ipcRenderer }) {
       return;
     }
 
-    // Legacy plaintext migration (pick first provider with legacy)
-    for (const p of PROVIDERS) {
-      const legacy = loadLegacyPlain(p);
-      if (legacy) {
-        openApiKeyModal({
-          provider: p,
-          mode: 'setup',
-          blocking: true,
-          askPin: true,
-          hint: t('apiKey.migrateHint', 'Set a 6-digit PIN to encrypt your existing saved API key.'),
-          prefillKey: legacy
-        });
-        return;
-      }
-    }
-
     // No keys at all -> force provider selection first
-    openKeyTypeModal({ blocking: true });
+    openKeyTypeModal({
+      blocking: true,
+      hint: t('apiKey.chooseProviderHint', 'Choose a provider to set up an API key.')
+    });
   }
 
   // This is the helper your renderer can call from applyPatch:
@@ -709,7 +690,7 @@ function createApiKeyManager({ t, tFmt, ipcRenderer }) {
     if (getStoredApiKey(p)) return true;
 
     // 2) Decide which UI to open
-    const anyStored = hasAnyEncryptedApiKey() || PROVIDERS.some(x => loadLegacyPlain(x));
+    const anyStored = hasAnyEncryptedApiKey();
     if (!anyStored) {
       openKeyTypeModal({ blocking: true, hint: 'Choose a provider to set up an API key.' });
       return false;

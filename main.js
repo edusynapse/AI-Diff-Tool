@@ -1,6 +1,7 @@
 const { app, BrowserWindow, Menu, ipcMain, shell } = require('electron');
 const path = require('path');
 const fs = require('fs');
+const fsp = fs.promises;
 const http = require('http');
 
 let isDark = false;
@@ -17,6 +18,15 @@ let currentLang = LANG_FALLBACK;
 let cachedFallbackPack = null;
 const cachedLangPacks = new Map(); // code -> pack
 let langSettingsPath = null; // initialized after app is ready
+
+function isLanguageConfigured() {
+  if (!langSettingsPath) return false;
+  try {
+    return fs.existsSync(langSettingsPath);
+  } catch {
+    return false;
+  }
+}
 
 function _safeReadJson(filePath) {
   try {
@@ -110,7 +120,11 @@ function readPersistedLanguage() {
 function persistLanguage(code) {
   if (!langSettingsPath) return;
   try {
-    fs.writeFileSync(langSettingsPath, JSON.stringify({ v: 1, code: normalizeLangCode(code) }, null, 2), 'utf8');
+    fs.writeFileSync(
+      langSettingsPath,
+      JSON.stringify({ v: 1, code: normalizeLangCode(code) }, null, 2),
+      'utf8'
+    );
   } catch {
     // no-op
   }
@@ -289,15 +303,22 @@ ipcMain.handle('language:list', () => {
 });
 
 ipcMain.handle('language:getAll', (_evt, code) => {
-  const desired = resolveLanguage(code);
+  // If renderer doesn't pass a code, serve the CURRENT main-process language
+  // (which comes from ui_language.json if configured, else fallback).
+  const desired = resolveLanguage(code || currentLang);
   const fallback = ensureFallbackPackLoaded();
   const pack = loadLanguagePack(desired) || {};
   return {
     code: desired,
     pack,
     fallback,
-    available: listAvailableLanguages()
+    available: listAvailableLanguages(),
+    configured: isLanguageConfigured()
   };
+});
+
+ipcMain.handle('language:isConfigured', () => {
+  return isLanguageConfigured();
 });
 
 ipcMain.handle('language:set', (_evt, code) => {

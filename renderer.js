@@ -22,7 +22,7 @@ function closeAllModalsForLanguageChange() {
   try { closeSysPromptModal(); } catch {}
   try { closeTabRenameModal(); } catch {}
   try { closeTabCloseModal(); } catch {}
-  try { closeLanguageModal(); } catch {}
+  try { closeLanguageModal({ force: true }); } catch {}
 
   try {
     const api = initApiKeysManagerOnce();
@@ -266,6 +266,32 @@ const {
   openLanguageModal,
   closeLanguageModal,
 } = i18nMgr;
+
+// -------------------------
+// Boot language gate: ensure language is chosen before initializing the rest of the app
+// -------------------------
+async function bootLanguageGate() {
+  // Decide clean-start using MAIN's persisted file, not renderer localStorage.
+  let configured = true;
+  try { configured = await ipcRenderer.invoke('language:isConfigured'); } catch {}
+
+  await initI18n();
+  applyI18nToStaticUi();
+
+  if (!configured) {
+    await new Promise((resolve) => {
+      openLanguageModal({
+        force: true,
+        closeOnSelect: true,
+        onSelected: () => resolve()
+      });
+    });
+
+    // After user selects, i18n already applied by setLanguage().
+    // But static UI might have been drawn once; apply again to be safe.
+    applyI18nToStaticUi();
+  }
+}
 
 // -------------------------
 // System prompts (Default + up to 4 custom, total 5 incl Default)
@@ -1352,6 +1378,7 @@ let apiKeysMgr = null;
 function initApiKeysManagerOnce() {
   if (apiKeysMgr) return apiKeysMgr;
   apiKeysMgr = createApiKeyManager({ t, tFmt, ipcRenderer });
+
   return apiKeysMgr;
 }
 
@@ -1948,292 +1975,300 @@ function handleSysPromptDuplicate() {
 }
 
 // Load stored API key and model on app start
-window.addEventListener('load', () => {
-  void (async () => {
-    await initI18n();
-    applyI18nToStaticUi();
-    applyI18nToFilePickers();
-    applyI18nToCopyButtons();
-    applyI18nToGoOutputDiffButton();
+window.addEventListener('DOMContentLoaded', async () => {
+  await bootLanguageGate();
 
-    const storedModel = localStorage.getItem('selectedModel') || 'grok-4-fast-reasoning';
-    document.getElementById('modelSelect').value = storedModel;
+  applyI18nToFilePickers();
+  applyI18nToCopyButtons();
+  applyI18nToGoOutputDiffButton();
 
-    const storedTheme = localStorage.getItem('theme') || 'light';
-    document.body.classList.toggle('dark', storedTheme === 'dark');
-    ipcRenderer.send('theme:state', storedTheme);
+  const storedModel = localStorage.getItem('selectedModel') || 'grok-4-fast-reasoning';
+  document.getElementById('modelSelect').value = storedModel;
 
-    // Header icon + tab active highlight should be ready ASAP
-    void setAppHeaderIcon();
-    syncTabActiveHighlightFromNewTabButton();
+  const storedTheme = localStorage.getItem('theme') || 'light';
+  document.body.classList.toggle('dark', storedTheme === 'dark');
+  ipcRenderer.send('theme:state', storedTheme);
 
-    // Setup context menu
-    document.body.addEventListener('contextmenu', handleContextMenu);
-    // Add event listeners for buttons
-    document.getElementById('applyBtn').addEventListener('click', () => applyPatch({ isRetry: false }));
-    document.getElementById('retryBtn').addEventListener('click', () => applyPatch({ isRetry: true }));
-    document.getElementById('copyBtn').addEventListener('click', () => copyOutput(document.getElementById('copyBtn')));
-    document.getElementById('download').addEventListener('click', downloadResult);
+  // Header icon + tab active highlight should be ready ASAP
+  void setAppHeaderIcon();
+  syncTabActiveHighlightFromNewTabButton();
 
-    // Localized file pickers (custom UI triggers the hidden native inputs)
-    document.getElementById('diffFileBtn')?.addEventListener('click', () => {
-      document.getElementById('diffFile')?.click();
-    });
-    document.getElementById('modelFileBtn')?.addEventListener('click', () => {
-      document.getElementById('modelFile')?.click();
-    });
-    // Track chosen filenames PER TAB (prevents "leaking" labels across tabs)
-    initPerTabFilePickerState();
+  // Setup context menu
+  document.body.addEventListener('contextmenu', handleContextMenu);
+  // Add event listeners for buttons
+  document.getElementById('applyBtn').addEventListener('click', () => applyPatch({ isRetry: false }));
+  document.getElementById('retryBtn').addEventListener('click', () => applyPatch({ isRetry: true }));
+  document.getElementById('copyBtn').addEventListener('click', () => copyOutput(document.getElementById('copyBtn')));
+  document.getElementById('download').addEventListener('click', downloadResult);
 
-    document.getElementById('modelSelect').addEventListener('change', (e) => {
-      // Per-tab model selection (does NOT change other tabs)
-      const tab = getActiveTab();
-      if (tab) tab.selectedModel = e.target.value;
-      localStorage.setItem('selectedModel', e.target.value); // default for new tabs / next launch
-    });
+  // Localized file pickers (custom UI triggers the hidden native inputs)
+  document.getElementById('diffFileBtn')?.addEventListener('click', () => {
+    document.getElementById('diffFile')?.click();
+  });
+  document.getElementById('modelFileBtn')?.addEventListener('click', () => {
+    document.getElementById('modelFile')?.click();
+  });
+  // Track chosen filenames PER TAB (prevents "leaking" labels across tabs)
+  initPerTabFilePickerState();
 
-    // Tabs
-    ensureSystemPromptStore();
-    initTabsManagerOnce();
-    initTabs();
-    document.getElementById('newTabBtn')?.addEventListener('click', newTab);
-    initFilePickerTabSyncObserver();
+  document.getElementById('modelSelect').addEventListener('change', (e) => {
+    // Per-tab model selection (does NOT change other tabs)
+    const tab = getActiveTab();
+    if (tab) tab.selectedModel = e.target.value;
+    localStorage.setItem('selectedModel', e.target.value); // default for new tabs / next launch
+  });
 
-    // Browser-like tab shortcuts (vertical tabs still on the left)
-    window.addEventListener('keydown', (e) => {
-      const isMac = navigator.platform.toLowerCase().includes('mac');
-      const mod = isMac ? e.metaKey : e.ctrlKey;
-      if (!mod) return;
+  // Tabs
+  ensureSystemPromptStore();
+  initTabsManagerOnce();
+  initTabs();
+  document.getElementById('newTabBtn')?.addEventListener('click', newTab);
+  initFilePickerTabSyncObserver();
 
-      // Ctrl/Cmd+T => new tab
-      if (e.key.toLowerCase() === 't') {
-        e.preventDefault();
-        newTab();
-        return;
-      }
+  // Browser-like tab shortcuts (vertical tabs still on the left)
+  window.addEventListener('keydown', (e) => {
+    const isMac = navigator.platform.toLowerCase().includes('mac');
+    const mod = isMac ? e.metaKey : e.ctrlKey;
+    if (!mod) return;
 
-      // Ctrl/Cmd+W => close tab
-      if (e.key.toLowerCase() === 'w') {
-        e.preventDefault();
-        if (activeTabId) openTabCloseModal(activeTabId);
-        return;
-      }
-
-      // Ctrl/Cmd+Tab / Ctrl/Cmd+Shift+Tab => cycle tabs
-      if (e.key === 'Tab') {
-        e.preventDefault();
-        focusAdjacentTab(activeTabId, e.shiftKey ? -1 : 1, { select: true });
-      }
-    });
-    // Max/Min floating buttons
-    initTextareaExpandCollapse();
-    // Sticky max/min/copy for OUTPUT area while scrolling
-    initStickyTaActions();
-
-    // Topbar "Copy Output" (appears when output is scrolled past, while in diff)
-    initCopyOutputTopButton();
-    // Topbar "Go To Output Diff" (appears only when diff is below viewport and output exists)
-    initGoOutputDiffButton();
-
-    // --- Help overlay wiring (must be inside load) ---
-    const overlay = document.getElementById('helpOverlay');
-    const closeBtn = document.getElementById('helpCloseBtn');
-    const okBtn = document.getElementById('helpOkBtn');
-
-    if (closeBtn) closeBtn.addEventListener('click', closeHelp);
-    if (okBtn) okBtn.addEventListener('click', closeHelp);
-
-    if (overlay) {
-      overlay.addEventListener('click', (e) => {
-        if (e.target === overlay) closeHelp();
-      });
+    // Ctrl/Cmd+T => new tab
+    if (e.key.toLowerCase() === 't') {
+      e.preventDefault();
+      newTab();
+      return;
     }
 
-    // --- About overlay wiring ---
-    const aboutOverlay = document.getElementById('aboutOverlay');
-    const aboutCloseBtn = document.getElementById('aboutCloseBtn');
-    const aboutOkBtn = document.getElementById('aboutOkBtn');
-    const aboutGitHubBtn = document.getElementById('aboutGitHubBtn');
-
-    if (aboutCloseBtn) aboutCloseBtn.addEventListener('click', closeAbout);
-    if (aboutOkBtn) aboutOkBtn.addEventListener('click', closeAbout);
-
-    if (aboutOverlay) {
-      aboutOverlay.addEventListener('click', (e) => {
-        if (e.target === aboutOverlay) closeAbout();
-      });
+    // Ctrl/Cmd+W => close tab
+    if (e.key.toLowerCase() === 'w') {
+      e.preventDefault();
+      if (activeTabId) openTabCloseModal(activeTabId);
+      return;
     }
 
-    // External open for Donate/GitHub (URLs injected on openAbout)
-    if (aboutGitHubBtn) {
-      aboutGitHubBtn.addEventListener('click', () => {
-        const url = (aboutGitHubBtn.dataset.url || '').trim();
-        if (url) ipcRenderer.send('external:open', url);
-      });
+    // Ctrl/Cmd+Tab / Ctrl/Cmd+Shift+Tab => cycle tabs
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      focusAdjacentTab(activeTabId, e.shiftKey ? -1 : 1, { select: true });
     }
+  });
+  // Max/Min floating buttons
+  initTextareaExpandCollapse();
+  // Sticky max/min/copy for OUTPUT area while scrolling
+  initStickyTaActions();
 
-    // --- API keys / local encryption flow (extracted to ./apikeys.js) ---
-    const apiKeys = initApiKeysManagerOnce();
-    apiKeys.wireDomEvents();       // attaches API key + key-type modal listeners
-    apiKeys.bootstrapApiKeyFlow(); // startup unlock/setup flow
+  // Topbar "Copy Output" (appears when output is scrolled past, while in diff)
+  initCopyOutputTopButton();
+  // Topbar "Go To Output Diff" (appears only when diff is below viewport and output exists)
+  initGoOutputDiffButton();
 
-    // Keep handle for ESC logic below
-    const apiOverlay = document.getElementById('apiKeyOverlay');
+  // --- Help overlay wiring (must be inside load) ---
+  const overlay = document.getElementById('helpOverlay');
+  const closeBtn = document.getElementById('helpCloseBtn');
+  const okBtn = document.getElementById('helpOkBtn');
+
+  if (closeBtn) closeBtn.addEventListener('click', closeHelp);
+  if (okBtn) okBtn.addEventListener('click', closeHelp);
+
+  if (overlay) {
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) closeHelp();
+    });
+  }
+
+  // --- About overlay wiring ---
+  const aboutOverlay = document.getElementById('aboutOverlay');
+  const aboutCloseBtn = document.getElementById('aboutCloseBtn');
+  const aboutOkBtn = document.getElementById('aboutOkBtn');
+  const aboutGitHubBtn = document.getElementById('aboutGitHubBtn');
+
+  if (aboutCloseBtn) aboutCloseBtn.addEventListener('click', closeAbout);
+  if (aboutOkBtn) aboutOkBtn.addEventListener('click', closeAbout);
+
+  if (aboutOverlay) {
+    aboutOverlay.addEventListener('click', (e) => {
+      if (e.target === aboutOverlay) closeAbout();
+    });
+  }
+
+  // External open for Donate/GitHub (URLs injected on openAbout)
+  if (aboutGitHubBtn) {
+    aboutGitHubBtn.addEventListener('click', () => {
+      const url = (aboutGitHubBtn.dataset.url || '').trim();
+      if (url) ipcRenderer.send('external:open', url);
+    });
+  }
+
+  // --- API keys / local encryption flow (extracted to ./apikeys.js) ---
+  const apiKeys = initApiKeysManagerOnce();
+  apiKeys.wireDomEvents();       // attaches API key + key-type modal listeners
+  // Safety reset (in case HTML/CSS changed and something is visible)
+  try { apiKeys.closeApiKeyModal?.({ force: true }); } catch {}
+  try { apiKeys.closeKeyTypeModal?.({ force: true }); } catch {}
+
+  // FIRST-RUN onboarding (right after language selection):
+  // If there are no saved keys at all, force the non-dismissable provider picker + key entry flow.
+  try {
+    if (!apiKeys.hasAnyEncryptedApiKey()) {
+      apiKeys.bootstrapApiKeyFlow();
+    }
+  } catch {}
+
+  // Keep handle for ESC logic below
+  const apiOverlay = document.getElementById('apiKeyOverlay');
  
-    // --- History modal (extracted to ./history.js) ---
-    const history = initHistoryManagerOnce();
-    history.wireDomEvents();
+  // --- History modal (extracted to ./history.js) ---
+  const history = initHistoryManagerOnce();
+  history.wireDomEvents();
 
-    // --- Tab rename modal wiring ---
-    const renameOverlay = document.getElementById('tabRenameOverlay');
-    const renameCloseBtn = document.getElementById('tabRenameCloseBtn');
-    const renameCancelBtn = document.getElementById('tabRenameCancelBtn');
-    const renameSaveBtn = document.getElementById('tabRenameSaveBtn');
-    const renameInput = document.getElementById('tabRenameInput');
+  // --- Tab rename modal wiring ---
+  const renameOverlay = document.getElementById('tabRenameOverlay');
+  const renameCloseBtn = document.getElementById('tabRenameCloseBtn');
+  const renameCancelBtn = document.getElementById('tabRenameCancelBtn');
+  const renameSaveBtn = document.getElementById('tabRenameSaveBtn');
+  const renameInput = document.getElementById('tabRenameInput');
 
-    if (renameCloseBtn) renameCloseBtn.addEventListener('click', closeTabRenameModal);
-    if (renameCancelBtn) renameCancelBtn.addEventListener('click', closeTabRenameModal);
-    if (renameSaveBtn) renameSaveBtn.addEventListener('click', saveTabRename);
+  if (renameCloseBtn) renameCloseBtn.addEventListener('click', closeTabRenameModal);
+  if (renameCancelBtn) renameCancelBtn.addEventListener('click', closeTabRenameModal);
+  if (renameSaveBtn) renameSaveBtn.addEventListener('click', saveTabRename);
 
-    if (renameOverlay) {
-      renameOverlay.addEventListener('click', (e) => {
-        if (e.target === renameOverlay) closeTabRenameModal();
-      });
-    }
-
-    if (renameInput) {
-      renameInput.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') saveTabRename();
-      });
-    }
-
-    // --- Tab close modal wiring ---
-    const tabCloseOverlay = document.getElementById('tabCloseOverlay');
-    const tabCloseCloseBtn = document.getElementById('tabCloseCloseBtn');
-    const tabCloseCancelBtn = document.getElementById('tabCloseCancelBtn');
-    const tabCloseConfirmBtn = document.getElementById('tabCloseConfirmBtn');
-
-    if (tabCloseCloseBtn) tabCloseCloseBtn.addEventListener('click', closeTabCloseModal);
-    if (tabCloseCancelBtn) tabCloseCancelBtn.addEventListener('click', closeTabCloseModal);
-    if (tabCloseConfirmBtn) tabCloseConfirmBtn.addEventListener('click', confirmTabClose);
-
-    if (tabCloseOverlay) {
-      tabCloseOverlay.addEventListener('click', (e) => {
-        if (e.target === tabCloseOverlay) closeTabCloseModal();
-      });
-    }
-
-    // --- Diff nav buttons ---
-    document.getElementById('diffPrevBtn')?.addEventListener('click', () => scrollToChange(-1));
-    document.getElementById('diffNextBtn')?.addEventListener('click', () => scrollToChange(1));
-
-    // --- Language overlay wiring ---
-    ipcRenderer.on('language:open', () => { void openLanguageModal(); });
-    const langOverlay = document.getElementById('languageOverlay');
-    const langCloseBtn = document.getElementById('languageCloseBtn');
-    if (langCloseBtn) langCloseBtn.addEventListener('click', closeLanguageModal);
-    if (langOverlay) {
-      langOverlay.addEventListener('click', (e) => {
-        if (e.target === langOverlay) closeLanguageModal();
-      });
-    }
-
-    // Also allow menu-triggered open even before anything else
-    // (main will send language:open)
-
-    // --- System prompt button + modal wiring ---
-    const sysBtn = document.getElementById('sysPromptBtn');
-    if (sysBtn) sysBtn.addEventListener('click', () => openSysPromptModal({ tabId: activeTabId }));
-
-    const sp = sysPromptEls();
-    if (sp.btnClose) sp.btnClose.addEventListener('click', closeSysPromptModal);
-    if (sp.btnCancel) sp.btnCancel.addEventListener('click', closeSysPromptModal);
-    if (sp.btnNew) sp.btnNew.addEventListener('click', () => beginCreatePromptFrom(DEFAULT_SYS_PROMPT_ID));
-    if (sp.btnDup) sp.btnDup.addEventListener('click', handleSysPromptDuplicate);
-    if (sp.btnSave) sp.btnSave.addEventListener('click', handleSysPromptSave);
-    if (sp.btnUse) sp.btnUse.addEventListener('click', handleSysPromptUse);
-    if (sp.btnDel) sp.btnDel.addEventListener('click', handleSysPromptDelete);
-
-    if (sp.overlay) {
-      sp.overlay.addEventListener('click', (e) => {
-        if (e.target === sp.overlay) closeSysPromptModal();
-      });
-    }
-
-    if (sp.list && sp.list.dataset.delegated !== '1') {
-      sp.list.dataset.delegated = '1';
-      sp.list.addEventListener('click', (e) => {
-        const row = e.target?.closest?.('.sys-prompt-item');
-        if (!row?.dataset?.promptId) return;
-        if (sysPromptModalDirty) {
-          const ok = confirm('Discard unsaved changes?');
-          if (!ok) return;
-        }
-        sysPromptModalSelectedId = row.dataset.promptId;
-        renderSysPromptList();
-        setSysPromptEditorFromSelection();
-      });
-    }
-
-    // Track dirty state for Save/Use gating
-    if (sp.name) sp.name.addEventListener('input', () => { sysPromptModalDirty = true; });
-    if (sp.text) sp.text.addEventListener('input', () => { sysPromptModalDirty = true; });
-
-    setupDiffNavObserver();
-    updateDiffNavButtons();
-
-    // Optional keyboard shortcuts:
-    // F7 = prev change, F8 = next change
-    window.addEventListener('keydown', (e) => {
-      if (e.key === 'F7') { e.preventDefault(); scrollToChange(-1); }
-      if (e.key === 'F8') { e.preventDefault(); scrollToChange(1); }
+  if (renameOverlay) {
+    renameOverlay.addEventListener('click', (e) => {
+      if (e.target === renameOverlay) closeTabRenameModal();
     });
+  }
 
-    // ESC should close whichever modal is open
-    window.addEventListener('keydown', (e) => {
-      if (e.key !== 'Escape') return;
+  if (renameInput) {
+    renameInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') saveTabRename();
+    });
+  }
 
-      const renameOpen = renameOverlay && !renameOverlay.classList.contains('hidden');
-      const apiOpen = apiOverlay && !apiOverlay.classList.contains('hidden');
-      const helpOpen = overlay && !overlay.classList.contains('hidden');
-      const aboutOpen = aboutOverlay && !aboutOverlay.classList.contains('hidden');
-      const closeOpen = tabCloseOverlay && !tabCloseOverlay.classList.contains('hidden');
-      const sysOpen = sp.overlay && !sp.overlay.classList.contains('hidden');
-      const histOpen = history.isHistoryModalOpen();
-      const langOpen = langOverlay && !langOverlay.classList.contains('hidden');
+  // --- Tab close modal wiring ---
+  const tabCloseOverlay = document.getElementById('tabCloseOverlay');
+  const tabCloseCloseBtn = document.getElementById('tabCloseCloseBtn');
+  const tabCloseCancelBtn = document.getElementById('tabCloseCancelBtn');
+  const tabCloseConfirmBtn = document.getElementById('tabCloseConfirmBtn');
 
-      if (langOpen) closeLanguageModal();
-      else if (histOpen) history.closeHistoryModal();
-      else if (sysOpen) closeSysPromptModal();
-      else if (aboutOpen) closeAbout();
-      else if (closeOpen) closeTabCloseModal();
-      else if (renameOpen) closeTabRenameModal();
-      else if (apiOpen) {
-        initApiKeysManagerOnce().closeApiKeyModal();
+  if (tabCloseCloseBtn) tabCloseCloseBtn.addEventListener('click', closeTabCloseModal);
+  if (tabCloseCancelBtn) tabCloseCancelBtn.addEventListener('click', closeTabCloseModal);
+  if (tabCloseConfirmBtn) tabCloseConfirmBtn.addEventListener('click', confirmTabClose);
+
+  if (tabCloseOverlay) {
+    tabCloseOverlay.addEventListener('click', (e) => {
+      if (e.target === tabCloseOverlay) closeTabCloseModal();
+    });
+  }
+
+  // --- Diff nav buttons ---
+  document.getElementById('diffPrevBtn')?.addEventListener('click', () => scrollToChange(-1));
+  document.getElementById('diffNextBtn')?.addEventListener('click', () => scrollToChange(1));
+
+  // --- Language overlay wiring ---
+  ipcRenderer.on('language:open', () => { void openLanguageModal(); });
+  const langOverlay = document.getElementById('languageOverlay');
+  const langCloseBtn = document.getElementById('languageCloseBtn');
+  if (langCloseBtn) langCloseBtn.addEventListener('click', closeLanguageModal);
+  if (langOverlay) {
+    langOverlay.addEventListener('click', (e) => {
+      if (e.target === langOverlay) closeLanguageModal();
+    });
+  }
+
+  // Also allow menu-triggered open even before anything else
+  // (main will send language:open)
+
+  // --- System prompt button + modal wiring ---
+  const sysBtn = document.getElementById('sysPromptBtn');
+  if (sysBtn) sysBtn.addEventListener('click', () => openSysPromptModal({ tabId: activeTabId }));
+
+  const sp = sysPromptEls();
+  if (sp.btnClose) sp.btnClose.addEventListener('click', closeSysPromptModal);
+  if (sp.btnCancel) sp.btnCancel.addEventListener('click', closeSysPromptModal);
+  if (sp.btnNew) sp.btnNew.addEventListener('click', () => beginCreatePromptFrom(DEFAULT_SYS_PROMPT_ID));
+  if (sp.btnDup) sp.btnDup.addEventListener('click', handleSysPromptDuplicate);
+  if (sp.btnSave) sp.btnSave.addEventListener('click', handleSysPromptSave);
+  if (sp.btnUse) sp.btnUse.addEventListener('click', handleSysPromptUse);
+  if (sp.btnDel) sp.btnDel.addEventListener('click', handleSysPromptDelete);
+
+  if (sp.overlay) {
+    sp.overlay.addEventListener('click', (e) => {
+      if (e.target === sp.overlay) closeSysPromptModal();
+    });
+  }
+
+  if (sp.list && sp.list.dataset.delegated !== '1') {
+    sp.list.dataset.delegated = '1';
+    sp.list.addEventListener('click', (e) => {
+      const row = e.target?.closest?.('.sys-prompt-item');
+      if (!row?.dataset?.promptId) return;
+      if (sysPromptModalDirty) {
+        const ok = confirm('Discard unsaved changes?');
+        if (!ok) return;
       }
-      else if (helpOpen) closeHelp();
+      sysPromptModalSelectedId = row.dataset.promptId;
+      renderSysPromptList();
+      setSysPromptEditorFromSelection();
     });
+  }
 
-     // --- Go to top (appears when scrolling the main body) ---
-     const mainScroll = document.getElementById('mainScroll');
-     const goTopBtn = document.getElementById('goTopBtn');
+  // Track dirty state for Save/Use gating
+  if (sp.name) sp.name.addEventListener('input', () => { sysPromptModalDirty = true; });
+  if (sp.text) sp.text.addEventListener('input', () => { sysPromptModalDirty = true; });
 
-     if (mainScroll && goTopBtn) {
-       const updateGoTop = () => {
-         resetDiffNav(); // user scrolled manually -> next/prev should re-anchor from viewport
-         const show = mainScroll.scrollTop > 120;
-         goTopBtn.classList.toggle('hidden', !show);
-       };
+  setupDiffNavObserver();
+  updateDiffNavButtons();
 
-       mainScroll.addEventListener('scroll', updateGoTop);
-       updateGoTop();
+  // Optional keyboard shortcuts:
+  // F7 = prev change, F8 = next change
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'F7') { e.preventDefault(); scrollToChange(-1); }
+    if (e.key === 'F8') { e.preventDefault(); scrollToChange(1); }
+  });
 
-       goTopBtn.addEventListener('click', () => {
-         mainScroll.scrollTo({ top: 0, behavior: 'smooth' });
-       });
-     }
+  // ESC should close whichever modal is open
+  window.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape') return;
 
-    })(); // end async load wrapper
+    const renameOpen = renameOverlay && !renameOverlay.classList.contains('hidden');
+    const apiOpen = apiOverlay && !apiOverlay.classList.contains('hidden');
+    const helpOpen = overlay && !overlay.classList.contains('hidden');
+    const aboutOpen = aboutOverlay && !aboutOverlay.classList.contains('hidden');
+    const closeOpen = tabCloseOverlay && !tabCloseOverlay.classList.contains('hidden');
+    const sysOpen = sp.overlay && !sp.overlay.classList.contains('hidden');
+    const histOpen = history.isHistoryModalOpen();
+    const langOpen = langOverlay && !langOverlay.classList.contains('hidden');
+
+    if (langOpen) closeLanguageModal();
+    else if (histOpen) history.closeHistoryModal();
+    else if (sysOpen) closeSysPromptModal();
+    else if (aboutOpen) closeAbout();
+    else if (closeOpen) closeTabCloseModal();
+    else if (renameOpen) closeTabRenameModal();
+    else if (apiOpen) {
+      initApiKeysManagerOnce().closeApiKeyModal();
+    }
+    else if (helpOpen) closeHelp();
+  });
+
+   // --- Go to top (appears when scrolling the main body) ---
+   const mainScroll = document.getElementById('mainScroll');
+   const goTopBtn = document.getElementById('goTopBtn');
+
+   if (mainScroll && goTopBtn) {
+     const updateGoTop = () => {
+       resetDiffNav(); // user scrolled manually -> next/prev should re-anchor from viewport
+       const show = mainScroll.scrollTop > 120;
+       goTopBtn.classList.toggle('hidden', !show);
+     };
+
+     mainScroll.addEventListener('scroll', updateGoTop);
+     updateGoTop();
+
+     goTopBtn.addEventListener('click', () => {
+       mainScroll.scrollTo({ top: 0, behavior: 'smooth' });
+     });
+   }
+
 });
 
 // Optional: one global listener (in case other modules want it later)
