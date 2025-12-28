@@ -118,6 +118,12 @@
     <div id="loading" class="hidden"><div class="spinner"></div> <span id="loadingText">Processing...</span></div>
 
     <label for="diff" id="diffLabel">Diff Patch (paste or load file):</label>
+    <div class="file-picker" id="diffFilePicker" aria-label="Diff patch file picker" style="margin: 6px 0 10px;">
+      <button id="diffFileBtn" class="modal-ok" type="button">Choose file</button>
+      <span id="diffFileName" class="file-name">No file chosen</span>
+      <!-- keep the real input for the OS picker, but hide it (we localize our own UI) -->
+      <input type="file" id="diffFile" class="hidden">
+    </div>
     <div  id="diff-container"  class="ta-container">
       <div class="ta-actions" aria-label="Diff textarea actions">
         <button type="button" class="ta-fab" data-ta-action="max" data-ta-target="#diff" title="Maximize" aria-label="Maximize">⛶</button>
@@ -125,14 +131,15 @@
       </div>
       <textarea id="diff" rows="10"></textarea>
     </div>
-    <div class="file-picker" id="diffFilePicker" aria-label="Diff patch file picker">
-      <button id="diffFileBtn" class="modal-ok" type="button">Choose file</button>
-      <span id="diffFileName" class="file-name">No file chosen</span>
-      <!-- keep the real input for the OS picker, but hide it (we localize our own UI) -->
-      <input type="file" id="diffFile" class="hidden">
-    </div>
+    <div aria-hidden="true" style="height: 22px;"></div>
 
     <label for="model" id="modelLabel">File Content (paste or load file):</label>
+    <div class="file-picker" id="modelFilePicker" aria-label="File content file picker" style="margin: 6px 0 10px;">
+      <button id="modelFileBtn" class="modal-ok" type="button">Choose file</button>
+      <span id="modelFileName" class="file-name">No file chosen</span>
+      <!-- keep the real input for the OS picker, but hide it (we localize our own UI) -->
+      <input type="file" id="modelFile" class="hidden">
+    </div>
     <div  id="model-container"  class="ta-container">
       <div class="ta-actions" aria-label="File content textarea actions">
         <button type="button" class="ta-fab" data-ta-action="max" data-ta-target="#model" title="Maximize" aria-label="Maximize">⛶</button>
@@ -140,12 +147,7 @@
       </div>
       <textarea id="model" rows="15"></textarea>
     </div>
-    <div class="file-picker" id="modelFilePicker" aria-label="File content file picker">
-      <button id="modelFileBtn" class="modal-ok" type="button">Choose file</button>
-      <span id="modelFileName" class="file-name">No file chosen</span>
-      <!-- keep the real input for the OS picker, but hide it (we localize our own UI) -->
-      <input type="file" id="modelFile" class="hidden">
-    </div>
+    <div aria-hidden="true" style="height: 22px;"></div>
 
     <div class="section-row" aria-label="Output header row">
       <div class="section-title" id="outputSectionTitle">Output from Model</div>
