@@ -1,0 +1,260 @@
+{
+    "languageName": "中文 (简体)",
+    "languageOptions": {
+        "en": "English",
+        "hi": "हिन्दी",
+        "es": "Español",
+        "fr": "Français",
+        "de": "Deutsch",
+        "zh": "中文 (简体)",
+        "ja": "日本語",
+        "ru": "Русский",
+        "pt": "Português",
+        "ar": "العربية",
+        "bn": "বাংলা",
+        "ko": "한국어",
+        "it": "Italiano",
+        "nl": "Nederlands",
+        "sv": "Svenska",
+        "tr": "Türkçe",
+        "pl": "Polski",
+        "vi": "Tiếng Việt",
+        "id": "Bahasa Indonesia"
+    },
+    "app": {
+        "name": "AI Diff 工具",
+        "iconAlt": "AI Diff 工具图标",
+        "windowTitle": "AI Diff 工具 - Grok 4 Patch 应用器"
+    },
+    "sidebar": {
+        "workspaces": "工作区",
+        "newTab": "新建标签页",
+        "renameHint": "双击标签页可重命名"
+    },
+    "nav": {
+        "prevChange": "上一个变更",
+        "nextChange": "下一个变更",
+        "prevChangeTitle": "上一个变更",
+        "nextChangeTitle": "下一个变更",
+        "goTop": "返回顶部",
+        "goToOutputDiff": "输出差异" 
+    },
+    "model": {
+        "selectLabel": "选择模型："
+    },
+    "loading": {
+        "processing": "处理中..."
+    },
+    "textarea": {
+        "maximize": "最大化",
+        "minimize": "最小化"
+    },
+    "labels": {
+        "diffPatch": "Diff Patch（粘贴或加载文件）：",
+        "fileContent": "文件内容（粘贴或加载文件）：",
+        "outputSection": "模型输出",
+        "diffSection": "与原文件的 Diff"
+    },
+    "output": {
+        "timeFmt": "{mins} 分 {secs} 秒",
+        "tokensEstFmt": "{n} 个 token [估算]",
+        "separator": " / ",
+        "copy": "复制",
+        "copyOutput": "复制输出",
+        "copied": "已复制！"
+    },
+    "buttons": {
+        "retry": "重试",
+        "applyPatch": "应用 Patch",
+        "copy": "复制",
+        "download": "下载修改后的文件",
+        "save": "保存",
+        "update": "更新",
+        "cancel": "取消",
+        "close": "关闭",
+        "unlock": "解锁",
+        "duplicate": "复制",
+        "delete": "删除",
+        "new": "新建",
+        "clear": "清空",
+        "prev": "上一个",
+        "next": "下一个"
+    },
+    "about": {
+        "title": "关于",
+        "closeAria": "关闭关于窗口",
+        "thanks": "感谢使用",
+        "creatorAlt": "创建者",
+        "creatorLabel": "创建者",
+        "emailLabel": "邮箱",
+        "donate": "捐赠",
+        "github": "GitHub 仓库",
+        "licenseTitle": "开源许可证",
+        "licenseText": "本项目为开源项目。请查看 GitHub 仓库中的 LICENSE 文件。",
+        "versionPrefix": "版本"
+    },
+    "help": {
+        "title": "AI Diff 工具 — 使用说明",
+        "closeAria": "关闭帮助",
+        "bodyHtml": "<p>本应用通过调用选定的模型（xAI Grok 或 OpenAI GPT）将 <b>unified diff patch</b> 应用到文件上，生成修改后的内容，并展示修改后的文件以及与原文件的对比 diff。</p><h3>快速步骤</h3><ol><li><b>选择工作区标签页</b>（左侧边栏）。每个标签页独立保存输入、模型、prompt、输出和 diff。</li><li><b>选择模型</b>（顶部下拉菜单）。</li><li>如需更严格或宽松的行为，可<b>选择系统提示词</b>（顶部按钮：<b>Prompt - ...</b>）。</li><li>将 <b>unified diff patch</b> 粘贴或加载到 <b>Diff Patch</b> 区域（可使用文本框下方的“选择文件”）。</li><li>将原始文件内容粘贴或加载到 <b>文件内容</b> 区域（可使用“选择文件”）。</li><li>输入你的 <b>API Key</b>（xAI 用 <code>grok-*</code>，OpenAI 用 <code>gpt-*</code>）和 <b>6 位 PIN</b>，然后 <b>保存</b>（本地加密存储）。</li><li>点击 <b>应用 Patch</b>，检查输出和“与原文件的 Diff”。</li><li>生成输出后，可使用 <b>复制</b> 或 <b>下载修改后的文件</b>。</li></ol><h3>工作区（标签页）</h3><ul><li>点击 <b>+</b> 按钮（或 <b>Cmd/Ctrl + T</b>）新建标签页。</li><li><b>双击</b>标签页可重命名。</li><li>点击标签页上的 <b>×</b>（或 <b>Cmd/Ctrl + W</b>）关闭标签页。</li><li>使用 <b>Cmd/Ctrl + Tab</b>（以及 <b>Cmd/Ctrl + Shift + Tab</b>）切换标签页。</li></ul><h3>系统提示词</h3><ul><li>通过顶部 <b>Prompt - ...</b> 按钮或 <b>编辑 → 系统提示词…</b>（<b>Cmd/Ctrl + Shift + P</b>）打开。</li><li><b>默认</b>提示词为锁定状态。点击 <b>新建</b> 或 <b>复制</b> 创建自定义提示词。</li><li>点击 <b>在此标签页中使用</b> 将选中提示词应用到当前工作区。</li><li>提示词保存在本地（localStorage）。</li></ul><h3>API Key（xAI / OpenAI）</h3><ul><li>通过 <b>文件 → xAI API Key…</b>（<b>Cmd/Ctrl + K</b>）或 <b>文件 → OpenAI API Key…</b>（<b>Cmd/Ctrl + Shift + K</b>）打开。</li><li>Key 使用你的 <b>6 位 PIN</b> 在本地加密。PIN 不存储，每次打开应用需重新解锁。</li><li>应用会根据模型名称自动选择对应的提供商 Key（<code>grok-*</code> vs <code>gpt-*</code>）。</li></ul><h3>输出、diff 导航和其他工具</h3><ul><li>模型被指示<b>仅输出最终文件内容</b>（无代码围栏、无额外说明）。</li><li>文件较大时，发送前会显示大小警告。</li><li>右上角元数据显示 <b>耗时</b> 和 <b>估算 token 数</b>，格式为：<code>&lt;时间&gt; / &lt;token&gt;</code>。</li><li>diff 区域可见时会出现 <b>上一个变更</b> / <b>下一个变更</b> 按钮。</li><li>向下滚动后会出现 <b>返回顶部</b> 按钮。</li><li>使用 <b>⛶</b>/<b>🗕</b> 按钮展开/收起 Diff、文件内容和输出区域。</li><li>请求失败且可重试时会出现 <b>重试</b> 按钮。</li><li>可通过 <b>视图 → 深色模式</b>（或 <b>Cmd/Ctrl + D</b>）切换深色模式。</li><li>可通过 <b>ESC</b>、<b>×</b> 按钮或点击背景关闭本帮助。</li></ul><h3>键盘快捷键</h3><ul><li><b>F1</b>：打开使用帮助</li><li><b>Cmd/Ctrl + D</b>：切换深色模式</li><li><b>Cmd/Ctrl + K</b>：xAI API Key</li><li><b>Cmd/Ctrl + Shift + K</b>：OpenAI API Key</li><li><b>Cmd/Ctrl + Shift + P</b>：系统提示词</li><li><b>Cmd/Ctrl + T</b>：新建标签页</li><li><b>Cmd/Ctrl + W</b>：关闭标签页</li><li><b>Cmd/Ctrl + Tab</b>：下一个标签页</li><li><b>Cmd/Ctrl + Shift + Tab</b>：上一个标签页</li><li><b>F7</b>：上一个变更</li><li><b>F8</b>：下一个变更</li><li><b>ESC</b>：关闭当前对话框</li></ul>"
+    },
+    "keyType": {
+        "title": "选择 API Key 类型",
+        "introHtml": "尚未保存任何 API Key。请先选择要配置的提供商。你只需设置一次 <b>6 位 PIN</b>，它将用于本地加密/解密 Key。"
+    },
+    "providers": {
+        "xai": "xAI",
+        "openai": "OpenAI"
+    },
+    "apiKey": {
+        "closeAria": "关闭 API Key 对话框",
+        "label": "API Key",
+        "pinLabel": "6 位 PIN",
+        "xaiTitle": "xAI API Key",
+        "openaiTitle": "OpenAI API Key",
+        "unlockTitle": "解锁 API Key",
+        "xaiPlaceholder": "xai-...",
+        "openaiPlaceholder": "sk-...",
+        "savedKeys": "已保存的 Key",
+        "introUnlockHtml": "输入你的 <b>6 位 PIN</b> 以在本会话中解锁并解密已保存的 Key。",
+        "introNoPinHtml": "输入你的 <b>{provider} API Key</b>。它将使用本会话已解锁的 PIN 在本地加密。",
+        "introWithPinHtml": "输入你的 <b>{provider} API Key</b> 和 <b>6 位 PIN</b>。Key 将在本地加密并存储在本应用（localStorage）中。PIN 不存储。",
+        "webCryptoMissing": "当前环境不支持 WebCrypto。",
+        "pinInvalid": "PIN 必须正好为 6 位数字。",
+        "noEncryptedKeys": "未找到加密的 Key（或数据已损坏）。",
+        "pinDecryptFailed": "PIN 无效（或存储的 Key 已损坏）。请重试。",
+        "keyRequired": "API Key 必填。",
+        "pinNotInSession": "本会话中未解锁 PIN。请先解锁。",
+        "saved": "已保存。",
+        "saveFailed": "加密保存失败：{err}",
+        "unlockHint": "输入 6 位 PIN 以解锁本会话中的已保存 Key。",
+        "migrateHint": "设置 6 位 PIN 以加密你现有的已保存 API Key。"
+    },
+    "tabs": {
+        "processing": "处理中…",
+        "closeAria": "关闭标签页",
+        "firstTab": "标签页 1",
+        "defaultTab": "标签页 {n}",
+        "fallbackName": "此标签页",
+        "renameTitle": "重命名标签页",
+        "renameCloseAria": "关闭重命名对话框",
+        "nameLabel": "标签页名称",
+        "namePlaceholder": "例如 auth.js patch",
+        "renameHint": "按 Enter 保存",
+        "closeTitle": "关闭标签页？",
+        "closeCloseAria": "关闭关闭标签页对话框",
+        "closeBodyHtml": "关闭 <b id=\"tabCloseName\">{tabName}</b>？此标签页中未保存的输入将丢失。",
+        "closeConfirm": "关闭标签页"
+    },
+    "sysPrompt": {
+        "title": "系统提示词",
+        "closeAria": "关闭系统提示词对话框",
+        "savedTitle": "已保存的提示词",
+        "listAria": "系统提示词列表",
+        "nameLabel": "提示词名称",
+        "namePlaceholder": "例如 严格补丁应用器",
+        "textLabel": "系统提示词",
+        "useInTab": "在此标签页中使用",
+        "defaultName": "默认",
+        "buttonLabel": "Prompt - {name}",
+        "buttonTitle": "系统提示词：{name}",
+        "unnamed": "(未命名)",
+        "badgeDefault": "默认",
+        "badgeInUse": "使用中",
+        "listHint": "还可以保存 {remaining} 个提示词（最多 {max} 个，包括默认）。",
+        "defaultLockedHint": "默认提示词无法编辑。请点击“新建”或“复制”创建自定义提示词。",
+        "createHint": "正在创建新的自定义提示词。请填写名称、编辑内容，然后保存。",
+        "confirmDelete": "删除系统提示词 “{name}”？",
+        "msg": {
+            "nameRequired": "提示词名称必填。",
+            "defaultReserved": "“默认” 为保留名称，请选择其他名称。",
+            "nameTaken": "已存在同名提示词。",
+            "textRequired": "系统提示词内容必填。",
+            "maxPrompts": "最多允许 {max} 个提示词（包括默认）。请先删除一个再添加。",
+            "saved": "已保存。",
+            "cantEditDefault": "无法编辑默认提示词。",
+            "notFound": "在存储中找不到此提示词。",
+            "unsaved": "有未保存的更改。请先保存后再使用此提示词。",
+            "cantDeleteDefault": "无法删除默认提示词。",
+            "deleted": "已删除。"
+        }
+    },
+    "history": {
+        "sectionTitle": "历史记录",
+        "closeAria": "关闭历史记录",
+        "clearTitle": "清空历史记录",
+        "listAria": "历史记录项",
+        "hint": "历史记录最大容量为 {max}，超出后旧记录会自动删除。",
+        "pageLabel": "第 {page} 页，共 {total} 页",
+        "emptyPage": "本页无记录。",
+        "emptyAll": "暂无历史记录。",
+        "openInNewTab": "在新标签页中打开",
+        "loadFailed": "无法加载此历史记录项（可能已被清除或存储损坏）。"
+    },
+    "language": {
+        "title": "语言",
+        "closeAria": "关闭语言选择",
+        "intro": "选择语言。应用将重新加载。"
+    },
+    "filePicker": {
+        "chooseFile": "选择文件",
+        "noFileChosen": "未选择文件"
+    },
+    "menu": {
+        "file": {
+            "title": "文件",
+            "xaiKey": "xAI API Key…",
+            "openaiKey": "OpenAI API Key…",
+            "close": "关闭",
+            "quit": "退出"
+        },
+        "edit": {
+            "title": "编辑",
+            "undo": "撤销",
+            "redo": "重做",
+            "cut": "剪切",
+            "copy": "复制",
+            "paste": "粘贴",
+            "pasteMatch": "粘贴并匹配样式",
+            "delete": "删除",
+            "selectAll": "全选",
+            "systemPrompt": "系统提示词…"
+        },
+        "view": {
+            "title": "视图",
+            "history": "历史记录…",
+            "language": "语言…",
+            "darkMode": "深色模式",
+            "prevChange": "上一个变更",
+            "nextChange": "下一个变更",
+            "reload": "重新加载",
+            "forceReload": "强制重新加载",
+            "devTools": "切换开发者工具",
+            "resetZoom": "实际大小",
+            "zoomIn": "放大",
+            "zoomOut": "缩小",
+            "fullscreen": "切换全屏"
+        },
+        "window": {
+            "title": "窗口",
+            "minimize": "最小化",
+            "zoom": "缩放",
+            "front": "将所有窗口前置",
+            "window": "窗口",
+            "close": "关闭"
+        },
+        "help": {
+            "usage": "使用说明",
+            "about": "关于…",
+            "title": "帮助"
+        },
+        "mac": {
+            "about": "关于",
+            "services": "服务",
+            "hide": "隐藏",
+            "hideOthers": "隐藏其他",
+            "unhide": "全部显示",
+            "quit": "退出"
+        }
+    }
+}

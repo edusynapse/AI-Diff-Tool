@@ -1,0 +1,260 @@
+{
+    "languageName": "Nederlands",
+    "languageOptions": {
+        "en": "English",
+        "hi": "हिन्दी",
+        "es": "Español",
+        "fr": "Français",
+        "de": "Deutsch",
+        "zh": "中文 (简体)",
+        "ja": "日本語",
+        "ru": "Русский",
+        "pt": "Português",
+        "ar": "العربية",
+        "bn": "বাংলা",
+        "ko": "한국어",
+        "it": "Italiano",
+        "nl": "Nederlands",
+        "sv": "Svenska",
+        "tr": "Türkçe",
+        "pl": "Polski",
+        "vi": "Tiếng Việt",
+        "id": "Bahasa Indonesia"
+    },
+    "app": {
+        "name": "AI Diff Tool",
+        "iconAlt": "AI Diff Tool-icoon",
+        "windowTitle": "AI Diff Tool - Grok 4 Patch Applier"
+    },
+    "sidebar": {
+        "workspaces": "Werkruimtes",
+        "newTab": "Nieuw tabblad",
+        "renameHint": "Dubbelklik op een tabblad om te hernoemen"
+    },
+    "nav": {
+        "prevChange": "Vorige wijziging",
+        "nextChange": "Volgende wijziging",
+        "prevChangeTitle": "Vorige wijziging",
+        "nextChangeTitle": "Volgende wijziging",
+        "goTop": "Naar boven",
+        "goToOutputDiff": "Uitvoerverschil"
+    },
+    "model": {
+        "selectLabel": "Selecteer Model:"
+    },
+    "loading": {
+        "processing": "Bezig met verwerken..."
+    },
+    "textarea": {
+        "maximize": "Maximaliseren",
+        "minimize": "Minimaliseren"
+    },
+    "labels": {
+        "diffPatch": "Diff Patch (plak of laad bestand):",
+        "fileContent": "Bestandsinhoud (plak of laad bestand):",
+        "outputSection": "Output van Model",
+        "diffSection": "Diff met origineel"
+    },
+    "output": {
+        "timeFmt": "{mins} min en {secs} sec",
+        "tokensEstFmt": "{n} tokens [geschat]",
+        "separator": " / ",
+        "copy": "Kopiëren",
+        "copyOutput": "Output kopiëren",
+        "copied": "Gekopieerd!"
+    },
+    "buttons": {
+        "retry": "Opnieuw proberen",
+        "applyPatch": "Patch toepassen",
+        "copy": "Kopiëren",
+        "download": "Aangepast bestand downloaden",
+        "save": "Opslaan",
+        "update": "Bijwerken",
+        "cancel": "Annuleren",
+        "close": "Sluiten",
+        "unlock": "Ontgrendelen",
+        "duplicate": "Dupliceren",
+        "delete": "Verwijderen",
+        "new": "Nieuw",
+        "clear": "Wissen",
+        "prev": "Vorige",
+        "next": "Volgende"
+    },
+    "about": {
+        "title": "Over",
+        "closeAria": "Sluit over",
+        "thanks": "Bedankt voor het gebruiken van",
+        "creatorAlt": "Maker",
+        "creatorLabel": "Maker",
+        "emailLabel": "E-mail",
+        "donate": "Doneren",
+        "github": "GitHub Repo",
+        "licenseTitle": "Open Source Licentie",
+        "licenseText": "Dit project is open-source. Zie het LICENSE-bestand in de GitHub-repository.",
+        "versionPrefix": "Versie"
+    },
+    "help": {
+        "title": "AI Diff Tool — Gebruik",
+        "closeAria": "Sluit help",
+        "bodyHtml": "<p>Deze app past een <b>unified diff patch</b> toe op een bestand door het geselecteerde model (xAI Grok of OpenAI GPT) te vragen de aangepaste output te produceren. Daarna toont het de aangepaste bestand en een side-by-side diff-weergave.</p><h3>Snelle stappen</h3><ol><li><b>Kies een werkruimte-tab</b> (linker zijbalk). Elke tab houdt zijn eigen invoer, model, prompt, output en diff bij.</li><li><b>Selecteer Model</b> (bovenste dropdown).</li><li><b>Kies System Prompt</b> (bovenste knop: <b>Prompt - ...</b>) als je strenger/losser gedrag nodig hebt.</li><li><b>Plak of laad</b> je unified diff patch in <b>Diff Patch</b> (gebruik “Bestand kiezen” onder de textarea als je dat liever doet).</li><li><b>Plak of laad</b> de originele bestandsinhoud in <b>Bestandsinhoud</b> (gebruik “Bestand kiezen” onder de textarea als je dat liever doet).</li><li>Voer je <b>API Key</b> in (xAI voor <code>grok-*</code>, OpenAI voor <code>gpt-*</code>) en <b>6-cijferige PIN</b>, klik dan op <b>Opslaan</b> (lokaal opgeslagen, versleuteld).</li><li>Klik op <b>Patch toepassen</b>. Bekijk de output en de “Diff met origineel”.</li><li>Gebruik <b>Kopiëren</b> of <b>Aangepast bestand downloaden</b> zodra de output is gegenereerd.</li></ol><h3>Werkruimtes (tabs)</h3><ul><li>Maak een nieuw tabblad met de <b>+</b>-knop (of <b>Cmd/Ctrl + T</b>).</li><li><b>Dubbelklik</b> op een tabblad om te hernoemen.</li><li>Sluit een tabblad met de <b>×</b> op het tabblad (of <b>Cmd/Ctrl + W</b>).</li><li>Wissel tussen tabbladen met <b>Cmd/Ctrl + Tab</b> (en <b>Cmd/Ctrl + Shift + Tab</b>).</li></ul><h3>System Prompt</h3><ul><li>Open via de bovenste <b>Prompt - ...</b>-knop, of <b>Bewerken → System Prompt…</b> (<b>Cmd/Ctrl + Shift + P</b>).</li><li><b>Standaard</b> is vergrendeld. Gebruik <b>Nieuw</b> of <b>Dupliceren</b> om een aangepaste prompt te maken.</li><li>Klik op <b>Gebruiken in dit tabblad</b> om de geselecteerde prompt toe te passen op de huidige werkruimte.</li><li>Prompts worden lokaal opgeslagen (in localStorage van deze app).</li></ul><h3>API keys (xAI / OpenAI)</h3><ul><li>Open via <b>Bestand → xAI API Key…</b> (<b>Cmd/Ctrl + K</b>) of <b>Bestand → OpenAI API Key…</b> (<b>Cmd/Ctrl + Shift + K</b>).</li><li>Keys worden lokaal versleuteld met je <b>6-cijferige PIN</b>. De PIN wordt niet opgeslagen; je ontgrendelt keys één keer per app-sessie.</li><li>De app kiest automatisch welke provider-key te gebruiken op basis van de modelnaam (<code>grok-*</code> vs <code>gpt-*</code>).</li></ul><h3>Output, diff navigatie en tools</h3><ul><li>Het model krijgt de instructie om <b>alleen de finale bestandsinhoud</b> te outputten (geen code fences, geen commentaar).</li><li>Bij grote bestanden kun je een groottewaarschuwing krijgen voordat je verzendt.</li><li>De metadata rechtsboven toont <b>tijd</b> en een <b>geschat token-aantal</b> als: <code>&lt;tijd&gt; / &lt;tokens&gt;</code>.</li><li><b>Vorige wijziging</b> / <b>Volgende wijziging</b>-knoppen verschijnen wanneer de diff-sectie op het scherm is.</li><li><b>Naar boven</b> verschijnt nadat je naar beneden scrolt.</li><li>Gebruik de <b>⛶</b>/<b>🗕</b>-knoppen om Diff, Bestandsinhoud en Output uit/te vouwen.</li><li><b>Opnieuw proberen</b> verschijnt wanneer een request mislukt en retries beschikbaar zijn.</li><li><b>Donkere Modus</b> kan worden getoggeld via het menu <b>Beeld → Donkere Modus</b> (of <b>Cmd/Ctrl + D</b>).</li><li>Je kunt deze help sluiten met <b>ESC</b>, de <b>×</b>-knop of door op de achtergrond te klikken.</li></ul><h3>Toetsenbord-sneltoetsen</h3><ul><li><b>F1</b>: Open Gebruikshelp</li><li><b>Cmd/Ctrl + D</b>: Toggle Donkere Modus</li><li><b>Cmd/Ctrl + K</b>: xAI API Key</li><li><b>Cmd/Ctrl + Shift + K</b>: OpenAI API Key</li><li><b>Cmd/Ctrl + Shift + P</b>: System Prompt</li><li><b>Cmd/Ctrl + T</b>: Nieuw tabblad</li><li><b>Cmd/Ctrl + W</b>: Sluit tabblad</li><li><b>Cmd/Ctrl + Tab</b>: Volgend tabblad</li><li><b>Cmd/Ctrl + Shift + Tab</b>: Vorig tabblad</li><li><b>F7</b>: Vorige wijziging</li><li><b>F8</b>: Volgende wijziging</li><li><b>ESC</b>: Sluit het huidige dialoogvenster</li></ul>"
+    },
+    "keyType": {
+        "title": "Kies API Key Type",
+        "introHtml": "Er zijn nog geen API keys opgeslagen. Kies eerst welke provider je wilt instellen. Je stelt één keer een <b>6-cijferige PIN</b> in, die wordt gebruikt om keys lokaal te versleutelen/ontsleutelen."
+    },
+    "providers": {
+        "xai": "xAI",
+        "openai": "OpenAI"
+    },
+    "apiKey": {
+        "closeAria": "Sluit API key dialoog",
+        "label": "API Key",
+        "pinLabel": "6-cijferige PIN",
+        "xaiTitle": "xAI API Key",
+        "openaiTitle": "OpenAI API Key",
+        "unlockTitle": "API Keys ontgrendelen",
+        "xaiPlaceholder": "xai-...",
+        "openaiPlaceholder": "sk-...",
+        "savedKeys": "opgeslagen keys",
+        "introUnlockHtml": "Voer je <b>6-cijferige PIN</b> in om opgeslagen keys voor deze sessie te ontgrendelen en ontsleutelen.",
+        "introNoPinHtml": "Voer je <b>{provider} API Key</b> in. Deze wordt lokaal versleuteld met de al ontgrendelde PIN voor deze sessie.",
+        "introWithPinHtml": "Voer je <b>{provider} API Key</b> en een <b>6-cijferige PIN</b> in. De key wordt lokaal versleuteld en opgeslagen in deze app (localStorage). De PIN wordt niet opgeslagen.",
+        "webCryptoMissing": "WebCrypto is niet beschikbaar in deze omgeving.",
+        "pinInvalid": "PIN moet precies 6 cijfers zijn.",
+        "noEncryptedKeys": "Geen versleutelde keys gevonden (of data is corrupt).",
+        "pinDecryptFailed": "Ongeldige PIN (of opgeslagen key corrupt). Probeer opnieuw.",
+        "keyRequired": "API key is verplicht.",
+        "pinNotInSession": "PIN is niet beschikbaar in deze sessie. Ontgrendel eerst.",
+        "saved": "Opgeslagen.",
+        "saveFailed": "Kon niet versleutelen en opslaan: {err}",
+        "unlockHint": "Voer je 6-cijferige PIN in om opgeslagen keys voor deze sessie te ontgrendelen.",
+        "migrateHint": "Stel een 6-cijferige PIN in om je bestaande opgeslagen API key te versleutelen."
+    },
+    "tabs": {
+        "processing": "Bezig met verwerken…",
+        "closeAria": "Sluit tabblad",
+        "firstTab": "Tabblad 1",
+        "defaultTab": "Tabblad {n}",
+        "fallbackName": "dit tabblad",
+        "renameTitle": "Tabblad hernoemen",
+        "renameCloseAria": "Sluit hernoemen dialoog",
+        "nameLabel": "Tabbladnaam",
+        "namePlaceholder": "bijv. auth.js patch",
+        "renameHint": "Druk op Enter om op te slaan",
+        "closeTitle": "Tabblad sluiten?",
+        "closeCloseAria": "Sluit sluit-tabblad dialoog",
+        "closeBodyHtml": "<b id=\"tabCloseName\">{tabName}</b> sluiten? Niet-opgeslagen invoer in dit tabblad gaat verloren.",
+        "closeConfirm": "Tabblad sluiten"
+    },
+    "sysPrompt": {
+        "title": "System Prompt",
+        "closeAria": "Sluit system prompt dialoog",
+        "savedTitle": "Opgeslagen prompts",
+        "listAria": "System prompts",
+        "nameLabel": "Promptnaam",
+        "namePlaceholder": "bijv. Strict patcher",
+        "textLabel": "System prompt",
+        "useInTab": "Gebruiken in dit tabblad",
+        "defaultName": "Standaard",
+        "buttonLabel": "Prompt - {name}",
+        "buttonTitle": "System prompt: {name}",
+        "unnamed": "(naamloos)",
+        "badgeDefault": "Standaard",
+        "badgeInUse": "In gebruik",
+        "listHint": "Je kunt nog {remaining} prompt{plural} opslaan (max {max} incl. Standaard).",
+        "defaultLockedHint": "Standaard prompt kan niet worden bewerkt. Klik op “Nieuw” of “Dupliceren” om een aangepaste prompt te maken.",
+        "createHint": "Nieuwe aangepaste prompt aanmaken. Voer een naam in, bewerk de tekst en sla op.",
+        "confirmDelete": "System prompt “{name}” verwijderen?",
+        "msg": {
+            "nameRequired": "Promptnaam is verplicht.",
+            "defaultReserved": "“Standaard” is gereserveerd. Kies een andere naam.",
+            "nameTaken": "Er bestaat al een prompt met deze naam.",
+            "textRequired": "System prompt tekst is verplicht.",
+            "maxPrompts": "Maximaal {max} prompts toegestaan (inclusief Standaard). Verwijder er een om een nieuwe toe te voegen.",
+            "saved": "Opgeslagen.",
+            "cantEditDefault": "Standaard prompt kan niet worden bewerkt.",
+            "notFound": "Kon deze prompt niet vinden in opslag.",
+            "unsaved": "Je hebt niet-opgeslagen wijzigingen. Sla op voordat je deze prompt gebruikt.",
+            "cantDeleteDefault": "Standaard prompt kan niet worden verwijderd.",
+            "deleted": "Verwijderd."
+        }
+    },
+    "history": {
+        "sectionTitle": "Geschiedenis",
+        "closeAria": "Sluit geschiedenis",
+        "clearTitle": "Geschiedenis wissen",
+        "listAria": "Geschiedenisitems",
+        "hint": "Maximale geschiedenisgrootte is {max}. Oudere items worden automatisch verwijderd.",
+        "pageLabel": "Pagina {page} van {total}",
+        "emptyPage": "Geen items op deze pagina.",
+        "emptyAll": "Nog geen geschiedenis.",
+        "openInNewTab": "Openen in nieuw tabblad",
+        "loadFailed": "Kon dit geschiedenisitem niet laden (mogelijk gewist of opslag corrupt)."
+    },
+    "language": {
+        "title": "Taal",
+        "closeAria": "Sluit taal",
+        "intro": "Kies een taal. De app wordt opnieuw geladen."
+    },
+    "filePicker": {
+        "chooseFile": "Bestand kiezen",
+        "noFileChosen": "Geen bestand gekozen"
+    },
+    "menu": {
+        "file": {
+            "title": "Bestand",
+            "xaiKey": "xAI API Key…",
+            "openaiKey": "OpenAI API Key…",
+            "close": "Sluiten",
+            "quit": "Afsluiten"
+        },
+        "edit": {
+            "title": "Bewerken",
+            "undo": "Ongedaan maken",
+            "redo": "Opnieuw",
+            "cut": "Knippen",
+            "copy": "Kopiëren",
+            "paste": "Plakken",
+            "pasteMatch": "Plakken en stijl overnemen",
+            "delete": "Verwijderen",
+            "selectAll": "Alles selecteren",
+            "systemPrompt": "System Prompt…"
+        },
+        "view": {
+            "title": "Beeld",
+            "history": "Geschiedenis…",
+            "language": "Taal…",
+            "darkMode": "Donkere Modus",
+            "prevChange": "Vorige Wijziging",
+            "nextChange": "Volgende Wijziging",
+            "reload": "Herladen",
+            "forceReload": "Geforceerd herladen",
+            "devTools": "Developer Tools tonen",
+            "resetZoom": "Standaardgrootte",
+            "zoomIn": "Inzoomen",
+            "zoomOut": "Uitzoomen",
+            "fullscreen": "Volledig scherm"
+        },
+        "window": {
+            "title": "Venster",
+            "minimize": "Minimaliseren",
+            "zoom": "Zoom",
+            "front": "Alles naar voren brengen",
+            "window": "Venster",
+            "close": "Sluiten"
+        },
+        "help": {
+            "usage": "Gebruik",
+            "about": "Over…",
+            "title": "Help"
+        },
+        "mac": {
+            "about": "Over",
+            "services": "Diensten",
+            "hide": "Verberg",
+            "hideOthers": "Verberg andere",
+            "unhide": "Toon alles",
+            "quit": "Stop"
+        }
+    }
+}

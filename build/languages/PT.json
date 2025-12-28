@@ -1,0 +1,260 @@
+{
+    "languageName": "Português",
+    "languageOptions": {
+        "en": "English",
+        "hi": "हिन्दी",
+        "es": "Español",
+        "fr": "Français",
+        "de": "Deutsch",
+        "zh": "中文 (简体)",
+        "ja": "日本語",
+        "ru": "Русский",
+        "pt": "Português",
+        "ar": "العربية",
+        "bn": "বাংলা",
+        "ko": "한국어",
+        "it": "Italiano",
+        "nl": "Nederlands",
+        "sv": "Svenska",
+        "tr": "Türkçe",
+        "pl": "Polski",
+        "vi": "Tiếng Việt",
+        "id": "Bahasa Indonesia"
+    },
+    "app": {
+        "name": "AI Diff Tool",
+        "iconAlt": "Ícone do AI Diff Tool",
+        "windowTitle": "AI Diff Tool - Aplicador de Patch Grok 4"
+    },
+    "sidebar": {
+        "workspaces": "Workspaces",
+        "newTab": "Nova aba",
+        "renameHint": "Clique duas vezes em uma aba para renomear"
+    },
+    "nav": {
+        "prevChange": "Mudança anterior",
+        "nextChange": "Próxima mudança",
+        "prevChangeTitle": "Mudança anterior",
+        "nextChangeTitle": "Próxima mudança",
+        "goTop": "Ir para o topo",
+        "goToOutputDiff": "Diferença de saída"
+    },
+    "model": {
+        "selectLabel": "Selecionar Modelo:"
+    },
+    "loading": {
+        "processing": "Processando..."
+    },
+    "textarea": {
+        "maximize": "Maximizar",
+        "minimize": "Minimizar"
+    },
+    "labels": {
+        "diffPatch": "Diff Patch (cole ou carregue arquivo):",
+        "fileContent": "Conteúdo do Arquivo (cole ou carregue arquivo):",
+        "outputSection": "Saída do Modelo",
+        "diffSection": "Diff com o original"
+    },
+    "output": {
+        "timeFmt": "{mins} min e {secs} segundos",
+        "tokensEstFmt": "{n} tokens [est.]",
+        "separator": " / ",
+        "copy": "Copiar",
+        "copyOutput": "Copiar Saída",
+        "copied": "Copiado!"
+    },
+    "buttons": {
+        "retry": "Tentar novamente",
+        "applyPatch": "Aplicar Patch",
+        "copy": "Copiar",
+        "download": "Baixar Arquivo Modificado",
+        "save": "Salvar",
+        "update": "Atualizar",
+        "cancel": "Cancelar",
+        "close": "Fechar",
+        "unlock": "Desbloquear",
+        "duplicate": "Duplicar",
+        "delete": "Excluir",
+        "new": "Novo",
+        "clear": "Limpar",
+        "prev": "Anterior",
+        "next": "Próximo"
+    },
+    "about": {
+        "title": "Sobre",
+        "closeAria": "Fechar sobre",
+        "thanks": "Obrigado por usar",
+        "creatorAlt": "Criador",
+        "creatorLabel": "Criador",
+        "emailLabel": "E-mail",
+        "donate": "Doar",
+        "github": "Repositório GitHub",
+        "licenseTitle": "Licença Open Source",
+        "licenseText": "Este projeto é open-source. Veja o arquivo LICENSE no repositório GitHub.",
+        "versionPrefix": "Versão"
+    },
+    "help": {
+        "title": "AI Diff Tool — Uso",
+        "closeAria": "Fechar ajuda",
+        "bodyHtml": "<p>Este app aplica um <b>patch diff unificado</b> a um arquivo pedindo ao modelo selecionado (xAI Grok ou OpenAI GPT) para produzir a saída com o patch aplicado. Em seguida, mostra o arquivo modificado e uma visualização diff lado a lado.</p><h3>Passos rápidos</h3><ol><li><b>Escolha uma aba de workspace</b> (barra lateral esquerda). Cada aba mantém suas próprias entradas, modelo, prompt, saída e diff.</li><li><b>Selecione o Modelo</b> (dropdown no topo).</li><li><b>Escolha o System Prompt</b> (botão no topo: <b>Prompt - ...</b>) se precisar de comportamento mais estrito ou flexível.</li><li><b>Cole ou carregue</b> seu patch diff unificado em <b>Diff Patch</b> (use “Escolher arquivo” abaixo da textarea se preferir).</li><li><b>Cole ou carregue</b> o conteúdo do arquivo original em <b>Conteúdo do Arquivo</b> (use “Escolher arquivo” abaixo da textarea se preferir).</li><li>Insira sua <b>Chave API</b> (xAI para <code>grok-*</code>, OpenAI para <code>gpt-*</code>) e <b>PIN de 6 dígitos</b>, depois <b>Salvar</b> (armazenado localmente, criptografado).</li><li>Clique em <b>Aplicar Patch</b>. Revise a saída e o “Diff com o original”.</li><li>Use <b>Copiar</b> ou <b>Baixar Arquivo Modificado</b> após a saída ser gerada.</li></ol><h3>Workspaces (abas)</h3><ul><li>Crie uma nova aba com o botão <b>+</b> (ou <b>Cmd/Ctrl + T</b>).</li><li><b>Clique duas vezes</b> em uma aba para renomeá-la.</li><li>Feche uma aba com o <b>×</b> na aba (ou <b>Cmd/Ctrl + W</b>).</li><li>Navegue pelas abas com <b>Cmd/Ctrl + Tab</b> (e <b>Cmd/Ctrl + Shift + Tab</b>).</li></ul><h3>System Prompt</h3><ul><li>Abra pelo botão no topo <b>Prompt - ...</b>, ou <b>Editar → System Prompt…</b> (<b>Cmd/Ctrl + Shift + P</b>).</li><li><b>Padrão</b> está bloqueado. Use <b>Novo</b> ou <b>Duplicar</b> para criar um prompt personalizado.</li><li>Clique em <b>Usar nesta aba</b> para aplicar o prompt selecionado ao workspace atual.</li><li>Prompts são armazenados localmente (no localStorage do app).</li></ul><h3>Chaves API (xAI / OpenAI)</h3><ul><li>Abra via <b>Arquivo → Chave API xAI…</b> (<b>Cmd/Ctrl + K</b>) ou <b>Arquivo → Chave API OpenAI…</b> (<b>Cmd/Ctrl + Shift + K</b>).</li><li>As chaves são criptografadas localmente usando seu <b>PIN de 6 dígitos</b>. O PIN não é armazenado; você desbloqueia as chaves uma vez por sessão do app.</li><li>O app escolhe automaticamente qual chave de provedor usar com base no nome do modelo (<code>grok-*</code> vs <code>gpt-*</code>).</li></ul><h3>Saída, navegação diff e ferramentas</h3><ul><li>O modelo é instruído a outputting <b>apenas o conteúdo final do arquivo</b> (sem code fences, sem comentários).</li><li>Se o arquivo for grande, você pode receber um aviso de tamanho antes de enviar.</li><li>Os metadados no topo direito mostram <b>tempo</b> e uma <b>contagem estimada de tokens</b> como: <code>&lt;tempo&gt; / &lt;tokens&gt;</code>.</li><li>Botões <b>Mudança anterior</b> / <b>Próxima mudança</b> aparecem quando a seção diff está na tela.</li><li><b>Ir para o topo</b> aparece após rolar para baixo.</li><li>Use os botões <b>⛶</b>/<b>🗕</b> para expandir/recolher Diff, Conteúdo do Arquivo e Saída.</li><li><b>Tentar novamente</b> aparece quando uma requisição falha e há tentativas disponíveis.</li><li><b>Modo Escuro</b> pode ser alternado via <b>Visualizar → Modo Escuro</b> (ou <b>Cmd/Ctrl + D</b>).</li><li>Você pode fechar esta ajuda com <b>ESC</b>, o botão <b>×</b> ou clicando no fundo.</li></ul><h3>Atalhos de teclado</h3><ul><li><b>F1</b>: Abrir Ajuda de Uso</li><li><b>Cmd/Ctrl + D</b>: Alternar Modo Escuro</li><li><b>Cmd/Ctrl + K</b>: Chave API xAI</li><li><b>Cmd/Ctrl + Shift + K</b>: Chave API OpenAI</li><li><b>Cmd/Ctrl + Shift + P</b>: System Prompt</li><li><b>Cmd/Ctrl + T</b>: Nova aba</li><li><b>Cmd/Ctrl + W</b>: Fechar aba</li><li><b>Cmd/Ctrl + Tab</b>: Próxima aba</li><li><b>Cmd/Ctrl + Shift + Tab</b>: Aba anterior</li><li><b>F7</b>: Mudança anterior</li><li><b>F8</b>: Próxima mudança</li><li><b>ESC</b>: Fechar o diálogo aberto</li></ul>"
+    },
+    "keyType": {
+        "title": "Escolher Tipo de Chave API",
+        "introHtml": "Nenhuma chave API salva ainda. Escolha qual provedor deseja configurar primeiro. Você definirá um <b>PIN de 6 dígitos</b> uma vez, e ele será usado para criptografar/descriptografar chaves localmente."
+    },
+    "providers": {
+        "xai": "xAI",
+        "openai": "OpenAI"
+    },
+    "apiKey": {
+        "closeAria": "Fechar diálogo de chave API",
+        "label": "Chave API",
+        "pinLabel": "PIN de 6 dígitos",
+        "xaiTitle": "Chave API xAI",
+        "openaiTitle": "Chave API OpenAI",
+        "unlockTitle": "Desbloquear Chaves API",
+        "xaiPlaceholder": "xai-...",
+        "openaiPlaceholder": "sk-...",
+        "savedKeys": "chaves salvas",
+        "introUnlockHtml": "Insira seu <b>PIN de 6 dígitos</b> para desbloquear e descriptografar as chaves salvas nesta sessão.",
+        "introNoPinHtml": "Insira sua <b>Chave API {provider}</b>. Ela será criptografada localmente usando o PIN já desbloqueado nesta sessão.",
+        "introWithPinHtml": "Insira sua <b>Chave API {provider}</b> e um <b>PIN de 6 dígitos</b>. A chave é criptografada localmente e armazenada neste app (localStorage). O PIN não é armazenado.",
+        "webCryptoMissing": "WebCrypto não está disponível neste ambiente.",
+        "pinInvalid": "O PIN deve ter exatamente 6 dígitos.",
+        "noEncryptedKeys": "Nenhuma chave criptografada encontrada (ou dados corrompidos).",
+        "pinDecryptFailed": "PIN inválido (ou chave armazenada corrompida). Tente novamente.",
+        "keyRequired": "Chave API é obrigatória.",
+        "pinNotInSession": "PIN não disponível nesta sessão. Desbloqueie primeiro.",
+        "saved": "Salvo.",
+        "saveFailed": "Falha ao criptografar e salvar: {err}",
+        "unlockHint": "Insira seu PIN de 6 dígitos para desbloquear as chaves salvas nesta sessão.",
+        "migrateHint": "Defina um PIN de 6 dígitos para criptografar sua chave API salva existente."
+    },
+    "tabs": {
+        "processing": "Processando…",
+        "closeAria": "Fechar aba",
+        "firstTab": "Aba 1",
+        "defaultTab": "Aba {n}",
+        "fallbackName": "esta aba",
+        "renameTitle": "Renomear aba",
+        "renameCloseAria": "Fechar diálogo de renomear",
+        "nameLabel": "Nome da aba",
+        "namePlaceholder": "ex.: patch auth.js",
+        "renameHint": "Pressione Enter para salvar",
+        "closeTitle": "Fechar aba?",
+        "closeCloseAria": "Fechar diálogo de fechar aba",
+        "closeBodyHtml": "Fechar <b id=\"tabCloseName\">{tabName}</b>? Qualquer entrada não salva nesta aba será perdida.",
+        "closeConfirm": "Fechar aba"
+    },
+    "sysPrompt": {
+        "title": "System Prompt",
+        "closeAria": "Fechar diálogo de system prompt",
+        "savedTitle": "Prompts salvos",
+        "listAria": "Prompts de sistema",
+        "nameLabel": "Nome do prompt",
+        "namePlaceholder": "ex.: Patch estrito",
+        "textLabel": "System prompt",
+        "useInTab": "Usar nesta aba",
+        "defaultName": "Padrão",
+        "buttonLabel": "Prompt - {name}",
+        "buttonTitle": "System prompt: {name}",
+        "unnamed": "(sem nome)",
+        "badgeDefault": "Padrão",
+        "badgeInUse": "Em uso",
+        "listHint": "Você pode salvar mais {remaining} prompt{plural} (máx {max} incl. Padrão).",
+        "defaultLockedHint": "Prompt padrão não pode ser editado. Clique em “Novo” ou “Duplicar” para criar um prompt personalizado.",
+        "createHint": "Criando um novo prompt personalizado. Insira um nome, edite o texto e depois Salve.",
+        "confirmDelete": "Excluir system prompt “{name}”?",
+        "msg": {
+            "nameRequired": "Nome do prompt é obrigatório.",
+            "defaultReserved": "“Padrão” é reservado. Escolha outro nome.",
+            "nameTaken": "Já existe um prompt com este nome.",
+            "textRequired": "Texto do system prompt é obrigatório.",
+            "maxPrompts": "Máximo de {max} prompts permitidos (incluindo Padrão). Exclua um para adicionar novo.",
+            "saved": "Salvo.",
+            "cantEditDefault": "Prompt padrão não pode ser editado.",
+            "notFound": "Não foi possível encontrar este prompt no armazenamento.",
+            "unsaved": "Você tem alterações não salvas. Salve antes de usar este prompt.",
+            "cantDeleteDefault": "Prompt padrão não pode ser excluído.",
+            "deleted": "Excluído."
+        }
+    },
+    "history": {
+        "sectionTitle": "Histórico",
+        "closeAria": "Fechar histórico",
+        "clearTitle": "Limpar histórico",
+        "listAria": "Itens do histórico",
+        "hint": "Tamanho máximo do histórico é {max}. Entradas mais antigas são removidas automaticamente.",
+        "pageLabel": "Página {page} de {total}",
+        "emptyPage": "Nenhum item nesta página.",
+        "emptyAll": "Ainda sem histórico.",
+        "openInNewTab": "Abrir em nova aba",
+        "loadFailed": "Não foi possível carregar este item do histórico (pode ter sido limpo ou armazenamento corrompido)."
+    },
+    "language": {
+        "title": "Idioma",
+        "closeAria": "Fechar idioma",
+        "intro": "Escolha um idioma. O app será recarregado."
+    },
+    "filePicker": {
+        "chooseFile": "Escolher arquivo",
+        "noFileChosen": "Nenhum arquivo escolhido"
+    },
+    "menu": {
+        "file": {
+            "title": "Arquivo",
+            "xaiKey": "Chave API xAI…",
+            "openaiKey": "Chave API OpenAI…",
+            "close": "Fechar",
+            "quit": "Sair"
+        },
+        "edit": {
+            "title": "Editar",
+            "undo": "Desfazer",
+            "redo": "Refazer",
+            "cut": "Recortar",
+            "copy": "Copiar",
+            "paste": "Colar",
+            "pasteMatch": "Colar e Combinar Estilo",
+            "delete": "Excluir",
+            "selectAll": "Selecionar Tudo",
+            "systemPrompt": "System Prompt…"
+        },
+        "view": {
+            "title": "Visualizar",
+            "history": "Histórico…",
+            "language": "Idioma…",
+            "darkMode": "Modo Escuro",
+            "prevChange": "Mudança Anterior",
+            "nextChange": "Próxima Mudança",
+            "reload": "Recarregar",
+            "forceReload": "Recarregar Forçado",
+            "devTools": "Alternar Ferramentas de Desenvolvedor",
+            "resetZoom": "Tamanho Real",
+            "zoomIn": "Ampliar",
+            "zoomOut": "Reduzir",
+            "fullscreen": "Alternar Tela Cheia"
+        },
+        "window": {
+            "title": "Janela",
+            "minimize": "Minimizar",
+            "zoom": "Ampliar",
+            "front": "Trazer Tudo para Frente",
+            "window": "Janela",
+            "close": "Fechar"
+        },
+        "help": {
+            "usage": "Uso",
+            "about": "Sobre…",
+            "title": "Ajuda"
+        },
+        "mac": {
+            "about": "Sobre",
+            "services": "Serviços",
+            "hide": "Ocultar",
+            "hideOthers": "Ocultar Outros",
+            "unhide": "Mostrar Todos",
+            "quit": "Sair"
+        }
+    }
+}

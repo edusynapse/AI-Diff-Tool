@@ -28,8 +28,42 @@ function createI18nManager({
   let i18n = { code: LANG_FALLBACK, pack: {}, fallback: {} };
 
   function _normLangCode(code) {
-    const c = String(code || '').trim().replace(/[^A-Za-z0-9_-]/g, '').toUpperCase();
+    // Accept inputs like: "EN", "en", "EN.json", "build/languages/EN.json"
+    // Normalize to: "EN"
+    const raw = String(code || '').trim();
+    const noExt = raw.replace(/\.json$/i, '');
+    const c = noExt.replace(/[^A-Za-z0-9_-]/g, '').toUpperCase();
     return c || LANG_FALLBACK;
+  }
+
+  function _aliasLangKey(k) {
+    // Keep this tiny: only handle known filename-vs-key mismatches.
+    // (Your EN.json uses "zh" but you also ship CN.json.)
+    switch (String(k || '').toLowerCase()) {
+      case 'cn': return 'zh';
+      default: return String(k || '').toLowerCase();
+    }
+  }
+
+  function _getLanguageOptionsMap() {
+    const p = i18n.pack;
+    if (p && typeof p === 'object' && p.languageOptions && typeof p.languageOptions === 'object') {
+      return p.languageOptions;
+    }
+    const f = i18n.fallback;
+    if (f && typeof f === 'object' && f.languageOptions && typeof f.languageOptions === 'object') {
+      return f.languageOptions;
+    }
+    return null;
+  }
+
+  function _getLanguageLabelFromOptions(code, optionsMap) {
+    const key = _aliasLangKey(code);
+    if (optionsMap && typeof optionsMap === 'object' && Object.prototype.hasOwnProperty.call(optionsMap, key)) {
+      const v = optionsMap[key];
+      if (typeof v === 'string' && v.trim()) return v;
+    }
+    return _normLangCode(code);
   }
 
   function _deepGet(obj, keyPath) {
@@ -301,12 +335,33 @@ function createI18nManager({
 
     const cur = _normLangCode(store?.getItem?.(LANG_LS_KEY) || i18n.code || LANG_FALLBACK);
 
+    // Get languageOptions from the *currently loaded* language JSON (i18n.pack).
+    // If it isn't present for any reason, fetch it once via IPC.
+    let optionsMap = _getLanguageOptionsMap();
+    if (!optionsMap) {
+      try {
+        const res = await ipcRenderer?.invoke?.('language:getAll', cur);
+        const pack = res && typeof res === 'object' ? res.pack : null;
+        const fb = res && typeof res === 'object' ? res.fallback : null;
+        if (pack && typeof pack === 'object' && pack.languageOptions && typeof pack.languageOptions === 'object') {
+          optionsMap = pack.languageOptions;
+        } else if (fb && typeof fb === 'object' && fb.languageOptions && typeof fb.languageOptions === 'object') {
+          optionsMap = fb.languageOptions;
+        }
+      } catch {}
+    }
+
     const frag = doc.createDocumentFragment();
     for (const code of langs) {
+      // "languageOptions" keys are lowercase ("en","hi",...)
+      const displayName = _getLanguageLabelFromOptions(String(code || '').toLowerCase(), optionsMap);
+
       const btn = doc.createElement('button');
       btn.type = 'button';
       btn.className = 'modal-ok';
-      btn.textContent = code;
+      btn.textContent = displayName;
+      btn.title = displayName;
+      btn.setAttribute('aria-label', displayName);
       btn.dataset.code = code;
       btn.disabled = code === cur;
       btn.addEventListener('click', async () => {

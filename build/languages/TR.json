@@ -1,0 +1,260 @@
+{
+    "languageName": "Türkçe",
+    "languageOptions": {
+        "en": "English",
+        "hi": "हिन्दी",
+        "es": "Español",
+        "fr": "Français",
+        "de": "Deutsch",
+        "zh": "中文 (简体)",
+        "ja": "日本語",
+        "ru": "Русский",
+        "pt": "Português",
+        "ar": "العربية",
+        "bn": "বাংলা",
+        "ko": "한국어",
+        "it": "Italiano",
+        "nl": "Nederlands",
+        "sv": "Svenska",
+        "tr": "Türkçe",
+        "pl": "Polski",
+        "vi": "Tiếng Việt",
+        "id": "Bahasa Indonesia"
+    },
+    "app": {
+        "name": "AI Diff Tool",
+        "iconAlt": "AI Diff Tool ikonu",
+        "windowTitle": "AI Diff Tool - Grok 4 Patch Uygulayıcı"
+    },
+    "sidebar": {
+        "workspaces": "Çalışma Alanları",
+        "newTab": "Yeni sekme",
+        "renameHint": "Sekmeyi yeniden adlandırmak için çift tıklayın"
+    },
+    "nav": {
+        "prevChange": "Önceki değişiklik",
+        "nextChange": "Sonraki değişiklik",
+        "prevChangeTitle": "Önceki değişiklik",
+        "nextChangeTitle": "Sonraki değişiklik",
+        "goTop": "Başa git",
+        "goToOutputDiff": "Çıktı farkı"
+    },
+    "model": {
+        "selectLabel": "Model Seç:"
+    },
+    "loading": {
+        "processing": "İşleniyor..."
+    },
+    "textarea": {
+        "maximize": "Tam ekran",
+        "minimize": "Küçült"
+    },
+    "labels": {
+        "diffPatch": "Diff Patch (yapıştır veya dosya yükle):",
+        "fileContent": "Dosya İçeriği (yapıştır veya dosya yükle):",
+        "outputSection": "Model Çıktısı",
+        "diffSection": "Orijinal ile Diff"
+    },
+    "output": {
+        "timeFmt": "{mins} dakika ve {secs} saniye",
+        "tokensEstFmt": "{n} token [tahmini]",
+        "separator": " / ",
+        "copy": "Kopyala",
+        "copyOutput": "Çıktıyı Kopyala",
+        "copied": "Kopyalandı!"
+    },
+    "buttons": {
+        "retry": "Tekrar Dene",
+        "applyPatch": "Patch'i Uygula",
+        "copy": "Kopyala",
+        "download": "Değiştirilmiş Dosyayı İndir",
+        "save": "Kaydet",
+        "update": "Güncelle",
+        "cancel": "İptal",
+        "close": "Kapat",
+        "unlock": "Kilidi Aç",
+        "duplicate": "Çoğalt",
+        "delete": "Sil",
+        "new": "Yeni",
+        "clear": "Temizle",
+        "prev": "Önceki",
+        "next": "Sonraki"
+    },
+    "about": {
+        "title": "Hakkında",
+        "closeAria": "Hakkında penceresini kapat",
+        "thanks": "Kullandığınız için teşekkürler",
+        "creatorAlt": "Yapımcı",
+        "creatorLabel": "Yapımcı",
+        "emailLabel": "E-posta",
+        "donate": "Bağış Yap",
+        "github": "GitHub Reposu",
+        "licenseTitle": "Açık Kaynak Lisansı",
+        "licenseText": "Bu proje açık kaynaktır. GitHub reposundaki LICENSE dosyasını inceleyin.",
+        "versionPrefix": "Sürüm"
+    },
+    "help": {
+        "title": "AI Diff Tool — Kullanım",
+        "closeAria": "Yardımı kapat",
+        "bodyHtml": "<p>Bu uygulama, seçtiğiniz modelden (xAI Grok veya OpenAI GPT) <b>unified diff patch</b>'i bir dosyaya uygulamasını isteyerek patch'li çıktıyı üretir. Ardından değiştirilmiş dosyayı ve yan yana diff görünümünü gösterir.</p><h3>Hızlı adımlar</h3><ol><li>Sol kenar çubuğundan bir <b>çalışma alanı sekmesi</b> seçin. Her sekme kendi girdilerini, modelini, prompt'unu, çıktısını ve diff'ini saklar.</li><li>Üstteki açılır menüden <b>Model Seç</b>.</li><li>Daha sıkı/geç davranış istiyorsanız üstteki <b>Prompt - ...</b> düğmesinden <b>System Prompt</b> seçin.</li><li><b>Diff Patch</b> alanına unified diff patch'inizi <b>yapıştırın veya dosya yükleyin</b> (metin alanının altındaki “Dosya seç” kullanabilirsiniz).</li><li><b>Dosya İçeriği</b> alanına orijinal dosya içeriğini <b>yapıştırın veya dosya yükleyin</b>.</li><li><b>API Anahtarı</b>nı (xAI için <code>grok-*</code>, OpenAI için <code>gpt-*</code>) ve <b>6 haneli PIN</b>'i girin, ardından <b>Kaydet</b> (yerel olarak şifrelenmiş şekilde saklanır).</li><li><b>Patch'i Uygula</b>'ya tıklayın. Çıktıyı ve “Orijinal ile Diff”i inceleyin.</li><li>Çıktı oluştuktan sonra <b>Kopyala</b> veya <b>Değiştirilmiş Dosyayı İndir</b> kullanın.</li></ol><h3>Çalışma Alanları (sekmeler)</h3><ul><li><b>+</b> düğmesiyle (veya <b>Cmd/Ctrl + T</b>) yeni sekme oluşturun.</li><li>Sekmeyi yeniden adlandırmak için <b>çift tıklayın</b>.</li><li>Sekmeyi <b>×</b> ile (veya <b>Cmd/Ctrl + W</b>) kapatın.</li><li>Sekmeler arasında <b>Cmd/Ctrl + Tab</b> (ve <b>Cmd/Ctrl + Shift + Tab</b>) ile geçiş yapın.</li></ul><h3>System Prompt</h3><ul><li>Üstteki <b>Prompt - ...</b> düğmesiyle veya <b>Düzenle → System Prompt…</b> (<b>Cmd/Ctrl + Shift + P</b>) ile açın.</li><li><b>Varsayılan</b> kilitlidir. Özel prompt oluşturmak için <b>Yeni</b> veya <b>Çoğalt</b> kullanın.</li><li>Seçili prompt'u mevcut çalışma alanına uygulamak için <b>Bu sekmede kullan</b>'a tıklayın.</li><li>Prompt'lar yerel olarak (localStorage) saklanır.</li></ul><h3>API anahtarları (xAI / OpenAI)</h3><ul><li><b>Dosya → xAI API Anahtarı…</b> (<b>Cmd/Ctrl + K</b>) veya <b>Dosya → OpenAI API Anahtarı…</b> (<b>Cmd/Ctrl + Shift + K</b>) ile açın.</li><li>Anahtarlar <b>6 haneli PIN</b> ile yerel olarak şifrelenir. PIN saklanmaz; oturum başına bir kez açmanız gerekir.</li><li>Uygulama, model adına göre (<code>grok-*</code> vs <code>gpt-*</code>) hangi sağlayıcı anahtarını kullanacağını otomatik seçer.</li></ul><h3>Çıktı, diff navigasyonu ve araçlar</h3><ul><li>Model yalnızca <b>son dosya içeriğini</b> çıkarması talimatı alır (kod çiti veya yorum yok).</li><li>Dosya büyükse göndermeden önce boyut uyarısı alabilirsiniz.</li><li>Sağ üstteki meta veri <b>süre</b> ve <b>tahmini token sayısı</b>nı şu şekilde gösterir: <code>&lt;süre&gt; / &lt;token&gt;</code>.</li><li>Diff bölümü ekrandayken <b>Önceki değişiklik</b> / <b>Sonraki değişiklik</b> düğmeleri görünür.</li><li>Kaydırdıktan sonra <b>Başa git</b> düğmesi çıkar.</li><li>Diff, Dosya İçeriği ve Çıktı alanlarını genişletmek/daraltmak için <b>⛶</b>/<b>🗕</b> düğmelerini kullanın.</li><li>İstek başarısız olduğunda ve tekrar deneme mümkünse <b>Tekrar Dene</b> görünür.</li><li><b>Karanlık Mod</b> <b>Görünüm → Karanlık Mod</b> menüsünden (veya <b>Cmd/Ctrl + D</b>) açılıp kapatılabilir.</li><li>Bu yardımı <b>ESC</b>, <b>×</b> düğmesi veya arka plana tıklayarak kapatabilirsiniz.</li></ul><h3>Klavye kısayolları</h3><ul><li><b>F1</b>: Kullanım Yardımı</li><li><b>Cmd/Ctrl + D</b>: Karanlık Modu Aç/Kapat</li><li><b>Cmd/Ctrl + K</b>: xAI API Anahtarı</li><li><b>Cmd/Ctrl + Shift + K</b>: OpenAI API Anahtarı</li><li><b>Cmd/Ctrl + Shift + P</b>: System Prompt</li><li><b>Cmd/Ctrl + T</b>: Yeni sekme</li><li><b>Cmd/Ctrl + W</b>: Sekmeyi kapat</li><li><b>Cmd/Ctrl + Tab</b>: Sonraki sekme</li><li><b>Cmd/Ctrl + Shift + Tab</b>: Önceki sekme</li><li><b>F7</b>: Önceki değişiklik</li><li><b>F8</b>: Sonraki değişiklik</li><li><b>ESC</b>: Açık olan pencereyi kapat</li></ul>"
+    },
+    "keyType": {
+        "title": "API Anahtarı Türünü Seç",
+        "introHtml": "Henüz hiçbir API anahtarı kaydedilmedi. Önce hangi sağlayıcıyı yapılandırmak istediğinizi seçin. <b>6 haneli PIN</b>'i bir kez belirleyeceksiniz ve bu PIN anahtarları yerel olarak şifrelemek/için kullanılacak."
+    },
+    "providers": {
+        "xai": "xAI",
+        "openai": "OpenAI"
+    },
+    "apiKey": {
+        "closeAria": "API anahtarı penceresini kapat",
+        "label": "API Anahtarı",
+        "pinLabel": "6 haneli PIN",
+        "xaiTitle": "xAI API Anahtarı",
+        "openaiTitle": "OpenAI API Anahtarı",
+        "unlockTitle": "API Anahtarlarının Kilidini Aç",
+        "xaiPlaceholder": "xai-...",
+        "openaiPlaceholder": "sk-...",
+        "savedKeys": "kaydedilmiş anahtar",
+        "introUnlockHtml": "Bu oturum için kaydedilmiş anahtarları açmak ve şifresini çözmek için <b>6 haneli PIN</b>'inizi girin.",
+        "introNoPinHtml": "<b>{provider} API Anahtarı</b>'nı girin. Bu oturumda zaten açılmış PIN kullanılarak yerel olarak şifrelenecek.",
+        "introWithPinHtml": "<b>{provider} API Anahtarı</b>'nı ve <b>6 haneli PIN</b>'i girin. Anahtar yerel olarak şifrelenir ve uygulamada (localStorage) saklanır. PIN saklanmaz.",
+        "webCryptoMissing": "Bu ortamda WebCrypto mevcut değil.",
+        "pinInvalid": "PIN tam olarak 6 haneli olmalıdır.",
+        "noEncryptedKeys": "Şifrelenmiş anahtar bulunamadı (veya veri bozulmuş).",
+        "pinDecryptFailed": "Geçersiz PIN (veya saklanan anahtar bozulmuş). Tekrar deneyin.",
+        "keyRequired": "API anahtarı zorunludur.",
+        "pinNotInSession": "Bu oturumda PIN mevcut değil. Önce kilidi açın.",
+        "saved": "Kaydedildi.",
+        "saveFailed": "Şifreleme ve kaydetme başarısız: {err}",
+        "unlockHint": "Bu oturum için kaydedilmiş anahtarların kilidini açmak için 6 haneli PIN'inizi girin.",
+        "migrateHint": "Mevcut kaydedilmiş API anahtarınızı şifrelemek için 6 haneli PIN belirleyin."
+    },
+    "tabs": {
+        "processing": "İşleniyor…",
+        "closeAria": "Sekmeyi kapat",
+        "firstTab": "Sekme 1",
+        "defaultTab": "Sekme {n}",
+        "fallbackName": "bu sekme",
+        "renameTitle": "Sekmeyi yeniden adlandır",
+        "renameCloseAria": "Yeniden adlandırma penceresini kapat",
+        "nameLabel": "Sekme adı",
+        "namePlaceholder": "ör. auth.js patch",
+        "renameHint": "Kaydetmek için Enter'a basın",
+        "closeTitle": "Sekmeyi kapat?",
+        "closeCloseAria": "Sekme kapatma penceresini kapat",
+        "closeBodyHtml": "<b id=\"tabCloseName\">{tabName}</b> sekmesini kapat? Bu sekmedeki kaydedilmemiş girdiler kaybolacak.",
+        "closeConfirm": "Sekmeyi kapat"
+    },
+    "sysPrompt": {
+        "title": "System Prompt",
+        "closeAria": "System prompt penceresini kapat",
+        "savedTitle": "Kaydedilmiş prompt'lar",
+        "listAria": "System prompt'ları",
+        "nameLabel": "Prompt adı",
+        "namePlaceholder": "ör. Strict patcher",
+        "textLabel": "System prompt",
+        "useInTab": "Bu sekmede kullan",
+        "defaultName": "Varsayılan",
+        "buttonLabel": "Prompt - {name}",
+        "buttonTitle": "System prompt: {name}",
+        "unnamed": "(adsız)",
+        "badgeDefault": "Varsayılan",
+        "badgeInUse": "Kullanımda",
+        "listHint": "En fazla {max} prompt'a izin veriliyor (Varsayılan dahil). {remaining} tane daha kaydedebilirsiniz.",
+        "defaultLockedHint": "Varsayılan prompt düzenlenemez. Özel prompt oluşturmak için “Yeni” veya “Çoğalt” kullanın.",
+        "createHint": "Yeni özel prompt oluşturuluyor. Ad girin, metni düzenleyin, ardından Kaydet.",
+        "confirmDelete": "“{name}” system prompt'unu sil?",
+        "msg": {
+            "nameRequired": "Prompt adı zorunludur.",
+            "defaultReserved": "“Varsayılan” adı ayrılmıştır. Başka bir ad seçin.",
+            "nameTaken": "Bu isimde bir prompt zaten var.",
+            "textRequired": "System prompt metni zorunludur.",
+            "maxPrompts": "En fazla {max} prompt'a izin veriliyor (Varsayılan dahil). Yeni eklemek için birini silin.",
+            "saved": "Kaydedildi.",
+            "cantEditDefault": "Varsayılan prompt düzenlenemez.",
+            "notFound": "Bu prompt depoda bulunamadı.",
+            "unsaved": "Kaydedilmemiş değişiklikleriniz var. Bu prompt'u kullanmadan önce kaydedin.",
+            "cantDeleteDefault": "Varsayılan prompt silinemez.",
+            "deleted": "Silindi."
+        }
+    },
+    "history": {
+        "sectionTitle": "Geçmiş",
+        "closeAria": "Geçmişi kapat",
+        "clearTitle": "Geçmişi temizle",
+        "listAria": "Geçmiş öğeleri",
+        "hint": "Maksimum geçmiş boyutu {max}. Eski girişler otomatik olarak silinir.",
+        "pageLabel": "{total} sayfanın {page}. sayfası",
+        "emptyPage": "Bu sayfada öğe yok.",
+        "emptyAll": "Henüz geçmiş yok.",
+        "openInNewTab": "Yeni sekmede aç",
+        "loadFailed": "Bu geçmiş öğesi yüklenemedi (temizlenmiş olabilir veya depolama bozulmuş)."
+    },
+    "language": {
+        "title": "Dil",
+        "closeAria": "Dil seçimini kapat",
+        "intro": "Bir dil seçin. Uygulama yeniden yüklenecek."
+    },
+    "filePicker": {
+        "chooseFile": "Dosya seç",
+        "noFileChosen": "Dosya seçilmedi"
+    },
+    "menu": {
+        "file": {
+            "title": "Dosya",
+            "xaiKey": "xAI API Anahtarı…",
+            "openaiKey": "OpenAI API Anahtarı…",
+            "close": "Kapat",
+            "quit": "Çık"
+        },
+        "edit": {
+            "title": "Düzenle",
+            "undo": "Geri Al",
+            "redo": "İleri Al",
+            "cut": "Kes",
+            "copy": "Kopyala",
+            "paste": "Yapıştır",
+            "pasteMatch": "Yapıştır ve Stili Eşleştir",
+            "delete": "Sil",
+            "selectAll": "Tümünü Seç",
+            "systemPrompt": "System Prompt…"
+        },
+        "view": {
+            "title": "Görünüm",
+            "history": "Geçmiş…",
+            "language": "Dil…",
+            "darkMode": "Karanlık Mod",
+            "prevChange": "Önceki Değişiklik",
+            "nextChange": "Sonraki Değişiklik",
+            "reload": "Yenile",
+            "forceReload": "Zorla Yenile",
+            "devTools": "Geliştirici Araçlarını Aç/Kapat",
+            "resetZoom": "Gerçek Boyut",
+            "zoomIn": "Yakınlaştır",
+            "zoomOut": "Uzaklaştır",
+            "fullscreen": "Tam Ekran Aç/Kapat"
+        },
+        "window": {
+            "title": "Pencere",
+            "minimize": "Küçült",
+            "zoom": "Yakınlaştır",
+            "front": "Tümünü Öne Getir",
+            "window": "Pencere",
+            "close": "Kapat"
+        },
+        "help": {
+            "usage": "Kullanım",
+            "about": "Hakkında…",
+            "title": "Yardım"
+        },
+        "mac": {
+            "about": "Hakkında",
+            "services": "Servisler",
+            "hide": "Gizle",
+            "hideOthers": "Diğerlerini Gizle",
+            "unhide": "Tümünü Göster",
+            "quit": "Çık"
+        }
+    }
+}

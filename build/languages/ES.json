@@ -1,0 +1,260 @@
+{
+    "languageName": "Español",
+    "languageOptions": {
+        "en": "English",
+        "hi": "हिन्दी",
+        "es": "Español",
+        "fr": "Français",
+        "de": "Deutsch",
+        "zh": "中文 (简体)",
+        "ja": "日本語",
+        "ru": "Русский",
+        "pt": "Português",
+        "ar": "العربية",
+        "bn": "বাংলা",
+        "ko": "한국어",
+        "it": "Italiano",
+        "nl": "Nederlands",
+        "sv": "Svenska",
+        "tr": "Türkçe",
+        "pl": "Polski",
+        "vi": "Tiếng Việt",
+        "id": "Bahasa Indonesia"
+    },
+    "app": {
+        "name": "AI Diff Tool",
+        "iconAlt": "Icono de AI Diff Tool",
+        "windowTitle": "AI Diff Tool - Aplicador de Parches Grok 4"
+    },
+    "sidebar": {
+        "workspaces": "Espacios de trabajo",
+        "newTab": "Nueva pestaña",
+        "renameHint": "Doble clic en una pestaña para renombrarla"
+    },
+    "nav": {
+        "prevChange": "Cambio anterior",
+        "nextChange": "Siguiente cambio",
+        "prevChangeTitle": "Cambio anterior",
+        "nextChangeTitle": "Siguiente cambio",
+        "goTop": "Ir arriba",
+        "goToOutputDiff": "Diferencia de salida"
+    },
+    "model": {
+        "selectLabel": "Seleccionar Modelo:"
+    },
+    "loading": {
+        "processing": "Procesando..."
+    },
+    "textarea": {
+        "maximize": "Maximizar",
+        "minimize": "Minimizar"
+    },
+    "labels": {
+        "diffPatch": "Diff Patch (pegar o cargar archivo):",
+        "fileContent": "Contenido del archivo (pegar o cargar archivo):",
+        "outputSection": "Salida del Modelo",
+        "diffSection": "Diff con el original"
+    },
+    "output": {
+        "timeFmt": "{mins} min y {secs} seg",
+        "tokensEstFmt": "{n} tokens [est.]",
+        "separator": " / ",
+        "copy": "Copiar",
+        "copyOutput": "Copiar salida",
+        "copied": "¡Copiado!"
+    },
+    "buttons": {
+        "retry": "Reintentar",
+        "applyPatch": "Aplicar Patch",
+        "copy": "Copiar",
+        "download": "Descargar archivo modificado",
+        "save": "Guardar",
+        "update": "Actualizar",
+        "cancel": "Cancelar",
+        "close": "Cerrar",
+        "unlock": "Desbloquear",
+        "duplicate": "Duplicar",
+        "delete": "Eliminar",
+        "new": "Nuevo",
+        "clear": "Limpiar",
+        "prev": "Anterior",
+        "next": "Siguiente"
+    },
+    "about": {
+        "title": "Acerca de",
+        "closeAria": "Cerrar acerca de",
+        "thanks": "Gracias por usar",
+        "creatorAlt": "Creador",
+        "creatorLabel": "Creador",
+        "emailLabel": "Email",
+        "donate": "Donar",
+        "github": "Repositorio GitHub",
+        "licenseTitle": "Licencia Open Source",
+        "licenseText": "Este proyecto es de código abierto. Consulta el archivo LICENSE en el repositorio de GitHub.",
+        "versionPrefix": "Versión"
+    },
+    "help": {
+        "title": "AI Diff Tool — Uso",
+        "closeAria": "Cerrar ayuda",
+        "bodyHtml": "<p>Esta app aplica un <b>unified diff patch</b> a un archivo preguntando al modelo seleccionado (xAI Grok o OpenAI GPT) que genere la salida con el patch aplicado. Luego te muestra el archivo modificado y una vista diff lado a lado.</p><h3>Pasos rápidos</h3><ol><li><b>Elige una pestaña de espacio de trabajo</b> (barra lateral izquierda). Cada pestaña guarda sus propias entradas, modelo, prompt, salida y diff.</li><li><b>Selecciona Modelo</b> (desplegable superior).</li><li><b>Elige System Prompt</b> (botón superior: <b>Prompt - ...</b>) si necesitas un comportamiento más estricto o flexible.</li><li><b>Pega o carga</b> tu unified diff patch en <b>Diff Patch</b> (usa “Elegir archivo” debajo del textarea si lo prefieres).</li><li><b>Pega o carga</b> el contenido original del archivo en <b>Contenido del archivo</b> (usa “Elegir archivo” si lo prefieres).</li><li>Ingresa tu <b>API Key</b> (xAI para <code>grok-*</code>, OpenAI para <code>gpt-*</code>) y un <b>PIN de 6 dígitos</b>, luego <b>Guardar</b> (se almacena localmente, encriptado).</li><li>Haz clic en <b>Aplicar Patch</b>. Revisa la salida y el “Diff con el original”.</li><li>Usa <b>Copiar</b> o <b>Descargar archivo modificado</b> una vez generada la salida.</li></ol><h3>Espacios de trabajo (pestañas)</h3><ul><li>Crea una nueva pestaña con el botón <b>+</b> (o <b>Cmd/Ctrl + T</b>).</li><li><b>Doble clic</b> en una pestaña para renombrarla.</li><li>Cierra una pestaña con la <b>×</b> en la pestaña (o <b>Cmd/Ctrl + W</b>).</li><li>Cambia entre pestañas con <b>Cmd/Ctrl + Tab</b> (y <b>Cmd/Ctrl + Shift + Tab</b>).</li></ul><h3>System Prompt</h3><ul><li>Abre con el botón superior <b>Prompt - ...</b>, o <b>Editar → System Prompt…</b> (<b>Cmd/Ctrl + Shift + P</b>).</li><li><b>Default</b> está bloqueado. Usa <b>Nuevo</b> o <b>Duplicar</b> para crear un prompt personalizado.</li><li>Haz clic en <b>Usar en esta pestaña</b> para aplicar el prompt seleccionado al espacio de trabajo actual.</li><li>Los prompts se guardan localmente (en localStorage de la app).</li></ul><h3>API keys (xAI / OpenAI)</h3><ul><li>Abre con <b>Archivo → xAI API Key…</b> (<b>Cmd/Ctrl + K</b>) o <b>Archivo → OpenAI API Key…</b> (<b>Cmd/Ctrl + Shift + K</b>).</li><li>Las keys se encriptan localmente usando tu <b>PIN de 6 dígitos</b>. El PIN no se guarda; desbloqueas las keys una vez por sesión.</li><li>La app elige automáticamente qué proveedor usar según el nombre del modelo (<code>grok-*</code> vs <code>gpt-*</code>).</li></ul><h3>Salida, navegación diff y herramientas</h3><ul><li>El modelo está instruido para devolver <b>solo el contenido final del archivo</b> (sin code fences ni comentarios).</li><li>Si el archivo es grande, puedes recibir una advertencia de tamaño antes de enviar.</li><li>Los metadatos superior-derecha muestran <b>tiempo</b> y un <b>conteo estimado de tokens</b> como: <code>&lt;tiempo&gt; / &lt;tokens&gt;</code>.</li><li>Los botones <b>Cambio anterior</b> / <b>Siguiente cambio</b> aparecen cuando la sección diff está visible.</li><li><b>Ir arriba</b> aparece después de hacer scroll hacia abajo.</li><li>Usa los botones <b>⛶</b>/<b>🗕</b> para expandir/colapsar Diff, Contenido del archivo y Salida.</li><li><b>Reintentar</b> aparece cuando una petición falla y hay reintentos disponibles.</li><li><b>Modo oscuro</b> se puede alternar desde <b>Vista → Modo oscuro</b> (o <b>Cmd/Ctrl + D</b>).</li><li>Puedes cerrar esta ayuda con <b>ESC</b>, el botón <b>×</b> o clic en el fondo.</li></ul><h3>Atajos de teclado</h3><ul><li><b>F1</b>: Abrir Ayuda de Uso</li><li><b>Cmd/Ctrl + D</b>: Alternar Modo oscuro</li><li><b>Cmd/Ctrl + K</b>: xAI API Key</li><li><b>Cmd/Ctrl + Shift + K</b>: OpenAI API Key</li><li><b>Cmd/Ctrl + Shift + P</b>: System Prompt</li><li><b>Cmd/Ctrl + T</b>: Nueva pestaña</li><li><b>Cmd/Ctrl + W</b>: Cerrar pestaña</li><li><b>Cmd/Ctrl + Tab</b>: Siguiente pestaña</li><li><b>Cmd/Ctrl + Shift + Tab</b>: Pestaña anterior</li><li><b>F7</b>: Cambio anterior</li><li><b>F8</b>: Siguiente cambio</li><li><b>ESC</b>: Cerrar el diálogo actual</li></ul>"
+    },
+    "keyType": {
+        "title": "Elegir tipo de API Key",
+        "introHtml": "Aún no hay API keys guardadas. Elige qué proveedor quieres configurar primero. Configurarás un <b>PIN de 6 dígitos</b> una sola vez, y se usará para encriptar/desencriptar las keys localmente."
+    },
+    "providers": {
+        "xai": "xAI",
+        "openai": "OpenAI"
+    },
+    "apiKey": {
+        "closeAria": "Cerrar diálogo de API key",
+        "label": "API Key",
+        "pinLabel": "PIN de 6 dígitos",
+        "xaiTitle": "xAI API Key",
+        "openaiTitle": "OpenAI API Key",
+        "unlockTitle": "Desbloquear API Keys",
+        "xaiPlaceholder": "xai-...",
+        "openaiPlaceholder": "sk-...",
+        "savedKeys": "keys guardadas",
+        "introUnlockHtml": "Ingresa tu <b>PIN de 6 dígitos</b> para desbloquear y desencriptar las keys guardadas en esta sesión.",
+        "introNoPinHtml": "Ingresa tu <b>{provider} API Key</b>. Se encriptará localmente usando el PIN ya desbloqueado en esta sesión.",
+        "introWithPinHtml": "Ingresa tu <b>{provider} API Key</b> y un <b>PIN de 6 dígitos</b>. La key se encripta localmente y se guarda en esta app (localStorage). El PIN no se guarda.",
+        "webCryptoMissing": "WebCrypto no está disponible en este entorno.",
+        "pinInvalid": "El PIN debe tener exactamente 6 dígitos.",
+        "noEncryptedKeys": "No se encontraron keys encriptadas (o los datos están corruptos).",
+        "pinDecryptFailed": "PIN inválido (o key almacenada corrupta). Intenta de nuevo.",
+        "keyRequired": "La API key es obligatoria.",
+        "pinNotInSession": "El PIN no está disponible en esta sesión. Por favor desbloquea primero.",
+        "saved": "Guardado.",
+        "saveFailed": "Error al encriptar y guardar: {err}",
+        "unlockHint": "Ingresa tu PIN de 6 dígitos para desbloquear las keys guardadas en esta sesión.",
+        "migrateHint": "Establece un PIN de 6 dígitos para encriptar tu API key existente."
+    },
+    "tabs": {
+        "processing": "Procesando…",
+        "closeAria": "Cerrar pestaña",
+        "firstTab": "Pestaña 1",
+        "defaultTab": "Pestaña {n}",
+        "fallbackName": "esta pestaña",
+        "renameTitle": "Renombrar pestaña",
+        "renameCloseAria": "Cerrar diálogo de renombrar",
+        "nameLabel": "Nombre de pestaña",
+        "namePlaceholder": "p. ej. auth.js patch",
+        "renameHint": "Pulsa Enter para guardar",
+        "closeTitle": "¿Cerrar pestaña?",
+        "closeCloseAria": "Cerrar diálogo de cerrar pestaña",
+        "closeBodyHtml": "¿Cerrar <b id=\"tabCloseName\">{tabName}</b>? Se perderá cualquier entrada no guardada en esta pestaña.",
+        "closeConfirm": "Cerrar pestaña"
+    },
+    "sysPrompt": {
+        "title": "System Prompt",
+        "closeAria": "Cerrar system prompt",
+        "savedTitle": "Prompts guardados",
+        "listAria": "System prompts",
+        "nameLabel": "Nombre del prompt",
+        "namePlaceholder": "p. ej. Strict patcher",
+        "textLabel": "System prompt",
+        "useInTab": "Usar en esta pestaña",
+        "defaultName": "Default",
+        "buttonLabel": "Prompt - {name}",
+        "buttonTitle": "System prompt: {name}",
+        "unnamed": "(sin nombre)",
+        "badgeDefault": "Default",
+        "badgeInUse": "En uso",
+        "listHint": "Puedes guardar {remaining} prompt{plural} más (máx {max} incl. Default).",
+        "defaultLockedHint": "El prompt Default no se puede editar. Haz clic en “Nuevo” o “Duplicar” para crear un prompt personalizado.",
+        "createHint": "Creando un nuevo prompt personalizado. Ingresa un nombre, edita el texto y luego Guarda.",
+        "confirmDelete": "¿Eliminar system prompt “{name}”?",
+        "msg": {
+            "nameRequired": "El nombre del prompt es obligatorio.",
+            "defaultReserved": "“Default” está reservado. Elige otro nombre.",
+            "nameTaken": "Ya existe un prompt con este nombre.",
+            "textRequired": "El texto del system prompt es obligatorio.",
+            "maxPrompts": "Máximo {max} prompts permitidos (incluyendo Default). Elimina uno para añadir otro.",
+            "saved": "Guardado.",
+            "cantEditDefault": "El prompt Default no se puede editar.",
+            "notFound": "No se encontró este prompt en el almacenamiento.",
+            "unsaved": "Tienes cambios sin guardar. Guarda antes de usar este prompt.",
+            "cantDeleteDefault": "El prompt Default no se puede eliminar.",
+            "deleted": "Eliminado."
+        }
+    },
+    "history": {
+        "sectionTitle": "Historial",
+        "closeAria": "Cerrar historial",
+        "clearTitle": "Limpiar historial",
+        "listAria": "Elementos del historial",
+        "hint": "El tamaño máximo del historial es {max}. Las entradas más antiguas se eliminan automáticamente.",
+        "pageLabel": "Página {page} de {total}",
+        "emptyPage": "No hay elementos en esta página.",
+        "emptyAll": "Aún no hay historial.",
+        "openInNewTab": "Abrir en nueva pestaña",
+        "loadFailed": "No se pudo cargar este elemento del historial (puede haber sido borrado o el almacenamiento está corrupto)."
+    },
+    "language": {
+        "title": "Idioma",
+        "closeAria": "Cerrar idioma",
+        "intro": "Elige un idioma. La app se recargará."
+    },
+    "filePicker": {
+        "chooseFile": "Elegir archivo",
+        "noFileChosen": "Ningún archivo seleccionado"
+    },
+    "menu": {
+        "file": {
+            "title": "Archivo",
+            "xaiKey": "xAI API Key…",
+            "openaiKey": "OpenAI API Key…",
+            "close": "Cerrar",
+            "quit": "Salir"
+        },
+        "edit": {
+            "title": "Editar",
+            "undo": "Deshacer",
+            "redo": "Rehacer",
+            "cut": "Cortar",
+            "copy": "Copiar",
+            "paste": "Pegar",
+            "pasteMatch": "Pegar y coincidir estilo",
+            "delete": "Eliminar",
+            "selectAll": "Seleccionar todo",
+            "systemPrompt": "System Prompt…"
+        },
+        "view": {
+            "title": "Vista",
+            "history": "Historial…",
+            "language": "Idioma…",
+            "darkMode": "Modo oscuro",
+            "prevChange": "Cambio anterior",
+            "nextChange": "Siguiente cambio",
+            "reload": "Recargar",
+            "forceReload": "Forzar recarga",
+            "devTools": "Mostrar/Ocultar Herramientas de desarrollador",
+            "resetZoom": "Tamaño real",
+            "zoomIn": "Acercar",
+            "zoomOut": "Alejar",
+            "fullscreen": "Alternar pantalla completa"
+        },
+        "window": {
+            "title": "Ventana",
+            "minimize": "Minimizar",
+            "zoom": "Zoom",
+            "front": "Traer todo al frente",
+            "window": "Ventana",
+            "close": "Cerrar"
+        },
+        "help": {
+            "usage": "Uso",
+            "about": "Acerca de…",
+            "title": "Ayuda"
+        },
+        "mac": {
+            "about": "Acerca de",
+            "services": "Servicios",
+            "hide": "Ocultar",
+            "hideOthers": "Ocultar otros",
+            "unhide": "Mostrar todos",
+            "quit": "Salir"
+        }
+    }
+}

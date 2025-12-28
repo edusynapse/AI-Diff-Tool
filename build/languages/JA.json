@@ -1,0 +1,260 @@
+{
+    "languageName": "日本語",
+    "languageOptions": {
+        "en": "English",
+        "hi": "हिन्दी",
+        "es": "Español",
+        "fr": "Français",
+        "de": "Deutsch",
+        "zh": "中文 (简体)",
+        "ja": "日本語",
+        "ru": "Русский",
+        "pt": "Português",
+        "ar": "العربية",
+        "bn": "বাংলা",
+        "ko": "한국어",
+        "it": "Italiano",
+        "nl": "Nederlands",
+        "sv": "Svenska",
+        "tr": "Türkçe",
+        "pl": "Polski",
+        "vi": "Tiếng Việt",
+        "id": "Bahasa Indonesia"
+    },
+    "app": {
+        "name": "AI Diff Tool",
+        "iconAlt": "AI Diff Tool アイコン",
+        "windowTitle": "AI Diff Tool - Grok 4 パッチ適用ツール"
+    },
+    "sidebar": {
+        "workspaces": "ワークスペース",
+        "newTab": "新しいタブ",
+        "renameHint": "タブをダブルクリックで名前を変更"
+    },
+    "nav": {
+        "prevChange": "前の変更",
+        "nextChange": "次の変更",
+        "prevChangeTitle": "前の変更へ移動",
+        "nextChangeTitle": "次の変更へ移動",
+        "goTop": "トップへ",
+        "goToOutputDiff": "出力差分" 
+    },
+    "model": {
+        "selectLabel": "モデルを選択:"
+    },
+    "loading": {
+        "processing": "処理中..."
+    },
+    "textarea": {
+        "maximize": "最大化",
+        "minimize": "最小化"
+    },
+    "labels": {
+        "diffPatch": "Diff パッチ (貼り付けまたはファイル読み込み):",
+        "fileContent": "ファイル内容 (貼り付けまたはファイル読み込み):",
+        "outputSection": "モデルの出力",
+        "diffSection": "オリジナルとの差分"
+    },
+    "output": {
+        "timeFmt": "{mins}分 {secs}秒",
+        "tokensEstFmt": "{n} トークン [推定]",
+        "separator": " / ",
+        "copy": "コピー",
+        "copyOutput": "出力をコピー",
+        "copied": "コピーしました！"
+    },
+    "buttons": {
+        "retry": "リトライ",
+        "applyPatch": "パッチ適用",
+        "copy": "コピー",
+        "download": "修正ファイルをダウンロード",
+        "save": "保存",
+        "update": "更新",
+        "cancel": "キャンセル",
+        "close": "閉じる",
+        "unlock": "アンロック",
+        "duplicate": "複製",
+        "delete": "削除",
+        "new": "新規",
+        "clear": "クリア",
+        "prev": "前",
+        "next": "次"
+    },
+    "about": {
+        "title": "アプリ情報",
+        "closeAria": "アプリ情報を閉じる",
+        "thanks": "ご利用いただきありがとうございます",
+        "creatorAlt": "作成者",
+        "creatorLabel": "作成者",
+        "emailLabel": "メール",
+        "donate": "寄付",
+        "github": "GitHub リポジトリ",
+        "licenseTitle": "オープンソースライセンス",
+        "licenseText": "このプロジェクトはオープンソースです。GitHub リポジトリの LICENSE ファイルを参照してください。",
+        "versionPrefix": "バージョン"
+    },
+    "help": {
+        "title": "AI Diff Tool — 使い方",
+        "closeAria": "ヘルプを閉じる",
+        "bodyHtml": "<p>このアプリは、選択したモデル（xAI Grok または OpenAI GPT）に統一diffパッチを適用させた修正後のファイルを出力させ、修正ファイルとサイドバイサイドの差分表示を行います。</p><h3>クイック手順</h3><ol><li><b>ワークスペースタブを選択</b>（左サイドバー）。各タブは入力、モデル、プロンプト、出力、差分を個別に保持します。</li><li><b>モデルを選択</b>（上部のドロップダウン）。</li><li>必要に応じて<b>システムプロンプトを選択</b>（上部のボタン: <b>プロンプト - ...</b>）で厳密/緩めの動作を調整。</li><li><b>Diff パッチ</b>に統一diffパッチを貼り付けまたは読み込み（テキストエリア下の「ファイルを選択」を使用可）。</li><li><b>ファイル内容</b>に元のファイル内容を貼り付けまたは読み込み（同様に「ファイルを選択」可）。</li><li><b>APIキー</b>（xAIは<code>grok-*</code>、OpenAIは<code>gpt-*</code>）と<b>6桁のPIN</b>を入力し<b>保存</b>（ローカルに暗号化保存）。</li><li><b>パッチ適用</b>をクリック。出力と「オリジナルとの差分」を確認。</li><li>出力が生成されたら<b>コピー</b>または<b>修正ファイルをダウンロード</b>。</li></ol><h3>ワークスペース（タブ）</h3><ul><li><b>+</b>ボタン（または <b>Cmd/Ctrl + T</b>）で新しいタブを作成。</li><li>タブを<b>ダブルクリック</b>で名前変更。</li><li>タブの<b>×</b>（または <b>Cmd/Ctrl + W</b>）で閉じる。</li><li><b>Cmd/Ctrl + Tab</b>（および <b>Cmd/Ctrl + Shift + Tab</b>）でタブを切り替え。</li></ul><h3>システムプロンプト</h3><ul><li>上部の<b>プロンプト - ...</b>ボタン、または <b>編集 → システムプロンプト…</b>（<b>Cmd/Ctrl + Shift + P</b>）で開く。</li><li><b>デフォルト</b>はロックされています。<b>新規</b>または<b>複製</b>でカスタムプロンプトを作成。</li><li><b>このタブで使用</b>をクリックで現在のワークスペースに適用。</li><li>プロンプトはローカル（localStorage）に保存されます。</li></ul><h3>APIキー（xAI / OpenAI）</h3><ul><li><b>ファイル → xAI APIキー…</b>（<b>Cmd/Ctrl + K</b>）または <b>ファイル → OpenAI APIキー…</b>（<b>Cmd/Ctrl + Shift + K</b>）で開く。</li><li>キーは<b>6桁PIN</b>でローカル暗号化。PINは保存されず、セッションごとにアンロックが必要です。</li><li>モデル名（<code>grok-*</code> vs <code>gpt-*</code>）で自動的にプロバイダを選択。</li></ul><h3>出力・差分ナビゲーション・ツール</h3><ul><li>モデルには<b>最終ファイル内容のみ</b>出力（コードフェンスやコメントなし）を指示。</li><li>ファイルが大きい場合は送信前にサイズ警告が出ます。</li><li>右上に<b>時間</b>と<b>推定トークン数</b>を表示: <code>&lt;時間&gt; / &lt;トークン&gt;</code>。</li><li>差分セクション表示時に<b>前の変更</b>/<b>次の変更</b>ボタンが出現。</li><li>スクロール後に<b>トップへ</b>ボタンが出現。</li><li><b>⛶</b>/<b>🗕</b>ボタンでDiff、ファイル内容、出力の展開/折りたたみ。</li><li>リクエスト失敗時にリトライ可能なら<b>リトライ</b>表示。</li><li><b>ダークモード</b>は <b>表示 → ダークモード</b>（<b>Cmd/Ctrl + D</b>）で切り替え。</li><li><b>ESC</b>、<b>×</b>、背景クリックでこのヘルプを閉じられます。</li></ul><h3>キーボードショートカット</h3><ul><li><b>F1</b>: 使い方ヘルプを開く</li><li><b>Cmd/Ctrl + D</b>: ダークモード切り替え</li><li><b>Cmd/Ctrl + K</b>: xAI APIキー</li><li><b>Cmd/Ctrl + Shift + K</b>: OpenAI APIキー</li><li><b>Cmd/Ctrl + Shift + P</b>: システムプロンプト</li><li><b>Cmd/Ctrl + T</b>: 新しいタブ</li><li><b>Cmd/Ctrl + W</b>: タブを閉じる</li><li><b>Cmd/Ctrl + Tab</b>: 次のタブ</li><li><b>Cmd/Ctrl + Shift + Tab</b>: 前のタブ</li><li><b>F7</b>: 前の変更</li><li><b>F8</b>: 次の変更</li><li><b>ESC</b>: 開いているダイアログを閉じる</li></ul>"
+    },
+    "keyType": {
+        "title": "APIキーの種類を選択",
+        "introHtml": "まだAPIキーが保存されていません。最初に設定するプロバイダを選択してください。<b>6桁のPIN</b>は一度設定すればローカルでキーの暗号化/復号に使用されます。"
+    },
+    "providers": {
+        "xai": "xAI",
+        "openai": "OpenAI"
+    },
+    "apiKey": {
+        "closeAria": "APIキー画面を閉じる",
+        "label": "APIキー",
+        "pinLabel": "6桁PIN",
+        "xaiTitle": "xAI APIキー",
+        "openaiTitle": "OpenAI APIキー",
+        "unlockTitle": "APIキーをアンロック",
+        "xaiPlaceholder": "xai-...",
+        "openaiPlaceholder": "sk-...",
+        "savedKeys": "保存済みキー",
+        "introUnlockHtml": "<b>6桁のPIN</b>を入力して、このセッションで保存されたキーをアンロック・復号してください。",
+        "introNoPinHtml": "<b>{provider} APIキー</b>を入力してください。このセッションで既にアンロックされたPINを使用してローカル暗号化されます。",
+        "introWithPinHtml": "<b>{provider} APIキー</b>と<b>6桁のPIN</b>を入力してください。キーはローカルで暗号化されアプリ（localStorage）に保存されます。PINは保存されません。",
+        "webCryptoMissing": "この環境ではWebCryptoが利用できません。",
+        "pinInvalid": "PINはちょうど6桁である必要があります。",
+        "noEncryptedKeys": "暗号化されたキーが見つかりません（またはデータが破損しています）。",
+        "pinDecryptFailed": "無効なPIN（または保存されたキーが破損）。もう一度試してください。",
+        "keyRequired": "APIキーは必須です。",
+        "pinNotInSession": "このセッションでPINが利用できません。先にアンロックしてください。",
+        "saved": "保存しました。",
+        "saveFailed": "暗号化・保存に失敗しました: {err}",
+        "unlockHint": "6桁のPINを入力してこのセッションで保存されたキーをアンロック。",
+        "migrateHint": "既存の保存されたAPIキーを暗号化するため、6桁のPINを設定してください。"
+    },
+    "tabs": {
+        "processing": "処理中…",
+        "closeAria": "タブを閉じる",
+        "firstTab": "タブ 1",
+        "defaultTab": "タブ {n}",
+        "fallbackName": "このタブ",
+        "renameTitle": "タブ名を変更",
+        "renameCloseAria": "名前変更ダイアログを閉じる",
+        "nameLabel": "タブ名",
+        "namePlaceholder": "例: auth.js パッチ",
+        "renameHint": "Enterで保存",
+        "closeTitle": "タブを閉じますか？",
+        "closeCloseAria": "タブ閉じるダイアログを閉じる",
+        "closeBodyHtml": "<b id=\"tabCloseName\">{tabName}</b> を閉じますか？このタブの未保存の入力は失われます。",
+        "closeConfirm": "タブを閉じる"
+    },
+    "sysPrompt": {
+        "title": "システムプロンプト",
+        "closeAria": "システムプロンプトを閉じる",
+        "savedTitle": "保存済みプロンプト",
+        "listAria": "システムプロンプト一覧",
+        "nameLabel": "プロンプト名",
+        "namePlaceholder": "例: 厳密パッチャー",
+        "textLabel": "システムプロンプト",
+        "useInTab": "このタブで使用",
+        "defaultName": "デフォルト",
+        "buttonLabel": "プロンプト - {name}",
+        "buttonTitle": "システムプロンプト: {name}",
+        "unnamed": "(無名)",
+        "badgeDefault": "デフォルト",
+        "badgeInUse": "使用中",
+        "listHint": "あと {remaining} 個のプロンプトを保存可能（最大 {max} 個、デフォルト含む）。",
+        "defaultLockedHint": "デフォルトプロンプトは編集できません。「新規」または「複製」でカスタムプロンプトを作成してください。",
+        "createHint": "新しいカスタムプロンプトを作成中。名前を入力、テキストを編集し、保存してください。",
+        "confirmDelete": "システムプロンプト「{name}」を削除しますか？",
+        "msg": {
+            "nameRequired": "プロンプト名は必須です。",
+            "defaultReserved": "「Default」は予約済みです。別の名前を選んでください。",
+            "nameTaken": "この名前のプロンプトは既に存在します。",
+            "textRequired": "システムプロンプトのテキストは必須です。",
+            "maxPrompts": "最大 {max} 個のプロンプト（デフォルト含む）が許可されています。新しいプロンプトを追加するには1つ削除してください。",
+            "saved": "保存しました。",
+            "cantEditDefault": "デフォルトプロンプトは編集できません。",
+            "notFound": "ストレージにこのプロンプトが見つかりません。",
+            "unsaved": "未保存の変更があります。このプロンプトを使用する前に保存してください。",
+            "cantDeleteDefault": "デフォルトプロンプトは削除できません。",
+            "deleted": "削除しました。"
+        }
+    },
+    "history": {
+        "sectionTitle": "履歴",
+        "closeAria": "履歴を閉じる",
+        "clearTitle": "履歴をクリア",
+        "listAria": "履歴アイテム",
+        "hint": "履歴の最大サイズは {max} です。古いエントリは自動的に削除されます。",
+        "pageLabel": "ページ {page} / 全 {total}",
+        "emptyPage": "このページにはアイテムがありません。",
+        "emptyAll": "まだ履歴がありません。",
+        "openInNewTab": "新しいタブで開く",
+        "loadFailed": "この履歴アイテムを読み込めませんでした（クリアされたかストレージが破損）。"
+    },
+    "language": {
+        "title": "言語",
+        "closeAria": "言語選択を閉じる",
+        "intro": "言語を選択してください。アプリがリロードされます。"
+    },
+    "filePicker": {
+        "chooseFile": "ファイルを選択",
+        "noFileChosen": "ファイルが選択されていません"
+    },
+    "menu": {
+        "file": {
+            "title": "ファイル",
+            "xaiKey": "xAI APIキー…",
+            "openaiKey": "OpenAI APIキー…",
+            "close": "閉じる",
+            "quit": "終了"
+        },
+        "edit": {
+            "title": "編集",
+            "undo": "元に戻す",
+            "redo": "やり直し",
+            "cut": "カット",
+            "copy": "コピー",
+            "paste": "ペースト",
+            "pasteMatch": "ペーストしてスタイルを合わせる",
+            "delete": "削除",
+            "selectAll": "すべて選択",
+            "systemPrompt": "システムプロンプト…"
+        },
+        "view": {
+            "title": "表示",
+            "history": "履歴…",
+            "language": "言語…",
+            "darkMode": "ダークモード",
+            "prevChange": "前の変更",
+            "nextChange": "次の変更",
+            "reload": "リロード",
+            "forceReload": "強制リロード",
+            "devTools": "開発者ツールを表示",
+            "resetZoom": "実際のサイズ",
+            "zoomIn": "拡大",
+            "zoomOut": "縮小",
+            "fullscreen": "フルスクリーン切り替え"
+        },
+        "window": {
+            "title": "ウィンドウ",
+            "minimize": "最小化",
+            "zoom": "ズーム",
+            "front": "すべて前面に",
+            "window": "ウィンドウ",
+            "close": "閉じる"
+        },
+        "help": {
+            "usage": "使い方",
+            "about": "アプリ情報…",
+            "title": "ヘルプ"
+        },
+        "mac": {
+            "about": "アプリ情報",
+            "services": "サービス",
+            "hide": "隠す",
+            "hideOthers": "他を隠す",
+            "unhide": "すべて表示",
+            "quit": "終了"
+        }
+    }
+}

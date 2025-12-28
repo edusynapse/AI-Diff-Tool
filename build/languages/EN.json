@@ -1,4 +1,26 @@
 {
+    "languageName": "English",
+    "languageOptions" : {
+        "en": "English",
+        "hi": "हिन्दी",
+        "es": "Español",
+        "fr": "Français",
+        "de": "Deutsch",
+        "zh": "中文 (简体)",
+        "ja": "日本語",
+        "ru": "Русский",
+        "pt": "Português",
+        "ar": "العربية",
+        "bn": "বাংলা",
+        "ko": "한국어",
+        "it": "Italiano",
+        "nl": "Nederlands",
+        "sv": "Svenska",
+        "tr": "Türkçe",
+        "pl": "Polski",
+        "vi": "Tiếng Việt",
+        "id": "Bahasa Indonesia"
+    },
     "app": {
         "name": "AI Diff Tool",
         "iconAlt": "AI Diff Tool icon",
@@ -14,7 +36,8 @@
         "nextChange": "Next change",
         "prevChangeTitle": "Previous change",
         "nextChangeTitle": "Next change",
-        "goTop": "Go to top"
+        "goTop": "Go to top",
+        "goToOutputDiff": "Output Diff"
     },
     "model": {
         "selectLabel": "Select Model:"

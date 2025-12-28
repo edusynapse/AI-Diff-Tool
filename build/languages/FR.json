@@ -1,0 +1,260 @@
+{
+    "languageName": "Français",
+    "languageOptions": {
+        "en": "English",
+        "hi": "हिन्दी",
+        "es": "Español",
+        "fr": "Français",
+        "de": "Deutsch",
+        "zh": "中文 (简体)",
+        "ja": "日本語",
+        "ru": "Русский",
+        "pt": "Português",
+        "ar": "العربية",
+        "bn": "বাংলা",
+        "ko": "한국어",
+        "it": "Italiano",
+        "nl": "Nederlands",
+        "sv": "Svenska",
+        "tr": "Türkçe",
+        "pl": "Polski",
+        "vi": "Tiếng Việt",
+        "id": "Bahasa Indonesia"
+    },
+    "app": {
+        "name": "AI Diff Tool",
+        "iconAlt": "Icône AI Diff Tool",
+        "windowTitle": "AI Diff Tool - Grok 4 Patch Applier"
+    },
+    "sidebar": {
+        "workspaces": "Espaces de travail",
+        "newTab": "Nouvel onglet",
+        "renameHint": "Double-cliquez sur un onglet pour le renommer"
+    },
+    "nav": {
+        "prevChange": "Changement précédent",
+        "nextChange": "Changement suivant",
+        "prevChangeTitle": "Changement précédent",
+        "nextChangeTitle": "Changement suivant",
+        "goTop": "Aller en haut",
+        "goToOutputDiff": "Diff de sortie"
+    },
+    "model": {
+        "selectLabel": "Sélectionner le modèle :"
+    },
+    "loading": {
+        "processing": "Traitement en cours..."
+    },
+    "textarea": {
+        "maximize": "Agrandir",
+        "minimize": "Réduire"
+    },
+    "labels": {
+        "diffPatch": "Diff Patch (coller ou charger un fichier) :",
+        "fileContent": "Contenu du fichier (coller ou charger un fichier) :",
+        "outputSection": "Sortie du modèle",
+        "diffSection": "Diff avec l'original"
+    },
+    "output": {
+        "timeFmt": "{mins} min et {secs} sec",
+        "tokensEstFmt": "{n} tokens [est.]",
+        "separator": " / ",
+        "copy": "Copier",
+        "copyOutput": "Copier la sortie",
+        "copied": "Copié !"
+    },
+    "buttons": {
+        "retry": "Réessayer",
+        "applyPatch": "Appliquer le Patch",
+        "copy": "Copier",
+        "download": "Télécharger le fichier modifié",
+        "save": "Enregistrer",
+        "update": "Mettre à jour",
+        "cancel": "Annuler",
+        "close": "Fermer",
+        "unlock": "Déverrouiller",
+        "duplicate": "Dupliquer",
+        "delete": "Supprimer",
+        "new": "Nouveau",
+        "clear": "Effacer",
+        "prev": "Précédent",
+        "next": "Suivant"
+    },
+    "about": {
+        "title": "À propos",
+        "closeAria": "Fermer à propos",
+        "thanks": "Merci d'utiliser",
+        "creatorAlt": "Créateur",
+        "creatorLabel": "Créateur",
+        "emailLabel": "E-mail",
+        "donate": "Faire un don",
+        "github": "Dépôt GitHub",
+        "licenseTitle": "Licence Open Source",
+        "licenseText": "Ce projet est open-source. Consultez le fichier LICENSE dans le dépôt GitHub.",
+        "versionPrefix": "Version"
+    },
+    "help": {
+        "title": "AI Diff Tool — Utilisation",
+        "closeAria": "Fermer l'aide",
+        "bodyHtml": "<p>Cette application applique un <b>patch diff unifié</b> à un fichier en demandant au modèle sélectionné (xAI Grok ou OpenAI GPT) de produire le contenu patché. Elle affiche ensuite le fichier modifié et une vue diff côte à côte.</p><h3>Étapes rapides</h3><ol><li><b>Sélectionnez un onglet d'espace de travail</b> (barre latérale gauche). Chaque onglet conserve ses propres entrées, modèle, prompt, sortie et diff.</li><li><b>Sélectionnez le modèle</b> (menu déroulant en haut).</li><li><b>Choisissez le System Prompt</b> (bouton en haut : <b>Prompt - ...</b>) si vous avez besoin d'un comportement plus strict ou plus souple.</li><li><b>Collez ou chargez</b> votre patch diff unifié dans <b>Diff Patch</b> (utilisez « Choisir un fichier » sous la zone de texte si vous préférez).</li><li><b>Collez ou chargez</b> le contenu du fichier original dans <b>Contenu du fichier</b> (utilisez « Choisir un fichier » sous la zone de texte si vous préférez).</li><li>Saisissez votre <b>clé API</b> (xAI pour <code>grok-*</code>, OpenAI pour <code>gpt-*</code>) et votre <b>PIN à 6 chiffres</b>, puis <b>Enregistrez</b> (stocké localement, chiffré).</li><li>Cliquez sur <b>Appliquer le Patch</b>. Examinez la sortie et le « Diff avec l'original ».</li><li>Utilisez <b>Copier</b> ou <b>Télécharger le fichier modifié</b> une fois la sortie générée.</li></ol><h3>Espaces de travail (onglets)</h3><ul><li>Créez un nouvel onglet avec le bouton <b>+</b> (ou <b>Cmd/Ctrl + T</b>).</li><li><b>Double-cliquez</b> sur un onglet pour le renommer.</li><li>Fermez un onglet avec la <b>×</b> sur l'onglet (ou <b>Cmd/Ctrl + W</b>).</li><li>Parcourez les onglets avec <b>Cmd/Ctrl + Tab</b> (et <b>Cmd/Ctrl + Shift + Tab</b>).</li></ul><h3>System Prompt</h3><ul><li>Ouvrez via le bouton en haut <b>Prompt - ...</b>, ou <b>Édition → System Prompt…</b> (<b>Cmd/Ctrl + Shift + P</b>).</li><li><b>Default</b> est verrouillé. Utilisez <b>Nouveau</b> ou <b>Dupliquer</b> pour créer un prompt personnalisé.</li><li>Cliquez sur <b>Utiliser dans cet onglet</b> pour appliquer le prompt sélectionné à l'espace de travail actuel.</li><li>Les prompts sont stockés localement (dans le localStorage de l'application).</li></ul><h3>Clés API (xAI / OpenAI)</h3><ul><li>Ouvrez via <b>Fichier → Clé API xAI…</b> (<b>Cmd/Ctrl + K</b>) ou <b>Fichier → Clé API OpenAI…</b> (<b>Cmd/Ctrl + Shift + K</b>).</li><li>Les clés sont chiffrées localement avec votre <b>PIN à 6 chiffres</b>. Le PIN n'est pas stocké ; vous déverrouillez les clés une fois par session d'application.</li><li>L'application choisit automatiquement la clé du fournisseur en fonction du nom du modèle (<code>grok-*</code> vs <code>gpt-*</code>).</li></ul><h3>Sortie, navigation diff et outils</h3><ul><li>Le modèle est instruit de sortir <b>uniquement le contenu final du fichier</b> (pas de code fences, pas de commentaires).</li><li>Si le fichier est volumineux, un avertissement de taille peut apparaître avant l'envoi.</li><li>Les métadonnées en haut à droite affichent le <b>temps</b> et un <b>nombre de tokens estimé</b> sous la forme : <code>&lt;temps&gt; / &lt;tokens&gt;</code>.</li><li>Les boutons <b>Changement précédent</b> / <b>Changement suivant</b> apparaissent quand la section diff est visible.</li><li><b>Aller en haut</b> apparaît après avoir défilé vers le bas.</li><li>Utilisez les boutons <b>⛶</b>/<b>🗕</b> pour agrandir/réduire Diff, Contenu du fichier et Sortie.</li><li><b>Réessayer</b> apparaît en cas d'échec de requête et si des tentatives restent disponibles.</li><li>Le <b>Mode sombre</b> peut être activé via le menu <b>Affichage → Mode sombre</b> (ou <b>Cmd/Ctrl + D</b>).</li><li>Vous pouvez fermer cette aide avec <b>ESC</b>, le bouton <b>×</b> ou en cliquant sur l'arrière-plan.</li></ul><h3>Raccourcis clavier</h3><ul><li><b>F1</b>: Ouvrir l'aide d'utilisation</li><li><b>Cmd/Ctrl + D</b>: Basculer en Mode sombre</li><li><b>Cmd/Ctrl + K</b>: Clé API xAI</li><li><b>Cmd/Ctrl + Shift + K</b>: Clé API OpenAI</li><li><b>Cmd/Ctrl + Shift + P</b>: System Prompt</li><li><b>Cmd/Ctrl + T</b>: Nouvel onglet</li><li><b>Cmd/Ctrl + W</b>: Fermer l'onglet</li><li><b>Cmd/Ctrl + Tab</b>: Onglet suivant</li><li><b>Cmd/Ctrl + Shift + Tab</b>: Onglet précédent</li><li><b>F7</b>: Changement précédent</li><li><b>F8</b>: Changement suivant</li><li><b>ESC</b>: Fermer la boîte de dialogue ouverte</li></ul>"
+    },
+    "keyType": {
+        "title": "Choisir le type de clé API",
+        "introHtml": "Aucune clé API n'est encore enregistrée. Choisissez le fournisseur que vous souhaitez configurer en premier. Vous définirez un <b>PIN à 6 chiffres</b> une seule fois ; il servira à chiffrer/déchiffrer les clés localement."
+    },
+    "providers": {
+        "xai": "xAI",
+        "openai": "OpenAI"
+    },
+    "apiKey": {
+        "closeAria": "Fermer la fenêtre de clé API",
+        "label": "Clé API",
+        "pinLabel": "PIN à 6 chiffres",
+        "xaiTitle": "Clé API xAI",
+        "openaiTitle": "Clé API OpenAI",
+        "unlockTitle": "Déverrouiller les clés API",
+        "xaiPlaceholder": "xai-...",
+        "openaiPlaceholder": "sk-...",
+        "savedKeys": "clés enregistrées",
+        "introUnlockHtml": "Saisissez votre <b>PIN à 6 chiffres</b> pour déverrouiller et déchiffrer les clés enregistrées pour cette session.",
+        "introNoPinHtml": "Saisissez votre <b>clé API {provider}</b>. Elle sera chiffrée localement avec le PIN déjà déverrouillé pour cette session.",
+        "introWithPinHtml": "Saisissez votre <b>clé API {provider}</b> et un <b>PIN à 6 chiffres</b>. La clé est chiffrée localement et stockée dans cette application (localStorage). Le PIN n'est pas stocké.",
+        "webCryptoMissing": "WebCrypto n'est pas disponible dans cet environnement.",
+        "pinInvalid": "Le PIN doit comporter exactement 6 chiffres.",
+        "noEncryptedKeys": "Aucune clé chiffrée trouvée (ou les données sont corrompues).",
+        "pinDecryptFailed": "PIN invalide (ou clé stockée corrompue). Réessayez.",
+        "keyRequired": "La clé API est obligatoire.",
+        "pinNotInSession": "Le PIN n'est pas disponible dans cette session. Veuillez d'abord déverrouiller.",
+        "saved": "Enregistré.",
+        "saveFailed": "Échec du chiffrement et de l'enregistrement : {err}",
+        "unlockHint": "Saisissez votre PIN à 6 chiffres pour déverrouiller les clés enregistrées pour cette session.",
+        "migrateHint": "Définissez un PIN à 6 chiffres pour chiffrer votre clé API déjà enregistrée."
+    },
+    "tabs": {
+        "processing": "Traitement…",
+        "closeAria": "Fermer l'onglet",
+        "firstTab": "Onglet 1",
+        "defaultTab": "Onglet {n}",
+        "fallbackName": "cet onglet",
+        "renameTitle": "Renommer l'onglet",
+        "renameCloseAria": "Fermer la fenêtre de renommage",
+        "nameLabel": "Nom de l'onglet",
+        "namePlaceholder": "ex. patch auth.js",
+        "renameHint": "Appuyez sur Entrée pour enregistrer",
+        "closeTitle": "Fermer l'onglet ?",
+        "closeCloseAria": "Fermer la fenêtre de confirmation de fermeture",
+        "closeBodyHtml": "Fermer <b id=\"tabCloseName\">{tabName}</b> ? Toutes les entrées non enregistrées dans cet onglet seront perdues.",
+        "closeConfirm": "Fermer l'onglet"
+    },
+    "sysPrompt": {
+        "title": "System Prompt",
+        "closeAria": "Fermer la fenêtre System Prompt",
+        "savedTitle": "Prompts enregistrés",
+        "listAria": "System prompts",
+        "nameLabel": "Nom du prompt",
+        "namePlaceholder": "ex. Patcher strict",
+        "textLabel": "System prompt",
+        "useInTab": "Utiliser dans cet onglet",
+        "defaultName": "Par défaut",
+        "buttonLabel": "Prompt - {name}",
+        "buttonTitle": "System prompt : {name}",
+        "unnamed": "(sans nom)",
+        "badgeDefault": "Par défaut",
+        "badgeInUse": "En cours d'utilisation",
+        "listHint": "Vous pouvez encore enregistrer {remaining} prompt{plural} (max {max} incl. Par défaut).",
+        "defaultLockedHint": "Le prompt par défaut ne peut pas être modifié. Cliquez sur « Nouveau » ou « Dupliquer » pour créer un prompt personnalisé.",
+        "createHint": "Création d'un nouveau prompt personnalisé. Saisissez un nom, modifiez le texte, puis Enregistrez.",
+        "confirmDelete": "Supprimer le system prompt « {name} » ?",
+        "msg": {
+            "nameRequired": "Le nom du prompt est obligatoire.",
+            "defaultReserved": "« Par défaut » est réservé. Choisissez un autre nom.",
+            "nameTaken": "Un prompt portant ce nom existe déjà.",
+            "textRequired": "Le texte du system prompt est obligatoire.",
+            "maxPrompts": "Maximum {max} prompts autorisés (y compris Par défaut). Supprimez-en un pour en ajouter un nouveau.",
+            "saved": "Enregistré.",
+            "cantEditDefault": "Le prompt par défaut ne peut pas être modifié.",
+            "notFound": "Impossible de trouver ce prompt dans le stockage.",
+            "unsaved": "Vous avez des modifications non enregistrées. Enregistrez avant d'utiliser ce prompt.",
+            "cantDeleteDefault": "Le prompt par défaut ne peut pas être supprimé.",
+            "deleted": "Supprimé."
+        }
+    },
+    "history": {
+        "sectionTitle": "Historique",
+        "closeAria": "Fermer l'historique",
+        "clearTitle": "Vider l'historique",
+        "listAria": "Éléments de l'historique",
+        "hint": "La taille maximale de l'historique est {max}. Les entrées les plus anciennes sont supprimées automatiquement.",
+        "pageLabel": "Page {page} sur {total}",
+        "emptyPage": "Aucun élément sur cette page.",
+        "emptyAll": "Aucun historique pour le moment.",
+        "openInNewTab": "Ouvrir dans un nouvel onglet",
+        "loadFailed": "Impossible de charger cet élément d'historique (il a peut-être été effacé ou le stockage est corrompu)."
+    },
+    "language": {
+        "title": "Langue",
+        "closeAria": "Fermer la sélection de langue",
+        "intro": "Choisissez une langue. L'application sera rechargée."
+    },
+    "filePicker": {
+        "chooseFile": "Choisir un fichier",
+        "noFileChosen": "Aucun fichier choisi"
+    },
+    "menu": {
+        "file": {
+            "title": "Fichier",
+            "xaiKey": "Clé API xAI…",
+            "openaiKey": "Clé API OpenAI…",
+            "close": "Fermer",
+            "quit": "Quitter"
+        },
+        "edit": {
+            "title": "Édition",
+            "undo": "Annuler",
+            "redo": "Rétablir",
+            "cut": "Couper",
+            "copy": "Copier",
+            "paste": "Coller",
+            "pasteMatch": "Coller en conservant le style",
+            "delete": "Supprimer",
+            "selectAll": "Tout sélectionner",
+            "systemPrompt": "System Prompt…"
+        },
+        "view": {
+            "title": "Affichage",
+            "history": "Historique…",
+            "language": "Langue…",
+            "darkMode": "Mode sombre",
+            "prevChange": "Changement précédent",
+            "nextChange": "Changement suivant",
+            "reload": "Recharger",
+            "forceReload": "Forcer le rechargement",
+            "devTools": "Outils de développement",
+            "resetZoom": "Taille réelle",
+            "zoomIn": "Zoom avant",
+            "zoomOut": "Zoom arrière",
+            "fullscreen": "Plein écran"
+        },
+        "window": {
+            "title": "Fenêtre",
+            "minimize": "Réduire",
+            "zoom": "Zoom",
+            "front": "Mettre toutes au premier plan",
+            "window": "Fenêtre",
+            "close": "Fermer"
+        },
+        "help": {
+            "usage": "Utilisation",
+            "about": "À propos…",
+            "title": "Aide"
+        },
+        "mac": {
+            "about": "À propos",
+            "services": "Services",
+            "hide": "Masquer",
+            "hideOthers": "Masquer les autres",
+            "unhide": "Afficher tout",
+            "quit": "Quitter"
+        }
+    }
+}

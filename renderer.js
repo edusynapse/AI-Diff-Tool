@@ -90,6 +90,18 @@ function applyI18nToCopyButtons() {
   }
 }
 
+// -------------------------
+// "Go To Output Diff" button label (topbar)
+// -------------------------
+function applyI18nToGoOutputDiffButton() {
+  const btn = document.getElementById('goOutputDiffBtn');
+  if (!btn) return;
+  const lbl = t('nav.goToOutputDiff', 'Output Diff');
+  btn.textContent = lbl;
+  btn.title = lbl;
+  btn.setAttribute('aria-label', lbl);
+}
+
 function setFilePickerName(kind /* 'diff' | 'model' */, name) {
   const none = t('filePicker.noFileChosen', 'No file chosen');
   const el = document.getElementById(kind === 'diff' ? 'diffFileName' : 'modelFileName');
@@ -198,7 +210,9 @@ function refreshUiAfterLanguageChange() {
   // 5) Custom file pickers ("Choose file" / "No file chosen")
   try { applyI18nToFilePickers(); } catch {}
   try { applyI18nToCopyButtons(); } catch {}
+  try { applyI18nToGoOutputDiffButton(); } catch {}
   try { scheduleCopyOutputTopButtonUpdate(); } catch {}
+  try { scheduleGoOutputDiffButtonUpdate(); } catch {}
 }
 
 const MAX_RETRIES = 3;
@@ -839,6 +853,96 @@ function initCopyOutputTopButton() {
   } catch {}
 
   scheduleCopyOutputTopButtonUpdate();
+}
+
+// -------------------------
+// Topbar "Go To Output Diff" button visibility
+// Show ONLY when:
+// - Output exists in the active tab
+// - The diff section is currently below the scroll viewport (off-screen below)
+// -------------------------
+let goOutputDiffRaf = null;
+
+function _hasActiveTabOutput() {
+  let tab = null;
+  try { tab = (typeof getActiveTab === 'function') ? getActiveTab() : null; } catch {}
+  return !!(tab && String(tab.modifiedText || '').length > 0);
+}
+
+function scrollToOutputDiffTop() {
+  const root = getMainScrollEl();
+  const anchor = document.getElementById('diffSectionTitle') || document.getElementById('diffView');
+  if (!root || !anchor) return;
+
+  const rootRect = root.getBoundingClientRect();
+  const aRect = anchor.getBoundingClientRect();
+  const y = aRect.top - rootRect.top + root.scrollTop;
+  root.scrollTo({ top: Math.max(0, y - 12), behavior: 'smooth' });
+}
+
+function updateGoOutputDiffButton() {
+  const btn = document.getElementById('goOutputDiffBtn');
+  if (!btn) return;
+
+  const root = getMainScrollEl();
+  const diffAnchor = document.getElementById('diffSectionTitle') || document.getElementById('diffView');
+  if (!root || !diffAnchor) {
+    btn.classList.add('hidden');
+    return;
+  }
+
+  if (!_hasActiveTabOutput()) {
+    btn.classList.add('hidden');
+    return;
+  }
+
+  const hasRenderedDiff = !!document.querySelector('#diffView .d2h-wrapper');
+  if (!hasRenderedDiff) {
+    btn.classList.add('hidden');
+    return;
+  }
+
+  const rootRect = root.getBoundingClientRect();
+  const dRect = diffAnchor.getBoundingClientRect();
+
+  // ONLY when diff is OFF-SCREEN BELOW
+  const diffBelow = dRect.top >= (rootRect.bottom - 1);
+  btn.classList.toggle('hidden', !diffBelow);
+}
+
+function scheduleGoOutputDiffButtonUpdate() {
+  if (goOutputDiffRaf) return;
+  goOutputDiffRaf = requestAnimationFrame(() => {
+    goOutputDiffRaf = null;
+    updateGoOutputDiffButton();
+  });
+}
+
+function initGoOutputDiffButton() {
+  const root = getMainScrollEl();
+  const btn = document.getElementById('goOutputDiffBtn');
+  if (!root || !btn) return;
+  if (btn.dataset.wired === '1') return;
+  btn.dataset.wired = '1';
+
+  // Ensure localized label on startup
+  try { applyI18nToGoOutputDiffButton(); } catch {}
+
+  btn.addEventListener('click', scrollToOutputDiffTop);
+
+  root.addEventListener('scroll', scheduleGoOutputDiffButtonUpdate, { passive: true });
+  window.addEventListener('resize', scheduleGoOutputDiffButtonUpdate);
+
+  // React immediately when output/diff DOM changes (tab switch, applyPatch completion)
+  try {
+    const mo = new MutationObserver(scheduleGoOutputDiffButtonUpdate);
+    const out = document.getElementById('output');
+    const diff = document.getElementById('diffView');
+    if (out) mo.observe(out, { childList: true, subtree: true, characterData: true });
+    if (diff) mo.observe(diff, { childList: true, subtree: true });
+  } catch {}
+
+  scheduleGoOutputDiffButtonUpdate();
 }
 
 function getMainScrollEl() {
@@ -2152,6 +2256,7 @@ window.addEventListener('load', () => {
     applyI18nToStaticUi();
     applyI18nToFilePickers();
     applyI18nToCopyButtons();
+    applyI18nToGoOutputDiffButton();
 
     const storedModel = localStorage.getItem('selectedModel') || 'grok-4-fast-reasoning';
     document.getElementById('modelSelect').value = storedModel;
@@ -2229,6 +2334,8 @@ window.addEventListener('load', () => {
 
     // Topbar "Copy Output" (appears when output is scrolled past, while in diff)
     initCopyOutputTopButton();
+    // Topbar "Go To Output Diff" (appears only when diff is below viewport and output exists)
+    initGoOutputDiffButton();
 
     // --- Help overlay wiring (must be inside load) ---
     const overlay = document.getElementById('helpOverlay');
@@ -2571,12 +2678,14 @@ ipcRenderer.on('apikey:open', (_evt, payload) => {
    downloadBtn.classList.add('hidden');
    copyBtn.classList.add('hidden');
    try { scheduleCopyOutputTopButtonUpdate(); } catch {}
+   try { scheduleGoOutputDiffButtonUpdate(); } catch {}
    retryBtn.classList.add('hidden');
 
    if (!isRetry) tab.retryCount = 0;
 
    if (!diffText || !modelContent) {
      errorEl.textContent = 'Please fill Diff Patch and File Content.';
+     try { scheduleGoOutputDiffButtonUpdate(); } catch {}
      return;
    }
 
@@ -2671,6 +2780,7 @@ ipcRenderer.on('apikey:open', (_evt, payload) => {
          copyBtn.classList.add('hidden');
          retryBtn.classList.add('hidden');
          errorEl.textContent = modified;
+         try { scheduleGoOutputDiffButtonUpdate(); } catch {}
        }
        return;
      }
@@ -2742,6 +2852,7 @@ ipcRenderer.on('apikey:open', (_evt, payload) => {
        downloadBtn.classList.remove('hidden');
        copyBtn.classList.remove('hidden');
        try { scheduleCopyOutputTopButtonUpdate(); } catch {}
+       try { scheduleGoOutputDiffButtonUpdate(); } catch {}
      }
 
    } catch (error) {

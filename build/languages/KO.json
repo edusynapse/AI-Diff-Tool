@@ -1,0 +1,260 @@
+{
+    "languageName": "한국어",
+    "languageOptions": {
+        "en": "English",
+        "hi": "हिन्दी",
+        "es": "Español",
+        "fr": "Français",
+        "de": "Deutsch",
+        "zh": "中文 (简体)",
+        "ja": "日本語",
+        "ru": "Русский",
+        "pt": "Português",
+        "ar": "العربية",
+        "bn": "বাংলা",
+        "ko": "한국어",
+        "it": "Italiano",
+        "nl": "Nederlands",
+        "sv": "Svenska",
+        "tr": "Türkçe",
+        "pl": "Polski",
+        "vi": "Tiếng Việt",
+        "id": "Bahasa Indonesia"
+    },
+    "app": {
+        "name": "AI Diff Tool",
+        "iconAlt": "AI Diff Tool 아이콘",
+        "windowTitle": "AI Diff Tool - Grok 4 패치 적용기"
+    },
+    "sidebar": {
+        "workspaces": "워크스페이스",
+        "newTab": "새 탭",
+        "renameHint": "탭을 더블 클릭하면 이름 변경 가능"
+    },
+    "nav": {
+        "prevChange": "이전 변경",
+        "nextChange": "다음 변경",
+        "prevChangeTitle": "이전 변경 사항",
+        "nextChangeTitle": "다음 변경 사항",
+        "goTop": "맨 위로 이동",
+        "goToOutputDiff": "출력 차이"
+    },
+    "model": {
+        "selectLabel": "모델 선택:"
+    },
+    "loading": {
+        "processing": "처리 중..."
+    },
+    "textarea": {
+        "maximize": "최대화",
+        "minimize": "최소화"
+    },
+    "labels": {
+        "diffPatch": "Diff 패치 (붙여넣기 또는 파일 로드):",
+        "fileContent": "파일 내용 (붙여넣기 또는 파일 로드):",
+        "outputSection": "모델 출력",
+        "diffSection": "원본과의 Diff"
+    },
+    "output": {
+        "timeFmt": "{mins}분 {secs}초",
+        "tokensEstFmt": "{n} 토큰 [추정]",
+        "separator": " / ",
+        "copy": "복사",
+        "copyOutput": "출력 복사",
+        "copied": "복사됨!"
+    },
+    "buttons": {
+        "retry": "재시도",
+        "applyPatch": "패치 적용",
+        "copy": "복사",
+        "download": "수정된 파일 다운로드",
+        "save": "저장",
+        "update": "업데이트",
+        "cancel": "취소",
+        "close": "닫기",
+        "unlock": "잠금 해제",
+        "duplicate": "복제",
+        "delete": "삭제",
+        "new": "새로 만들기",
+        "clear": "지우기",
+        "prev": "이전",
+        "next": "다음"
+    },
+    "about": {
+        "title": "정보",
+        "closeAria": "정보 닫기",
+        "thanks": "사용해 주셔서 감사합니다",
+        "creatorAlt": "제작자",
+        "creatorLabel": "제작자",
+        "emailLabel": "이메일",
+        "donate": "기부",
+        "github": "GitHub 저장소",
+        "licenseTitle": "오픈소스 라이선스",
+        "licenseText": "이 프로젝트는 오픈소스입니다. GitHub 저장소의 LICENSE 파일을 확인하세요.",
+        "versionPrefix": "버전"
+    },
+    "help": {
+        "title": "AI Diff Tool — 사용법",
+        "closeAria": "도움말 닫기",
+        "bodyHtml": "<p>이 앱은 선택한 모델(xAI Grok 또는 OpenAI GPT)에게 <b>unified diff 패치</b>를 파일에 적용하도록 요청해 패치된 결과를 생성합니다. 수정된 파일과 원본과의 사이드 바이 사이드 diff 뷰를 보여줍니다.</p><h3>빠른 단계</h3><ol><li>왼쪽 사이드바에서 <b>워크스페이스 탭</b>을 선택하세요. 각 탭은 독립적으로 입력, 모델, 프롬프트, 출력, diff를 유지합니다.</li><li>상단 드롭다운에서 <b>모델 선택</b>하세요.</li><li>더 엄격하거나 느슨한 동작이 필요하면 상단 <b>Prompt - ...</b> 버튼으로 <b>시스템 프롬프트</b>를 선택하세요.</li><li><b>Diff 패치</b> 영역에 unified diff 패치를 붙여넣거나 “파일 선택”으로 로드하세요.</li><li><b>파일 내용</b> 영역에 원본 파일을 붙여넣거나 “파일 선택”으로 로드하세요.</li><li><b>API 키</b>(xAI는 <code>grok-*</code>, OpenAI는 <code>gpt-*</code>)와 <b>6자리 PIN</b>을 입력한 뒤 <b>저장</b>하세요(로컬에 암호화 저장).</li><li><b>패치 적용</b>을 클릭하세요. 출력과 “원본과의 Diff”를 확인하세요.</li><li>출력이 생성되면 <b>복사</b> 또는 <b>수정된 파일 다운로드</b>를 사용하세요.</li></ol><h3>워크스페이스 (탭)</h3><ul><li><b>+</b> 버튼(또는 <b>Cmd/Ctrl + T</b>)으로 새 탭 생성.</li><li>탭을 <b>더블 클릭</b>해 이름 변경.</li><li>탭의 <b>×</b>(또는 <b>Cmd/Ctrl + W</b>)로 닫기.</li><li><b>Cmd/Ctrl + Tab</b>(또는 <b>Cmd/Ctrl + Shift + Tab</b>)으로 탭 전환.</li></ul><h3>시스템 프롬프트</h3><ul><li>상단 <b>Prompt - ...</b> 버튼 또는 <b>Edit → System Prompt…</b>(<b>Cmd/Ctrl + Shift + P</b>)로 열기.</li><li><b>Default</b>는 잠겨 있습니다. <b>새로 만들기</b> 또는 <b>복제</b>로 커스텀 프롬프트 생성.</li><li><b>이 탭에 사용</b>을 클릭해 현재 워크스페이스에 적용.</li><li>프롬프트는 로컬(localStorage)에 저장됩니다.</li></ul><h3>API 키 (xAI / OpenAI)</h3><ul><li><b>File → xAI API Key…</b>(<b>Cmd/Ctrl + K</b>) 또는 <b>File → OpenAI API Key…</b>(<b>Cmd/Ctrl + Shift + K</b>)로 열기.</li><li>키는 <b>6자리 PIN</b>으로 로컬에서 암호화됩니다. PIN은 저장되지 않으며 세션당 한 번 잠금 해제합니다.</li><li>앱은 모델 이름(<code>grok-*</code> vs <code>gpt-*</code>)에 따라 자동으로 제공자를 선택합니다.</li></ul><h3>출력, diff 탐색, 도구</h3><ul><li>모델은 <b>최종 파일 내용만</b> 출력하도록 지시됩니다(코드 펜스나 설명 없음).</li><li>파일이 크면 전송 전 크기 경고가 나타납니다.</li><li>우측 상단에 <b>시간</b>과 <b>추정 토큰 수</b>가 <code>&lt;시간&gt; / &lt;토큰&gt;</code> 형태로 표시됩니다.</li><li>diff 영역이 보일 때 <b>이전 변경</b> / <b>다음 변경</b> 버튼이 나타납니다.</li><li>스크롤 후 <b>맨 위로 이동</b> 버튼이 나타납니다.</li><li><b>⛶</b>/<b>🗕</b> 버튼으로 Diff, 파일 내용, 출력을 확장/축소하세요.</li><li>요청 실패 시 재시도가 가능하면 <b>재시도</b> 버튼이 나타납니다.</li><li><b>View → Dark Mode</b>(또는 <b>Cmd/Ctrl + D</b>)로 다크 모드 전환.</li><li><b>ESC</b>, <b>×</b> 버튼 또는 배경 클릭으로 이 도움말을 닫을 수 있습니다.</li></ul><h3>단축키</h3><ul><li><b>F1</b>: 사용법 도움말 열기</li><li><b>Cmd/Ctrl + D</b>: 다크 모드 전환</li><li><b>Cmd/Ctrl + K</b>: xAI API 키</li><li><b>Cmd/Ctrl + Shift + K</b>: OpenAI API 키</li><li><b>Cmd/Ctrl + Shift + P</b>: 시스템 프롬프트</li><li><b>Cmd/Ctrl + T</b>: 새 탭</li><li><b>Cmd/Ctrl + W</b>: 탭 닫기</li><li><b>Cmd/Ctrl + Tab</b>: 다음 탭</li><li><b>Cmd/Ctrl + Shift + Tab</b>: 이전 탭</li><li><b>F7</b>: 이전 변경</li><li><b>F8</b>: 다음 변경</li><li><b>ESC</b>: 현재 열린 대화상자 닫기</li></ul>"
+    },
+    "keyType": {
+        "title": "API 키 종류 선택",
+        "introHtml": "아직 저장된 API 키가 없습니다. 먼저 설정할 제공자를 선택하세요. <b>6자리 PIN</b>은 한 번만 설정되며, 로컬에서 키를 암호화/복호화하는 데 사용됩니다."
+    },
+    "providers": {
+        "xai": "xAI",
+        "openai": "OpenAI"
+    },
+    "apiKey": {
+        "closeAria": "API 키 대화상자 닫기",
+        "label": "API 키",
+        "pinLabel": "6자리 PIN",
+        "xaiTitle": "xAI API 키",
+        "openaiTitle": "OpenAI API 키",
+        "unlockTitle": "API 키 잠금 해제",
+        "xaiPlaceholder": "xai-...",
+        "openaiPlaceholder": "sk-...",
+        "savedKeys": "저장된 키",
+        "introUnlockHtml": "이번 세션에서 저장된 키를 복호화하고 잠금 해제하려면 <b>6자리 PIN</b>을 입력하세요.",
+        "introNoPinHtml": "이미 잠금 해제된 PIN을 사용해 <b>{provider} API 키</b>를 입력하세요. 로컬에서 암호화됩니다.",
+        "introWithPinHtml": "<b>{provider} API 키</b>와 <b>6자리 PIN</b>을 입력하세요. 키는 로컬(localStorage)에 암호화되어 저장됩니다. PIN은 저장되지 않습니다.",
+        "webCryptoMissing": "이 환경에서 WebCrypto를 사용할 수 없습니다.",
+        "pinInvalid": "PIN은 정확히 6자리여야 합니다.",
+        "noEncryptedKeys": "암호화된 키를 찾을 수 없습니다(또는 데이터가 손상됨).",
+        "pinDecryptFailed": "잘못된 PIN(또는 저장된 키 손상). 다시 시도하세요.",
+        "keyRequired": "API 키는 필수입니다.",
+        "pinNotInSession": "이번 세션에 PIN이 없습니다. 먼저 잠금 해제하세요.",
+        "saved": "저장되었습니다.",
+        "saveFailed": "암호화 및 저장 실패: {err}",
+        "unlockHint": "저장된 키를 이번 세션에서 잠금 해제하려면 6자리 PIN을 입력하세요.",
+        "migrateHint": "기존 저장된 API 키를 암호화하려면 6자리 PIN을 설정하세요."
+    },
+    "tabs": {
+        "processing": "처리 중…",
+        "closeAria": "탭 닫기",
+        "firstTab": "탭 1",
+        "defaultTab": "탭 {n}",
+        "fallbackName": "이 탭",
+        "renameTitle": "탭 이름 변경",
+        "renameCloseAria": "이름 변경 대화상자 닫기",
+        "nameLabel": "탭 이름",
+        "namePlaceholder": "예: auth.js 패치",
+        "renameHint": "Enter를 눌러 저장",
+        "closeTitle": "탭 닫기?",
+        "closeCloseAria": "탭 닫기 대화상자 닫기",
+        "closeBodyHtml": "<b id=\"tabCloseName\">{tabName}</b> 탭을 닫으시겠어요? 저장되지 않은 입력은 사라집니다.",
+        "closeConfirm": "탭 닫기"
+    },
+    "sysPrompt": {
+        "title": "시스템 프롬프트",
+        "closeAria": "시스템 프롬프트 대화상자 닫기",
+        "savedTitle": "저장된 프롬프트",
+        "listAria": "시스템 프롬프트 목록",
+        "nameLabel": "프롬프트 이름",
+        "namePlaceholder": "예: 엄격한 패처",
+        "textLabel": "시스템 프롬프트",
+        "useInTab": "이 탭에 사용",
+        "defaultName": "기본",
+        "buttonLabel": "프롬프트 - {name}",
+        "buttonTitle": "시스템 프롬프트: {name}",
+        "unnamed": "(이름 없음)",
+        "badgeDefault": "기본",
+        "badgeInUse": "사용 중",
+        "listHint": "추가로 {remaining}개의 프롬프트{plural}를 저장할 수 있습니다(최대 {max}개, 기본 포함).",
+        "defaultLockedHint": "기본 프롬프트는 수정할 수 없습니다. “새로 만들기” 또는 “복제”를 클릭해 커스텀 프롬프트를 만드세요.",
+        "createHint": "새 커스텀 프롬프트를 만들고 있습니다. 이름을 입력하고 텍스트를 수정한 뒤 저장하세요.",
+        "confirmDelete": "시스템 프롬프트 “{name}”을(를) 삭제하시겠어요?",
+        "msg": {
+            "nameRequired": "프롬프트 이름은 필수입니다.",
+            "defaultReserved": "“기본”은 예약된 이름입니다. 다른 이름을 선택하세요.",
+            "nameTaken": "이미 같은 이름의 프롬프트가 있습니다.",
+            "textRequired": "시스템 프롬프트 내용은 필수입니다.",
+            "maxPrompts": "최대 {max}개의 프롬프트만 허용됩니다(기본 포함). 새로 만들려면 하나를 삭제하세요.",
+            "saved": "저장되었습니다.",
+            "cantEditDefault": "기본 프롬프트는 수정할 수 없습니다.",
+            "notFound": "저장소에서 이 프롬프트를 찾을 수 없습니다.",
+            "unsaved": "저장되지 않은 변경 사항이 있습니다. 이 프롬프트를 사용하기 전에 저장하세요.",
+            "cantDeleteDefault": "기본 프롬프트는 삭제할 수 없습니다.",
+            "deleted": "삭제되었습니다."
+        }
+    },
+    "history": {
+        "sectionTitle": "히스토리",
+        "closeAria": "히스토리 닫기",
+        "clearTitle": "히스토리 지우기",
+        "listAria": "히스토리 항목",
+        "hint": "최대 히스토리 크기는 {max}입니다. 오래된 항목은 자동으로 삭제됩니다.",
+        "pageLabel": "{page}/{total} 페이지",
+        "emptyPage": "이 페이지에 항목이 없습니다.",
+        "emptyAll": "아직 히스토리가 없습니다.",
+        "openInNewTab": "새 탭에서 열기",
+        "loadFailed": "이 히스토리 항목을 불러올 수 없습니다(삭제되었거나 저장소가 손상됨)."
+    },
+    "language": {
+        "title": "언어",
+        "closeAria": "언어 선택 닫기",
+        "intro": "언어를 선택하세요. 앱이 다시 로드됩니다."
+    },
+    "filePicker": {
+        "chooseFile": "파일 선택",
+        "noFileChosen": "선택된 파일 없음"
+    },
+    "menu": {
+        "file": {
+            "title": "파일",
+            "xaiKey": "xAI API 키…",
+            "openaiKey": "OpenAI API 키…",
+            "close": "닫기",
+            "quit": "종료"
+        },
+        "edit": {
+            "title": "편집",
+            "undo": "실행 취소",
+            "redo": "다시 실행",
+            "cut": "오려두기",
+            "copy": "복사",
+            "paste": "붙여넣기",
+            "pasteMatch": "스타일 맞춰 붙여넣기",
+            "delete": "삭제",
+            "selectAll": "전체 선택",
+            "systemPrompt": "시스템 프롬프트…"
+        },
+        "view": {
+            "title": "보기",
+            "history": "히스토리…",
+            "language": "언어…",
+            "darkMode": "다크 모드",
+            "prevChange": "이전 변경",
+            "nextChange": "다음 변경",
+            "reload": "새로고침",
+            "forceReload": "강제 새로고침",
+            "devTools": "개발자 도구 토글",
+            "resetZoom": "실제 크기",
+            "zoomIn": "확대",
+            "zoomOut": "축소",
+            "fullscreen": "전체 화면 토글"
+        },
+        "window": {
+            "title": "윈도우",
+            "minimize": "최소화",
+            "zoom": "확대",
+            "front": "모두 앞으로",
+            "window": "윈도우",
+            "close": "닫기"
+        },
+        "help": {
+            "usage": "사용법",
+            "about": "정보…",
+            "title": "도움말"
+        },
+        "mac": {
+            "about": "정보",
+            "services": "서비스",
+            "hide": "숨기기",
+            "hideOthers": "기타 숨기기",
+            "unhide": "모두 보이기",
+            "quit": "종료"
+        }
+    }
+}

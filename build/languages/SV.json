@@ -1,0 +1,260 @@
+{
+    "languageName": "Svenska",
+    "languageOptions": {
+        "en": "English",
+        "hi": "हिन्दी",
+        "es": "Español",
+        "fr": "Français",
+        "de": "Deutsch",
+        "zh": "中文 (简体)",
+        "ja": "日本語",
+        "ru": "Русский",
+        "pt": "Português",
+        "ar": "العربية",
+        "bn": "বাংলা",
+        "ko": "한국어",
+        "it": "Italiano",
+        "nl": "Nederlands",
+        "sv": "Svenska",
+        "tr": "Türkçe",
+        "pl": "Polski",
+        "vi": "Tiếng Việt",
+        "id": "Bahasa Indonesia"
+    },
+    "app": {
+        "name": "AI Diff Tool",
+        "iconAlt": "AI Diff Tool-ikon",
+        "windowTitle": "AI Diff Tool - Grok 4 Patch Applier"
+    },
+    "sidebar": {
+        "workspaces": "Arbetsytor",
+        "newTab": "Ny flik",
+        "renameHint": "Dubbelklicka på en flik för att byta namn"
+    },
+    "nav": {
+        "prevChange": "Föregående ändring",
+        "nextChange": "Nästa ändring",
+        "prevChangeTitle": "Föregående ändring",
+        "nextChangeTitle": "Nästa ändring",
+        "goTop": "Gå till toppen",
+        "goToOutputDiff": "Utdata-diff"
+    },
+    "model": {
+        "selectLabel": "Välj modell:"
+    },
+    "loading": {
+        "processing": "Bearbetar..."
+    },
+    "textarea": {
+        "maximize": "Maximera",
+        "minimize": "Minimera"
+    },
+    "labels": {
+        "diffPatch": "Diff Patch (klistra in eller ladda fil):",
+        "fileContent": "Filinnehåll (klistra in eller ladda fil):",
+        "outputSection": "Utdata från modell",
+        "diffSection": "Diff mot original"
+    },
+    "output": {
+        "timeFmt": "{mins} min och {secs} sekunder",
+        "tokensEstFmt": "{n} tokens [uppsk.]",
+        "separator": " / ",
+        "copy": "Kopiera",
+        "copyOutput": "Kopiera utdata",
+        "copied": "Kopierad!"
+    },
+    "buttons": {
+        "retry": "Försök igen",
+        "applyPatch": "Tillämpa Patch",
+        "copy": "Kopiera",
+        "download": "Ladda ner modifierad fil",
+        "save": "Spara",
+        "update": "Uppdatera",
+        "cancel": "Avbryt",
+        "close": "Stäng",
+        "unlock": "Lås upp",
+        "duplicate": "Duplicera",
+        "delete": "Radera",
+        "new": "Ny",
+        "clear": "Rensa",
+        "prev": "Föregående",
+        "next": "Nästa"
+    },
+    "about": {
+        "title": "Om",
+        "closeAria": "Stäng om-dialog",
+        "thanks": "Tack för att du använder",
+        "creatorAlt": "Skapare",
+        "creatorLabel": "Skapare",
+        "emailLabel": "E-post",
+        "donate": "Donera",
+        "github": "GitHub-repo",
+        "licenseTitle": "Open Source-licens",
+        "licenseText": "Detta projekt är open-source. Se LICENSE-filen i GitHub-repot.",
+        "versionPrefix": "Version"
+    },
+    "help": {
+        "title": "AI Diff Tool — Användning",
+        "closeAria": "Stäng hjälp",
+        "bodyHtml": "<p>Den här appen tillämpar en <b>unified diff patch</b> på en fil genom att be den valda modellen (xAI Grok eller OpenAI GPT) att producera den patchade utdatan. Den visar sedan den modifierade filen och en sida-vid-sida diff-vy.</p><h3>Snabbsteg</h3><ol><li><b>Välj en arbetsyteflik</b> (vänster sidomeny). Varje flik behåller sina egna inmatningar, modell, prompt, utdata och diff.</li><li><b>Välj modell</b> (översta rullgardinsmenyn).</li><li><b>Välj systemprompt</b> (översta knappen: <b>Prompt - ...</b>) om du behöver striktare/mer flexibelt beteende.</li><li><b>Klistra in eller ladda</b> din unified diff patch i <b>Diff Patch</b> (använd “Välj fil” under textfältet om du föredrar det).</li><li><b>Klistra in eller ladda</b> originalfilens innehåll i <b>Filinnehåll</b> (använd “Välj fil” under textfältet om du föredrar det).</li><li>Ange din <b>API-nyckel</b> (xAI för <code>grok-*</code>, OpenAI för <code>gpt-*</code>) och <b>6-siffrig PIN</b>, sedan <b>Spara</b> (lagras lokalt, krypterad).</li><li>Klicka på <b>Tillämpa Patch</b>. Granska utdatan och “Diff mot original”.</li><li>Använd <b>Kopiera</b> eller <b>Ladda ner modifierad fil</b> när utdatan är genererad.</li></ol><h3>Arbetsytor (flikar)</h3><ul><li>Skapa en ny flik med <b>+</b>-knappen (eller <b>Cmd/Ctrl + T</b>).</li><li><b>Dubbelklicka</b> på en flik för att byta namn.</li><li>Stäng en flik med <b>×</b> på fliken (eller <b>Cmd/Ctrl + W</b>).</li><li>Växla flikar med <b>Cmd/Ctrl + Tab</b> (och <b>Cmd/Ctrl + Shift + Tab</b>).</li></ul><h3>Systemprompt</h3><ul><li>Öppna via översta <b>Prompt - ...</b>-knappen, eller <b>Redigera → Systemprompt…</b> (<b>Cmd/Ctrl + Shift + P</b>).</li><li><b>Standard</b> är låst. Använd <b>Ny</b> eller <b>Duplicera</b> för att skapa en anpassad prompt.</li><li>Klicka på <b>Använd i denna flik</b> för att tillämpa den valda prompten på aktuell arbetsyta.</li><li>Promptar lagras lokalt (i appens localStorage).</li></ul><h3>API-nycklar (xAI / OpenAI)</h3><ul><li>Öppna via <b>Arkiv → xAI API-nyckel…</b> (<b>Cmd/Ctrl + K</b>) eller <b>Arkiv → OpenAI API-nyckel…</b> (<b>Cmd/Ctrl + Shift + K</b>).</li><li>Nycklar krypteras lokalt med din <b>6-siffriga PIN</b>. PIN-koden lagras inte; du låser upp nycklarna en gång per appsession.</li><li>Appen väljer automatiskt vilken leverantörsnyckel som ska användas baserat på modellnamnet (<code>grok-*</code> vs <code>gpt-*</code>).</li></ul><h3>Utdata, diff-navigering och verktyg</h3><ul><li>Modellen instrueras att bara mata ut <b>det slutgiltiga filinnehållet</b> (inga kodblock, ingen kommentar).</li><li>Om filen är stor kan du få en storleksvarning innan sändning.</li><li>Metadata högst upp till höger visar <b>tid</b> och en <b>uppskattad token-antalt</b> som: <code>&lt;tid&gt; / &lt;tokens&gt;</code>.</li><li>Knapparna <b>Föregående ändring</b> / <b>Nästa ändring</b> visas när diff-sektionen är synlig.</li><li><b>Gå till toppen</b> visas när du har scrollat ner.</li><li>Använd knapparna <b>⛶</b>/<b>🗕</b> för att expandera/kollapsa Diff, Filinnehåll och Utdata.</li><li><b>Försök igen</b> visas när en förfrågan misslyckas och nya försök finns.</li><li><b>Mörkt läge</b> kan växlas via <b>Visa → Mörkt läge</b> (eller <b>Cmd/Ctrl + D</b>).</li><li>Du kan stänga denna hjälp med <b>ESC</b>, <b>×</b>-knappen eller genom att klicka på bakgrunden.</li></ul><h3>Tangentbordsgenvägar</h3><ul><li><b>F1</b>: Öppna användningshjälp</li><li><b>Cmd/Ctrl + D</b>: Växla mörkt läge</li><li><b>Cmd/Ctrl + K</b>: xAI API-nyckel</li><li><b>Cmd/Ctrl + Shift + K</b>: OpenAI API-nyckel</li><li><b>Cmd/Ctrl + Shift + P</b>: Systemprompt</li><li><b>Cmd/Ctrl + T</b>: Ny flik</li><li><b>Cmd/Ctrl + W</b>: Stäng flik</li><li><b>Cmd/Ctrl + Tab</b>: Nästa flik</li><li><b>Cmd/Ctrl + Shift + Tab</b>: Föregående flik</li><li><b>F7</b>: Föregående ändring</li><li><b>F8</b>: Nästa ändring</li><li><b>ESC</b>: Stäng aktuell dialog</li></ul>"
+    },
+    "keyType": {
+        "title": "Välj API-nyckeltyp",
+        "introHtml": "Inga API-nycklar är sparade ännu. Välj vilken leverantör du vill konfigurera först. Du anger en <b>6-siffrig PIN</b> en gång, och den används för att kryptera/dekryptera nycklar lokalt."
+    },
+    "providers": {
+        "xai": "xAI",
+        "openai": "OpenAI"
+    },
+    "apiKey": {
+        "closeAria": "Stäng API-nyckeldialog",
+        "label": "API-nyckel",
+        "pinLabel": "6-siffrig PIN",
+        "xaiTitle": "xAI API-nyckel",
+        "openaiTitle": "OpenAI API-nyckel",
+        "unlockTitle": "Lås upp API-nycklar",
+        "xaiPlaceholder": "xai-...",
+        "openaiPlaceholder": "sk-...",
+        "savedKeys": "sparade nycklar",
+        "introUnlockHtml": "Ange din <b>6-siffriga PIN</b> för att låsa upp och dekryptera sparade nycklar för denna session.",
+        "introNoPinHtml": "Ange din <b>{provider} API-nyckel</b>. Den kommer att krypteras lokalt med den PIN som redan är upplåst för denna session.",
+        "introWithPinHtml": "Ange din <b>{provider} API-nyckel</b> och en <b>6-siffrig PIN</b>. Nyckeln krypteras lokalt och lagras i denna app (localStorage). PIN-koden lagras inte.",
+        "webCryptoMissing": "WebCrypto är inte tillgängligt i denna miljö.",
+        "pinInvalid": "PIN måste vara exakt 6 siffror.",
+        "noEncryptedKeys": "Inga krypterade nycklar hittades (eller data är korrupt).",
+        "pinDecryptFailed": "Ogiltig PIN (eller korrupt lagrad nyckel). Försök igen.",
+        "keyRequired": "API-nyckel krävs.",
+        "pinNotInSession": "PIN är inte tillgänglig i denna session. Lås upp först.",
+        "saved": "Sparad.",
+        "saveFailed": "Misslyckades med att kryptera och spara: {err}",
+        "unlockHint": "Ange din 6-siffriga PIN för att låsa upp sparade nycklar för denna session.",
+        "migrateHint": "Ange en 6-siffrig PIN för att kryptera din befintliga sparade API-nyckel."
+    },
+    "tabs": {
+        "processing": "Bearbetar…",
+        "closeAria": "Stäng flik",
+        "firstTab": "Flik 1",
+        "defaultTab": "Flik {n}",
+        "fallbackName": "denna flik",
+        "renameTitle": "Byt namn på flik",
+        "renameCloseAria": "Stäng namnbyte-dialog",
+        "nameLabel": "Fliknamn",
+        "namePlaceholder": "t.ex. auth.js patch",
+        "renameHint": "Tryck Enter för att spara",
+        "closeTitle": "Stäng flik?",
+        "closeCloseAria": "Stäng stäng-flik-dialog",
+        "closeBodyHtml": "Stäng <b id=\"tabCloseName\">{tabName}</b>? Eventuella osparade inmatningar i denna flik kommer att förloras.",
+        "closeConfirm": "Stäng flik"
+    },
+    "sysPrompt": {
+        "title": "Systemprompt",
+        "closeAria": "Stäng systemprompt-dialog",
+        "savedTitle": "Sparade prompts",
+        "listAria": "Systemprompts",
+        "nameLabel": "Promptnamn",
+        "namePlaceholder": "t.ex. Strict patcher",
+        "textLabel": "Systemprompt",
+        "useInTab": "Använd i denna flik",
+        "defaultName": "Standard",
+        "buttonLabel": "Prompt - {name}",
+        "buttonTitle": "Systemprompt: {name}",
+        "unnamed": "(namnlös)",
+        "badgeDefault": "Standard",
+        "badgeInUse": "Används",
+        "listHint": "Du kan spara {remaining} till prompt{plural} (max {max} inkl. Standard).",
+        "defaultLockedHint": "Standardprompt kan inte redigeras. Klicka på “Ny” eller “Duplicera” för att skapa en anpassad prompt.",
+        "createHint": "Skapar en ny anpassad prompt. Ange ett namn, redigera texten och spara sedan.",
+        "confirmDelete": "Radera systemprompt “{name}”?",
+        "msg": {
+            "nameRequired": "Promptnamn krävs.",
+            "defaultReserved": "“Standard” är reserverat. Välj ett annat namn.",
+            "nameTaken": "En prompt med detta namn finns redan.",
+            "textRequired": "Systemprompt-text krävs.",
+            "maxPrompts": "Max {max} prompts tillåtna (inklusive Standard). Radera en för att lägga till en ny.",
+            "saved": "Sparad.",
+            "cantEditDefault": "Standardprompt kan inte redigeras.",
+            "notFound": "Kunde inte hitta denna prompt i lagringen.",
+            "unsaved": "Du har osparade ändringar. Spara innan du använder denna prompt.",
+            "cantDeleteDefault": "Standardprompt kan inte raderas.",
+            "deleted": "Raderad."
+        }
+    },
+    "history": {
+        "sectionTitle": "Historik",
+        "closeAria": "Stäng historik",
+        "clearTitle": "Rensa historik",
+        "listAria": "Historikobjekt",
+        "hint": "Max historikstorlek är {max}. Äldre poster tas bort automatiskt.",
+        "pageLabel": "Sida {page} av {total}",
+        "emptyPage": "Inga objekt på denna sida.",
+        "emptyAll": "Ingen historik ännu.",
+        "openInNewTab": "Öppna i ny flik",
+        "loadFailed": "Kunde inte ladda detta historikobjekt (det kan ha rensats eller lagringen är korrupt)."
+    },
+    "language": {
+        "title": "Språk",
+        "closeAria": "Stäng språk",
+        "intro": "Välj ett språk. Appen kommer att laddas om."
+    },
+    "filePicker": {
+        "chooseFile": "Välj fil",
+        "noFileChosen": "Ingen fil vald"
+    },
+    "menu": {
+        "file": {
+            "title": "Arkiv",
+            "xaiKey": "xAI API-nyckel…",
+            "openaiKey": "OpenAI API-nyckel…",
+            "close": "Stäng",
+            "quit": "Avsluta"
+        },
+        "edit": {
+            "title": "Redigera",
+            "undo": "Ångra",
+            "redo": "Gör om",
+            "cut": "Klipp ut",
+            "copy": "Kopiera",
+            "paste": "Klistra in",
+            "pasteMatch": "Klistra in och matcha stil",
+            "delete": "Radera",
+            "selectAll": "Markera allt",
+            "systemPrompt": "Systemprompt…"
+        },
+        "view": {
+            "title": "Visa",
+            "history": "Historik…",
+            "language": "Språk…",
+            "darkMode": "Mörkt läge",
+            "prevChange": "Föregående ändring",
+            "nextChange": "Nästa ändring",
+            "reload": "Ladda om",
+            "forceReload": "Tvinga omladdning",
+            "devTools": "Växla utvecklarverktyg",
+            "resetZoom": "Faktisk storlek",
+            "zoomIn": "Zooma in",
+            "zoomOut": "Zooma ut",
+            "fullscreen": "Växla helskärm"
+        },
+        "window": {
+            "title": "Fönster",
+            "minimize": "Minimera",
+            "zoom": "Zooma",
+            "front": "För allt till fram",
+            "window": "Fönster",
+            "close": "Stäng"
+        },
+        "help": {
+            "usage": "Användning",
+            "about": "Om…",
+            "title": "Hjälp"
+        },
+        "mac": {
+            "about": "Om",
+            "services": "Tjänster",
+            "hide": "Dölj",
+            "hideOthers": "Dölj andra",
+            "unhide": "Visa alla",
+            "quit": "Avsluta"
+        }
+    }
+}

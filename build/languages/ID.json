@@ -1,0 +1,260 @@
+{
+    "languageName": "Bahasa Indonesia",
+    "languageOptions": {
+        "en": "English",
+        "hi": "हिन्दी",
+        "es": "Español",
+        "fr": "Français",
+        "de": "Deutsch",
+        "zh": "中文 (简体)",
+        "ja": "日本語",
+        "ru": "Русский",
+        "pt": "Português",
+        "ar": "العربية",
+        "bn": "বাংলা",
+        "ko": "한국어",
+        "it": "Italiano",
+        "nl": "Nederlands",
+        "sv": "Svenska",
+        "tr": "Türkçe",
+        "pl": "Polski",
+        "vi": "Tiếng Việt",
+        "id": "Bahasa Indonesia"
+    },
+    "app": {
+        "name": "AI Diff Tool",
+        "iconAlt": "Ikon AI Diff Tool",
+        "windowTitle": "AI Diff Tool - Grok 4 Patch Applier"
+    },
+    "sidebar": {
+        "workspaces": "Workspace",
+        "newTab": "Tab baru",
+        "renameHint": "Klik dua kali tab untuk mengganti nama"
+    },
+    "nav": {
+        "prevChange": "Perubahan sebelumnya",
+        "nextChange": "Perubahan berikutnya",
+        "prevChangeTitle": "Perubahan sebelumnya",
+        "nextChangeTitle": "Perubahan berikutnya",
+        "goTop": "Ke atas",
+        "goToOutputDiff": "Perbedaan keluaran"
+    },
+    "model": {
+        "selectLabel": "Pilih Model:"
+    },
+    "loading": {
+        "processing": "Memproses..."
+    },
+    "textarea": {
+        "maximize": "Maksimalkan",
+        "minimize": "Minimalkan"
+    },
+    "labels": {
+        "diffPatch": "Diff Patch (tempel atau muat file):",
+        "fileContent": "Isi File (tempel atau muat file):",
+        "outputSection": "Output dari Model",
+        "diffSection": "Diff dengan asli"
+    },
+    "output": {
+        "timeFmt": "{mins} menit dan {secs} detik",
+        "tokensEstFmt": "{n} token [est.]",
+        "separator": " / ",
+        "copy": "Salin",
+        "copyOutput": "Salin Output",
+        "copied": "Tersalin!"
+    },
+    "buttons": {
+        "retry": "Coba lagi",
+        "applyPatch": "Terapkan Patch",
+        "copy": "Salin",
+        "download": "Unduh File yang Diubah",
+        "save": "Simpan",
+        "update": "Perbarui",
+        "cancel": "Batal",
+        "close": "Tutup",
+        "unlock": "Buka Kunci",
+        "duplicate": "Duplikat",
+        "delete": "Hapus",
+        "new": "Baru",
+        "clear": "Bersihkan",
+        "prev": "Sebelumnya",
+        "next": "Berikutnya"
+    },
+    "about": {
+        "title": "Tentang",
+        "closeAria": "Tutup tentang",
+        "thanks": "Terima kasih telah menggunakan",
+        "creatorAlt": "Pembuat",
+        "creatorLabel": "Pembuat",
+        "emailLabel": "Email",
+        "donate": "Donasi",
+        "github": "Repo GitHub",
+        "licenseTitle": "Lisensi Open Source",
+        "licenseText": "Proyek ini bersifat open-source. Lihat file LICENSE di repositori GitHub.",
+        "versionPrefix": "Versi"
+    },
+    "help": {
+        "title": "AI Diff Tool — Cara Penggunaan",
+        "closeAria": "Tutup bantuan",
+        "bodyHtml": "<p>Aplikasi ini menerapkan <b>unified diff patch</b> ke file dengan meminta model yang dipilih (xAI Grok atau OpenAI GPT) untuk menghasilkan output yang sudah dipatch. Kemudian menampilkan file yang telah diubah dan tampilan diff side-by-side.</p><h3>Langkah cepat</h3><ol><li><b>Pilih tab workspace</b> (sidebar kiri). Setiap tab menyimpan input, model, prompt, output, dan diff sendiri.</li><li><b>Pilih Model</b> (dropdown atas).</li><li><b>Pilih System Prompt</b> (tombol atas: <b>Prompt - ...</b>) jika ingin perilaku lebih ketat/longgar.</li><li><b>Tempel atau muat</b> unified diff patch ke <b>Diff Patch</b> (gunakan “Pilih file” di bawah textarea jika lebih suka).</li><li><b>Tempel atau muat</b> isi file asli ke <b>Isi File</b> (gunakan “Pilih file” di bawah textarea jika lebih suka).</li><li>Masukkan <b>API Key</b> (xAI untuk <code>grok-*</code>, OpenAI untuk <code>gpt-*</code>) dan <b>PIN 6 digit</b>, lalu <b>Simpan</b> (disimpan lokal, terenkripsi).</li><li>Klik <b>Terapkan Patch</b>. Tinjau output dan “Diff dengan asli”.</li><li>Gunakan <b>Salin</b> atau <b>Unduh File yang Diubah</b> setelah output dihasilkan.</li></ol><h3>Workspace (tab)</h3><ul><li>Buat tab baru dengan tombol <b>+</b> (atau <b>Cmd/Ctrl + T</b>).</li><li><b>Klik dua kali</b> tab untuk mengganti nama.</li><li>Tutup tab dengan <b>×</b> pada tab (atau <b>Cmd/Ctrl + W</b>).</li><li>Ganti tab dengan <b>Cmd/Ctrl + Tab</b> (dan <b>Cmd/Ctrl + Shift + Tab</b>).</li></ul><h3>System Prompt</h3><ul><li>Buka melalui tombol atas <b>Prompt - ...</b>, atau <b>Edit → System Prompt…</b> (<b>Cmd/Ctrl + Shift + P</b>).</li><li><b>Default</b> terkunci. Gunakan <b>Baru</b> atau <b>Duplikat</b> untuk membuat prompt kustom.</li><li>Klik <b>Gunakan di tab ini</b> untuk menerapkan prompt yang dipilih ke workspace saat ini.</li><li>Prompt disimpan secara lokal (di localStorage aplikasi ini).</li></ul><h3>API key (xAI / OpenAI)</h3><ul><li>Buka melalui <b>File → xAI API Key…</b> (<b>Cmd/Ctrl + K</b>) atau <b>File → OpenAI API Key…</b> (<b>Cmd/Ctrl + Shift + K</b>).</li><li>Key dienkripsi secara lokal menggunakan <b>PIN 6 digit</b> Anda. PIN tidak disimpan; Anda membuka kunci sekali per sesi aplikasi.</li><li>Aplikasi otomatis memilih key provider mana yang digunakan berdasarkan nama model (<code>grok-*</code> vs <code>gpt-*</code>).</li></ul><h3>Output, navigasi diff, dan tools</h3><ul><li>Model diinstruksikan untuk mengoutput <b>hanya isi file akhir</b> (tanpa code fence, tanpa komentar).</li><li>Jika file besar, Anda mungkin mendapat peringatan ukuran sebelum mengirim.</li><li>Metadata kanan atas menampilkan <b>waktu</b> dan <b>estimasi jumlah token</b> sebagai: <code>&lt;waktu&gt; / &lt;token&gt;</code>.</li><li>Tombol <b>Perubahan sebelumnya</b> / <b>Perubahan berikutnya</b> muncul saat bagian diff terlihat.</li><li><b>Ke atas</b> muncul setelah Anda scroll ke bawah.</li><li>Gunakan tombol <b>⛶</b>/<b>🗕</b> untuk memperluas/meminimalkan Diff, Isi File, dan Output.</li><li><b>Coba lagi</b> muncul saat permintaan gagal dan retry tersedia.</li><li><b>Dark Mode</b> dapat diubah melalui menu <b>View → Dark Mode</b> (atau <b>Cmd/Ctrl + D</b>).</li><li>Anda dapat menutup bantuan ini dengan <b>ESC</b>, tombol <b>×</b>, atau klik latar belakang.</li></ul><h3>Pintasan keyboard</h3><ul><li><b>F1</b>: Buka Bantuan Penggunaan</li><li><b>Cmd/Ctrl + D</b>: Ubah Dark Mode</li><li><b>Cmd/Ctrl + K</b>: xAI API Key</li><li><b>Cmd/Ctrl + Shift + K</b>: OpenAI API Key</li><li><b>Cmd/Ctrl + Shift + P</b>: System Prompt</li><li><b>Cmd/Ctrl + T</b>: Tab baru</li><li><b>Cmd/Ctrl + W</b>: Tutup tab</li><li><b>Cmd/Ctrl + Tab</b>: Tab berikutnya</li><li><b>Cmd/Ctrl + Shift + Tab</b>: Tab sebelumnya</li><li><b>F7</b>: Perubahan sebelumnya</li><li><b>F8</b>: Perubahan berikutnya</li><li><b>ESC</b>: Tutup dialog yang sedang terbuka</li></ul>"
+    },
+    "keyType": {
+        "title": "Pilih Tipe API Key",
+        "introHtml": "Belum ada API key yang disimpan. Pilih provider mana yang ingin Anda atur terlebih dahulu. Anda akan menetapkan <b>PIN 6 digit</b> sekali, dan PIN tersebut akan digunakan untuk mengenkripsi/mendekripsi key secara lokal."
+    },
+    "providers": {
+        "xai": "xAI",
+        "openai": "OpenAI"
+    },
+    "apiKey": {
+        "closeAria": "Tutup dialog API key",
+        "label": "API Key",
+        "pinLabel": "PIN 6 digit",
+        "xaiTitle": "xAI API Key",
+        "openaiTitle": "OpenAI API Key",
+        "unlockTitle": "Buka Kunci API Key",
+        "xaiPlaceholder": "xai-...",
+        "openaiPlaceholder": "sk-...",
+        "savedKeys": "key tersimpan",
+        "introUnlockHtml": "Masukkan <b>PIN 6 digit</b> Anda untuk membuka dan mendekripsi key yang tersimpan untuk sesi ini.",
+        "introNoPinHtml": "Masukkan <b>{provider} API Key</b>. Key akan dienkripsi secara lokal menggunakan PIN yang sudah dibuka untuk sesi ini.",
+        "introWithPinHtml": "Masukkan <b>{provider} API Key</b> dan <b>PIN 6 digit</b>. Key dienkripsi secara lokal dan disimpan di aplikasi ini (localStorage). PIN tidak disimpan.",
+        "webCryptoMissing": "WebCrypto tidak tersedia di lingkungan ini.",
+        "pinInvalid": "PIN harus tepat 6 digit.",
+        "noEncryptedKeys": "Tidak ditemukan key terenkripsi (atau data rusak).",
+        "pinDecryptFailed": "PIN salah (atau key tersimpan rusak). Coba lagi.",
+        "keyRequired": "API key wajib diisi.",
+        "pinNotInSession": "PIN tidak tersedia di sesi ini. Harap buka kunci terlebih dahulu.",
+        "saved": "Tersimpan.",
+        "saveFailed": "Gagal mengenkripsi dan menyimpan: {err}",
+        "unlockHint": "Masukkan PIN 6 digit Anda untuk membuka kunci key yang tersimpan untuk sesi ini.",
+        "migrateHint": "Tetapkan PIN 6 digit untuk mengenkripsi API key Anda yang sudah ada."
+    },
+    "tabs": {
+        "processing": "Memproses…",
+        "closeAria": "Tutup tab",
+        "firstTab": "Tab 1",
+        "defaultTab": "Tab {n}",
+        "fallbackName": "tab ini",
+        "renameTitle": "Ganti nama tab",
+        "renameCloseAria": "Tutup dialog ganti nama",
+        "nameLabel": "Nama tab",
+        "namePlaceholder": "misalnya auth.js patch",
+        "renameHint": "Tekan Enter untuk menyimpan",
+        "closeTitle": "Tutup tab?",
+        "closeCloseAria": "Tutup dialog tutup tab",
+        "closeBodyHtml": "Tutup <b id=\"tabCloseName\">{tabName}</b>? Semua input yang belum disimpan di tab ini akan hilang.",
+        "closeConfirm": "Tutup tab"
+    },
+    "sysPrompt": {
+        "title": "System Prompt",
+        "closeAria": "Tutup system prompt",
+        "savedTitle": "Prompt tersimpan",
+        "listAria": "Daftar system prompt",
+        "nameLabel": "Nama prompt",
+        "namePlaceholder": "misalnya Strict patcher",
+        "textLabel": "System prompt",
+        "useInTab": "Gunakan di tab ini",
+        "defaultName": "Default",
+        "buttonLabel": "Prompt - {name}",
+        "buttonTitle": "System prompt: {name}",
+        "unnamed": "(tanpa nama)",
+        "badgeDefault": "Default",
+        "badgeInUse": "Sedang digunakan",
+        "listHint": "Anda masih dapat menyimpan {remaining} prompt lagi (maks {max} termasuk Default).",
+        "defaultLockedHint": "Prompt Default tidak dapat diedit. Klik “Baru” atau “Duplikat” untuk membuat prompt kustom.",
+        "createHint": "Membuat prompt kustom baru. Masukkan nama, edit teks, lalu Simpan.",
+        "confirmDelete": "Hapus system prompt “{name}”?",
+        "msg": {
+            "nameRequired": "Nama prompt wajib diisi.",
+            "defaultReserved": "“Default” adalah nama yang dicadangkan. Pilih nama lain.",
+            "nameTaken": "Prompt dengan nama ini sudah ada.",
+            "textRequired": "Teks system prompt wajib diisi.",
+            "maxPrompts": "Maksimal {max} prompt diperbolehkan (termasuk Default). Hapus satu untuk menambah yang baru.",
+            "saved": "Tersimpan.",
+            "cantEditDefault": "Prompt Default tidak dapat diedit.",
+            "notFound": "Tidak dapat menemukan prompt ini di penyimpanan.",
+            "unsaved": "Anda memiliki perubahan yang belum disimpan. Simpan dulu sebelum menggunakan prompt ini.",
+            "cantDeleteDefault": "Prompt Default tidak dapat dihapus.",
+            "deleted": "Terhapus."
+        }
+    },
+    "history": {
+        "sectionTitle": "Riwayat",
+        "closeAria": "Tutup riwayat",
+        "clearTitle": "Hapus riwayat",
+        "listAria": "Item riwayat",
+        "hint": "Ukuran riwayat maksimal adalah {max}. Entri lama akan dihapus otomatis.",
+        "pageLabel": "Halaman {page} dari {total}",
+        "emptyPage": "Tidak ada item di halaman ini.",
+        "emptyAll": "Belum ada riwayat.",
+        "openInNewTab": "Buka di tab baru",
+        "loadFailed": "Tidak dapat memuat item riwayat ini (mungkin sudah dihapus atau penyimpanan rusak)."
+    },
+    "language": {
+        "title": "Bahasa",
+        "closeAria": "Tutup bahasa",
+        "intro": "Pilih bahasa. Aplikasi akan dimuat ulang."
+    },
+    "filePicker": {
+        "chooseFile": "Pilih file",
+        "noFileChosen": "Belum ada file dipilih"
+    },
+    "menu": {
+        "file": {
+            "title": "File",
+            "xaiKey": "xAI API Key…",
+            "openaiKey": "OpenAI API Key…",
+            "close": "Tutup",
+            "quit": "Keluar"
+        },
+        "edit": {
+            "title": "Edit",
+            "undo": "Undo",
+            "redo": "Redo",
+            "cut": "Potong",
+            "copy": "Salin",
+            "paste": "Tempel",
+            "pasteMatch": "Tempel dan Sesuaikan Gaya",
+            "delete": "Hapus",
+            "selectAll": "Pilih Semua",
+            "systemPrompt": "System Prompt…"
+        },
+        "view": {
+            "title": "Tampilan",
+            "history": "Riwayat…",
+            "language": "Bahasa…",
+            "darkMode": "Dark Mode",
+            "prevChange": "Perubahan Sebelumnya",
+            "nextChange": "Perubahan Berikutnya",
+            "reload": "Muat Ulang",
+            "forceReload": "Paksa Muat Ulang",
+            "devTools": "Buka/Tutup Developer Tools",
+            "resetZoom": "Ukuran Asli",
+            "zoomIn": "Perbesar",
+            "zoomOut": "Perkecil",
+            "fullscreen": "Layar Penuh"
+        },
+        "window": {
+            "title": "Jendela",
+            "minimize": "Minimalkan",
+            "zoom": "Zoom",
+            "front": "Bawa Semua ke Depan",
+            "window": "Jendela",
+            "close": "Tutup"
+        },
+        "help": {
+            "usage": "Penggunaan",
+            "about": "Tentang…",
+            "title": "Bantuan"
+        },
+        "mac": {
+            "about": "Tentang",
+            "services": "Layanan",
+            "hide": "Sembunyikan",
+            "hideOthers": "Sembunyikan yang Lain",
+            "unhide": "Tampilkan Semua",
+            "quit": "Keluar"
+        }
+    }
+}

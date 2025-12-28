@@ -1,0 +1,260 @@
+{
+    "languageName": "Tiếng Việt",
+    "languageOptions": {
+        "en": "English",
+        "hi": "हिन्दी",
+        "es": "Español",
+        "fr": "Français",
+        "de": "Deutsch",
+        "zh": "中文 (简体)",
+        "ja": "日本語",
+        "ru": "Русский",
+        "pt": "Português",
+        "ar": "العربية",
+        "bn": "বাংলা",
+        "ko": "한국어",
+        "it": "Italiano",
+        "nl": "Nederlands",
+        "sv": "Svenska",
+        "tr": "Türkçe",
+        "pl": "Polski",
+        "vi": "Tiếng Việt",
+        "id": "Bahasa Indonesia"
+    },
+    "app": {
+        "name": "Công cụ AI Diff",
+        "iconAlt": "Biểu tượng Công cụ AI Diff",
+        "windowTitle": "Công cụ AI Diff - Grok 4 Patch Applier"
+    },
+    "sidebar": {
+        "workspaces": "Không gian làm việc",
+        "newTab": "Tab mới",
+        "renameHint": "Nhấp đúp vào tab để đổi tên"
+    },
+    "nav": {
+        "prevChange": "Thay đổi trước",
+        "nextChange": "Thay đổi tiếp",
+        "prevChangeTitle": "Thay đổi trước đó",
+        "nextChangeTitle": "Thay đổi tiếp theo",
+        "goTop": "Về đầu trang",
+        "goToOutputDiff": "Khác biệt đầu ra"
+    },
+    "model": {
+        "selectLabel": "Chọn Model:"
+    },
+    "loading": {
+        "processing": "Đang xử lý..."
+    },
+    "textarea": {
+        "maximize": "Phóng to",
+        "minimize": "Thu nhỏ"
+    },
+    "labels": {
+        "diffPatch": "Diff Patch (dán hoặc tải file):",
+        "fileContent": "Nội dung File (dán hoặc tải file):",
+        "outputSection": "Output từ Model",
+        "diffSection": "Diff với bản gốc"
+    },
+    "output": {
+        "timeFmt": "{mins} phút và {secs} giây",
+        "tokensEstFmt": "{n} token [ước tính]",
+        "separator": " / ",
+        "copy": "Copy",
+        "copyOutput": "Copy Output",
+        "copied": "Đã copy!"
+    },
+    "buttons": {
+        "retry": "Thử lại",
+        "applyPatch": "Áp dụng Patch",
+        "copy": "Copy",
+        "download": "Tải File đã chỉnh sửa",
+        "save": "Lưu",
+        "update": "Cập nhật",
+        "cancel": "Hủy",
+        "close": "Đóng",
+        "unlock": "Mở khóa",
+        "duplicate": "Nhân bản",
+        "delete": "Xóa",
+        "new": "Mới",
+        "clear": "Xóa sạch",
+        "prev": "Trước",
+        "next": "Tiếp"
+    },
+    "about": {
+        "title": "Giới thiệu",
+        "closeAria": "Đóng phần giới thiệu",
+        "thanks": "Cảm ơn bạn đã sử dụng",
+        "creatorAlt": "Người tạo",
+        "creatorLabel": "Người tạo",
+        "emailLabel": "Email",
+        "donate": "Quyên góp",
+        "github": "Kho GitHub",
+        "licenseTitle": "Giấy phép Mã nguồn mở",
+        "licenseText": "Dự án này là mã nguồn mở. Xem file LICENSE trong kho GitHub.",
+        "versionPrefix": "Phiên bản"
+    },
+    "help": {
+        "title": "Công cụ AI Diff — Hướng dẫn sử dụng",
+        "closeAria": "Đóng hướng dẫn",
+        "bodyHtml": "<p>Ứng dụng này áp dụng <b>unified diff patch</b> vào một file bằng cách yêu cầu model được chọn (xAI Grok hoặc OpenAI GPT) tạo ra output đã patch. Sau đó hiển thị file đã chỉnh sửa và chế độ xem diff song song.</p><h3>Các bước nhanh</h3><ol><li><b>Chọn tab không gian làm việc</b> (thanh bên trái). Mỗi tab lưu riêng input, model, prompt, output và diff.</li><li><b>Chọn Model</b> (menu thả xuống phía trên).</li><li><b>Chọn System Prompt</b> (nút trên cùng: <b>Prompt - ...</b>) nếu cần hành vi nghiêm ngặt/thư giãn hơn.</li><li><b>Dán hoặc tải</b> unified diff patch vào <b>Diff Patch</b> (dùng “Chọn file” dưới textarea nếu muốn).</li><li><b>Dán hoặc tải</b> nội dung file gốc vào <b>Nội dung File</b> (dùng “Chọn file” dưới textarea nếu muốn).</li><li>Nhập <b>API Key</b> (xAI cho <code>grok-*</code>, OpenAI cho <code>gpt-*</code>) và <b>PIN 6 chữ số</b>, sau đó <b>Lưu</b> (lưu cục bộ, đã mã hóa).</li><li>Nhấn <b>Áp dụng Patch</b>. Xem lại output và “Diff với bản gốc”.</li><li>Sử dụng <b>Copy</b> hoặc <b>Tải File đã chỉnh sửa</b> khi output đã tạo xong.</li></ol><h3>Không gian làm việc (tabs)</h3><ul><li>Tạo tab mới bằng nút <b>+</b> (hoặc <b>Cmd/Ctrl + T</b>).</li><li><b>Nhấp đúp</b> vào tab để đổi tên.</li><li>Đóng tab bằng <b>×</b> trên tab (hoặc <b>Cmd/Ctrl + W</b>).</li><li>Chuyển tab bằng <b>Cmd/Ctrl + Tab</b> (và <b>Cmd/Ctrl + Shift + Tab</b>).</li></ul><h3>System Prompt</h3><ul><li>Mở bằng nút <b>Prompt - ...</b> phía trên, hoặc <b>Edit → System Prompt…</b> (<b>Cmd/Ctrl + Shift + P</b>).</li><li><b>Default</b> bị khóa. Dùng <b>Mới</b> hoặc <b>Nhân bản</b> để tạo prompt tùy chỉnh.</li><li>Nhấn <b>Sử dụng trong tab này</b> để áp dụng prompt đã chọn cho không gian làm việc hiện tại.</li><li>Prompt được lưu cục bộ (trong localStorage của app).</li></ul><h3>API key (xAI / OpenAI)</h3><ul><li>Mở bằng <b>File → xAI API Key…</b> (<b>Cmd/Ctrl + K</b>) hoặc <b>File → OpenAI API Key…</b> (<b>Cmd/Ctrl + Shift + K</b>).</li><li>Key được mã hóa cục bộ bằng <b>PIN 6 chữ số</b>. PIN không được lưu; bạn mở khóa key một lần mỗi phiên app.</li><li>App tự động chọn key nhà cung cấp dựa trên tên model (<code>grok-*</code> vs <code>gpt-*</code>).</li></ul><h3>Output, điều hướng diff và công cụ</h3><ul><li>Model được hướng dẫn chỉ output <b>nội dung file cuối cùng</b> (không code fence, không chú thích).</li><li>Nếu file lớn, bạn có thể nhận cảnh báo kích thước trước khi gửi.</li><li>Metadata góc trên bên phải hiển thị <b>thời gian</b> và <b>số token ước tính</b> dạng: <code>&lt;thời gian&gt; / &lt;token&gt;</code>.</li><li>Nút <b>Thay đổi trước</b> / <b>Thay đổi tiếp</b> xuất hiện khi phần diff đang hiển thị.</li><li><b>Về đầu trang</b> xuất hiện sau khi bạn cuộn xuống.</li><li>Dùng nút <b>⛶</b>/<b>🗕</b> để mở rộng/thu gọn Diff, Nội dung File và Output.</li><li><b>Thử lại</b> xuất hiện khi request thất bại và còn lượt thử.</li><li><b>Chế độ Tối</b> có thể bật/tắt qua mục menu <b>View → Dark Mode</b> (hoặc <b>Cmd/Ctrl + D</b>).</li><li>Bạn có thể đóng hướng dẫn này bằng <b>ESC</b>, nút <b>×</b> hoặc nhấp vào nền.</li></ul><h3>Phím tắt bàn phím</h3><ul><li><b>F1</b>: Mở Hướng dẫn sử dụng</li><li><b>Cmd/Ctrl + D</b>: Bật/tắt Chế độ Tối</li><li><b>Cmd/Ctrl + K</b>: xAI API Key</li><li><b>Cmd/Ctrl + Shift + K</b>: OpenAI API Key</li><li><b>Cmd/Ctrl + Shift + P</b>: System Prompt</li><li><b>Cmd/Ctrl + T</b>: Tab mới</li><li><b>Cmd/Ctrl + W</b>: Đóng tab</li><li><b>Cmd/Ctrl + Tab</b>: Tab tiếp theo</li><li><b>Cmd/Ctrl + Shift + Tab</b>: Tab trước đó</li><li><b>F7</b>: Thay đổi trước</li><li><b>F8</b>: Thay đổi tiếp</li><li><b>ESC</b>: Đóng dialog hiện tại</li></ul>"
+    },
+    "keyType": {
+        "title": "Chọn loại API Key",
+        "introHtml": "Chưa lưu API key nào. Chọn nhà cung cấp bạn muốn cấu hình trước. Bạn sẽ đặt <b>PIN 6 chữ số</b> một lần, dùng để mã hóa/giải mã key cục bộ."
+    },
+    "providers": {
+        "xai": "xAI",
+        "openai": "OpenAI"
+    },
+    "apiKey": {
+        "closeAria": "Đóng dialog API key",
+        "label": "API Key",
+        "pinLabel": "PIN 6 chữ số",
+        "xaiTitle": "xAI API Key",
+        "openaiTitle": "OpenAI API Key",
+        "unlockTitle": "Mở khóa API Key",
+        "xaiPlaceholder": "xai-...",
+        "openaiPlaceholder": "sk-...",
+        "savedKeys": "key đã lưu",
+        "introUnlockHtml": "Nhập <b>PIN 6 chữ số</b> để mở khóa và giải mã key đã lưu cho phiên này.",
+        "introNoPinHtml": "Nhập <b>{provider} API Key</b>. Key sẽ được mã hóa cục bộ bằng PIN đã mở khóa trong phiên này.",
+        "introWithPinHtml": "Nhập <b>{provider} API Key</b> và <b>PIN 6 chữ số</b>. Key được mã hóa cục bộ và lưu trong app (localStorage). PIN không được lưu.",
+        "webCryptoMissing": "WebCrypto không khả dụng trong môi trường này.",
+        "pinInvalid": "PIN phải đúng 6 chữ số.",
+        "noEncryptedKeys": "Không tìm thấy key đã mã hóa (hoặc dữ liệu bị hỏng).",
+        "pinDecryptFailed": "PIN không đúng (hoặc key lưu trữ bị hỏng). Thử lại.",
+        "keyRequired": "Yêu cầu API key.",
+        "pinNotInSession": "PIN không có trong phiên này. Vui lòng mở khóa trước.",
+        "saved": "Đã lưu.",
+        "saveFailed": "Lưu thất bại: {err}",
+        "unlockHint": "Nhập PIN 6 chữ số để mở khóa key đã lưu cho phiên này.",
+        "migrateHint": "Đặt PIN 6 chữ số để mã hóa API key đã lưu hiện tại."
+    },
+    "tabs": {
+        "processing": "Đang xử lý…",
+        "closeAria": "Đóng tab",
+        "firstTab": "Tab 1",
+        "defaultTab": "Tab {n}",
+        "fallbackName": "tab này",
+        "renameTitle": "Đổi tên tab",
+        "renameCloseAria": "Đóng dialog đổi tên",
+        "nameLabel": "Tên tab",
+        "namePlaceholder": "ví dụ: auth.js patch",
+        "renameHint": "Nhấn Enter để lưu",
+        "closeTitle": "Đóng tab?",
+        "closeCloseAria": "Đóng dialog đóng tab",
+        "closeBodyHtml": "Đóng <b id=\"tabCloseName\">{tabName}</b>? Mọi input chưa lưu trong tab này sẽ mất.",
+        "closeConfirm": "Đóng tab"
+    },
+    "sysPrompt": {
+        "title": "System Prompt",
+        "closeAria": "Đóng dialog system prompt",
+        "savedTitle": "Prompt đã lưu",
+        "listAria": "Danh sách System prompt",
+        "nameLabel": "Tên prompt",
+        "namePlaceholder": "ví dụ: Strict patcher",
+        "textLabel": "System prompt",
+        "useInTab": "Sử dụng trong tab này",
+        "defaultName": "Mặc định",
+        "buttonLabel": "Prompt - {name}",
+        "buttonTitle": "System prompt: {name}",
+        "unnamed": "(chưa đặt tên)",
+        "badgeDefault": "Mặc định",
+        "badgeInUse": "Đang dùng",
+        "listHint": "Bạn có thể lưu thêm {remaining} prompt{plural} (tối đa {max} bao gồm Mặc định).",
+        "defaultLockedHint": "Prompt Mặc định không thể chỉnh sửa. Nhấn “Mới” hoặc “Nhân bản” để tạo prompt tùy chỉnh.",
+        "createHint": "Đang tạo prompt tùy chỉnh mới. Nhập tên, chỉnh sửa nội dung, sau đó Lưu.",
+        "confirmDelete": "Xóa system prompt “{name}”?",
+        "msg": {
+            "nameRequired": "Yêu cầu tên prompt.",
+            "defaultReserved": "“Mặc định” là tên dành riêng. Chọn tên khác.",
+            "nameTaken": "Đã có prompt với tên này.",
+            "textRequired": "Yêu cầu nội dung system prompt.",
+            "maxPrompts": "Chỉ cho phép tối đa {max} prompt (bao gồm Mặc định). Xóa một cái để thêm mới.",
+            "saved": "Đã lưu.",
+            "cantEditDefault": "Không thể chỉnh sửa prompt Mặc định.",
+            "notFound": "Không tìm thấy prompt này trong bộ nhớ.",
+            "unsaved": "Bạn có thay đổi chưa lưu. Hãy lưu trước khi sử dụng prompt này.",
+            "cantDeleteDefault": "Không thể xóa prompt Mặc định.",
+            "deleted": "Đã xóa."
+        }
+    },
+    "history": {
+        "sectionTitle": "Lịch sử",
+        "closeAria": "Đóng lịch sử",
+        "clearTitle": "Xóa lịch sử",
+        "listAria": "Các mục lịch sử",
+        "hint": "Kích thước lịch sử tối đa là {max}. Các mục cũ sẽ tự động bị xóa.",
+        "pageLabel": "Trang {page} / {total}",
+        "emptyPage": "Không có mục nào ở trang này.",
+        "emptyAll": "Chưa có lịch sử.",
+        "openInNewTab": "Mở trong tab mới",
+        "loadFailed": "Không thể tải mục lịch sử này (có thể đã bị xóa hoặc bộ nhớ bị hỏng)."
+    },
+    "language": {
+        "title": "Ngôn ngữ",
+        "closeAria": "Đóng chọn ngôn ngữ",
+        "intro": "Chọn ngôn ngữ. Ứng dụng sẽ tải lại."
+    },
+    "filePicker": {
+        "chooseFile": "Chọn file",
+        "noFileChosen": "Chưa chọn file"
+    },
+    "menu": {
+        "file": {
+            "title": "File",
+            "xaiKey": "xAI API Key…",
+            "openaiKey": "OpenAI API Key…",
+            "close": "Đóng",
+            "quit": "Thoát"
+        },
+        "edit": {
+            "title": "Chỉnh sửa",
+            "undo": "Hoàn tác",
+            "redo": "Làm lại",
+            "cut": "Cắt",
+            "copy": "Copy",
+            "paste": "Dán",
+            "pasteMatch": "Dán và khớp kiểu",
+            "delete": "Xóa",
+            "selectAll": "Chọn tất cả",
+            "systemPrompt": "System Prompt…"
+        },
+        "view": {
+            "title": "Xem",
+            "history": "Lịch sử…",
+            "language": "Ngôn ngữ…",
+            "darkMode": "Chế độ Tối",
+            "prevChange": "Thay đổi Trước",
+            "nextChange": "Thay đổi Tiếp",
+            "reload": "Tải lại",
+            "forceReload": "Tải lại mạnh",
+            "devTools": "Bật/Tắt Công cụ Phát triển",
+            "resetZoom": "Kích thước thực",
+            "zoomIn": "Phóng to",
+            "zoomOut": "Thu nhỏ",
+            "fullscreen": "Toàn màn hình"
+        },
+        "window": {
+            "title": "Cửa sổ",
+            "minimize": "Thu nhỏ",
+            "zoom": "Phóng to",
+            "front": "Đưa tất cả lên trước",
+            "window": "Cửa sổ",
+            "close": "Đóng"
+        },
+        "help": {
+            "usage": "Hướng dẫn",
+            "about": "Giới thiệu…",
+            "title": "Trợ giúp"
+        },
+        "mac": {
+            "about": "Giới thiệu",
+            "services": "Dịch vụ",
+            "hide": "Ẩn",
+            "hideOthers": "Ẩn các cửa sổ khác",
+            "unhide": "Hiện tất cả",
+            "quit": "Thoát"
+        }
+    }
+}
