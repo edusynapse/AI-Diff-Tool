@@ -281,5 +281,11 @@
         "cancel": "İptal",
         "inProgress": "Sıfırlanıyor…",
         "failed": "Sıfırlama başarısız oldu. Lütfen tekrar deneyin."
+    },
+    "confirmApply": {
+        "title": "Yama Uygulamasını Onayla",
+        "bodyFmt": "{model} modeli kullanarak yamayı uygulamayı onaylayın mı ?",
+        "ok": "Tamam",
+        "cancel": "İptal"
     }
 }

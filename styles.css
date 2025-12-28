@@ -895,6 +895,15 @@ body.dark .modal-close {
   background: #2a2a2a;
   color: #e6e6e6;
 }
+
+
+/* -------------------------
+   Confirm Apply modal: footer buttons layout
+   (avoid global button margin-right spacing weirdness)
+   ------------------------- */
+#confirmApplyOverlay .modal-footer { gap: 10px; }
+#confirmApplyOverlay .modal-footer button { margin-right: 0; }
+
 /* =========================
    Dark mode scrollbars (Electron/Chromium)
    Put at END of styles.css
@@ -1981,4 +1990,19 @@ body.dark {
 button.hidden,
 .topbar-btn.hidden {
   display: none !important;
+}
+
+
+/* Confirm Apply Patch: highlight the model name */
+.confirm-model{
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 6px;
+  background: rgba(0,0,0,0.08);
+  border: 1px solid rgba(0,0,0,0.12);
+  white-space: nowrap;
+}
+body.dark .confirm-model{
+  background: rgba(255,255,255,0.12);
+  border-color: rgba(255,255,255,0.16);
 }

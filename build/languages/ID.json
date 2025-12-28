@@ -281,5 +281,11 @@
         "cancel": "Batal",
         "inProgress": "Mengatur ulang…",
         "failed": "Pengaturan ulang gagal. Silakan coba lagi."
+    },
+    "confirmApply": {
+        "title": "Konfirmasi Penerapan Patch",
+        "bodyFmt": "Konfirmasi penerapan patch menggunakan model {model} ?",
+        "ok": "OK",
+        "cancel": "Batal"
     }
 }

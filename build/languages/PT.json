@@ -281,5 +281,11 @@
         "cancel": "Cancelar",
         "inProgress": "Redefinindo…",
         "failed": "Redefinição falhou. Por favor, tente novamente."
+    },
+    "confirmApply": {
+        "title": "Confirmar Aplicação do Patch",
+        "bodyFmt": "Confirmar aplicação do patch usando o modelo {model} ?",
+        "ok": "OK",
+        "cancel": "Cancelar"
     }
 }

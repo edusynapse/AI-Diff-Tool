@@ -281,5 +281,11 @@
         "cancel": "取消",
         "inProgress": "正在重置…",
         "failed": "重置失败。请重试。"
+    },
+    "confirmApply": {
+        "title": "确认补丁应用",
+        "bodyFmt": "确认使用 {model} 模型应用补丁？",
+        "ok": "确定",
+        "cancel": "取消"
     }
 }

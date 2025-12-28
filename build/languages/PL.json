@@ -281,5 +281,11 @@
         "cancel": "Anuluj",
         "inProgress": "Resetowanie…",
         "failed": "Resetowanie nie powiodło się. Spróbuj ponownie."
+    },
+    "confirmApply": {
+        "title": "Potwierdź zastosowanie łatki",
+        "bodyFmt": "Potwierdź zastosowanie łatki za pomocą modelu {model} ?",
+        "ok": "OK",
+        "cancel": "Anuluj"
     }
 }

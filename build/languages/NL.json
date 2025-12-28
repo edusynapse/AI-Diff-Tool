@@ -281,5 +281,11 @@
         "cancel": "Annuleren",
         "inProgress": "Resetten…",
         "failed": "Reset mislukt. Probeer het opnieuw."
+    },
+    "confirmApply": {
+        "title": "Bevestig patch-toepassing",
+        "bodyFmt": "Bevestig toepassing van de patch met {model}-model ?",
+        "ok": "OK",
+        "cancel": "Annuleren"
     }
 }

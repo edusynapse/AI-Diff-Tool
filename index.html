@@ -607,6 +607,23 @@
     </div>
   </div>
 
+  <!-- Confirm Patch Application overlay (shown after clicking Apply Patch) -->
+  <div id="confirmApplyOverlay" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="confirmApplyTitle">
+    <div class="modal-content modal-sm" role="document">
+      <div class="modal-header">
+        <h2 id="confirmApplyTitle">Confirm Patch Application</h2>
+        <button id="confirmApplyCloseBtn" class="modal-close" aria-label="Close confirmation">×</button>
+      </div>
+      <div class="modal-body">
+        <p id="confirmApplyBody">Confirm application of the patch using model ?</p>
+      </div>
+      <div class="modal-footer">
+        <button id="confirmApplyOkBtn" class="modal-ok" type="button">OK</button>
+        <button id="confirmApplyCancelBtn" class="modal-ok" type="button">Cancel</button>
+      </div>
+    </div>
+  </div>
+
   <script src="renderer.js"></script>
 </body>
 </html>

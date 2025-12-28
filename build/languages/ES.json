@@ -281,5 +281,11 @@
         "cancel": "Cancelar",
         "inProgress": "Restableciendo…",
         "failed": "Fallo en el restablecimiento. Por favor, intenta de nuevo."
+    },
+    "confirmApply": {
+        "title": "Confirmar Aplicación de Parche",
+        "bodyFmt": "¿Confirmar aplicación del parche usando el modelo {model}?",
+        "ok": "Aceptar",
+        "cancel": "Cancelar"
     }
 }

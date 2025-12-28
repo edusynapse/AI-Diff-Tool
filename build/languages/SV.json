@@ -281,5 +281,11 @@
         "cancel": "Avbryt",
         "inProgress": "Återställer…",
         "failed": "Återställning misslyckades. Försök igen."
+    },
+    "confirmApply": {
+        "title": "Bekräfta patch-tillämpning",
+        "bodyFmt": "Bekräfta tillämpning av patchen med {model} modell?",
+        "ok": "OK",
+        "cancel": "Avbryt"
     }
 }

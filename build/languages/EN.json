@@ -281,5 +281,11 @@
         "cancel": "Cancel",
         "inProgress": "Resetting…",
         "failed": "Reset failed. Please try again."
+    },
+    "confirmApply": {
+        "title": "Confirm Patch Application",
+        "bodyFmt": "Confirm application of the patch using {model} model ?",
+        "ok": "OK",
+        "cancel": "Cancel"
     }
 }

@@ -281,5 +281,11 @@
         "cancel": "Annuler",
         "inProgress": "Réinitialisation en cours…",
         "failed": "Échec de la réinitialisation. Veuillez réessayer."
+    },
+    "confirmApply": {
+        "title": "Confirmer l'application du patch",
+        "bodyFmt": "Confirmer l'application du patch en utilisant le modèle {model} ?",
+        "ok": "OK",
+        "cancel": "Annuler"
     }
 }

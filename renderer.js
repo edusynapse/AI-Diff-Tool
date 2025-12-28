@@ -25,6 +25,7 @@ function closeAllModalsForLanguageChange() {
   try { closeLanguageModal({ force: true }); } catch {}
   try { closePinChangeModal({ force: true }); } catch {}
   try { closeCleanResetModal({ force: true }); } catch {}
+  try { closeConfirmApplyModal({ force: true }); } catch {}
 
   try {
     const api = initApiKeysManagerOnce();
@@ -227,6 +228,7 @@ function refreshUiAfterLanguageChange() {
   try { scheduleGoOutputDiffButtonUpdate(); } catch {}
   try { applyI18nToPinChangeModal(); } catch {}
   try { applyI18nToCleanResetModal(); } catch {}
+  try { applyI18nToConfirmApplyModal(); } catch {}
 }
 
 // -------------------------
@@ -379,7 +381,8 @@ function refreshUiAfterLanguageChange() {
      'historyOverlay',
      'languageOverlay',
      'pinChangeOverlay',
-     'cleanResetOverlay'
+     'cleanResetOverlay',
+     'confirmApplyOverlay'
    ].some(_isOverlayOpen);
    document.body.classList.toggle('modal-open', anyOpen);
  }
@@ -412,6 +415,147 @@ function refreshUiAfterLanguageChange() {
    if (body) body.innerHTML = t('cleanReset.bodyHtml', 'This will <b>remove all local app data</b> (API keys, history, prompts, tabs, and settings). You will need to set up the app again.');
    if (okBtn) okBtn.textContent = t('cleanReset.confirm', 'Yes, reset everything');
    if (cancelBtn) cancelBtn.textContent = t('cleanReset.cancel', 'Cancel');
+ }
+
+// -------------------------
+// Confirm Apply Patch modal
+// -------------------------
+let _confirmApplyWired = false;
+let _confirmApplyOnOk = null;
+let _confirmApplyBypass = false;
+const CONFIRM_APPLY_MODEL_TOKEN = '__MODEL__';
+
+function setConfirmApplyBodyWithHighlightedModel(bodyEl, modelName) {
+  if (!bodyEl) return;
+  const model = String(modelName || '').trim() || '?';
+
+  // Ask i18n for a string that contains {model}, but we pass a TOKEN instead.
+  // Then we replace that token with a styled <span> (no HTML needed in translations).
+  let fmt = tFmt(
+    'confirmApply.bodyFmt',
+    { model: CONFIRM_APPLY_MODEL_TOKEN },
+    `Confirm application of the patch using ${CONFIRM_APPLY_MODEL_TOKEN} model ?`
+  );
+
+  fmt = String(fmt || '');
+  if (!fmt.includes(CONFIRM_APPLY_MODEL_TOKEN)) {
+    // Safety fallback if a translation omits {model}
+    fmt = `Confirm application of the patch using ${CONFIRM_APPLY_MODEL_TOKEN} model ?`;
+  }
+
+  const parts = fmt.split(CONFIRM_APPLY_MODEL_TOKEN);
+  bodyEl.replaceChildren();
+
+  for (let i = 0; i < parts.length; i++) {
+    if (parts[i]) bodyEl.appendChild(document.createTextNode(parts[i]));
+    if (i < parts.length - 1) {
+      const span = document.createElement('span');
+      span.className = 'confirm-model';
+      span.textContent = model;
+      bodyEl.appendChild(span);
+    }
+  }
+}
+
+function applyI18nToConfirmApplyModal(modelName) {
+  const title = document.getElementById('confirmApplyTitle');
+  const body = document.getElementById('confirmApplyBody');
+  const okBtn = document.getElementById('confirmApplyOkBtn');
+  const cancelBtn = document.getElementById('confirmApplyCancelBtn');
+
+  const overlay = document.getElementById('confirmApplyOverlay');
+  const model = String(
+    modelName ||
+    overlay?.dataset?.modelName ||
+    document.getElementById('modelSelect')?.value ||
+    ''
+  ).trim();
+
+  if (title) title.textContent = t('confirmApply.title', 'Confirm Patch Application');
+  if (body) setConfirmApplyBodyWithHighlightedModel(body, model);
+  if (okBtn) okBtn.textContent = t('confirmApply.ok', 'OK');
+  if (cancelBtn) cancelBtn.textContent = t('confirmApply.cancel', 'Cancel');
+}
+
+function openConfirmApplyModal({ modelName, onOk } = {}) {
+  const overlay = document.getElementById('confirmApplyOverlay');
+  if (!overlay) return;
+
+  _confirmApplyOnOk = (typeof onOk === 'function') ? onOk : null;
+  overlay.dataset.modelName = String(modelName || '').trim();
+  applyI18nToConfirmApplyModal(modelName);
+
+  overlay.classList.remove('hidden');
+  _syncBodyModalOpen();
+  setTimeout(() => { try { document.getElementById('confirmApplyOkBtn')?.focus?.(); } catch {} }, 0);
+}
+
+function closeConfirmApplyModal({ force = false } = {}) {
+  const overlay = document.getElementById('confirmApplyOverlay');
+  if (!overlay) return;
+  overlay.classList.add('hidden');
+  _confirmApplyOnOk = null;
+  try { delete overlay.dataset.modelName; } catch { overlay.dataset.modelName = ''; }
+  _syncBodyModalOpen();
+}
+
+function wireConfirmApplyModalOnce() {
+  if (_confirmApplyWired) return;
+  _confirmApplyWired = true;
+
+  const overlay = document.getElementById('confirmApplyOverlay');
+  const closeBtn = document.getElementById('confirmApplyCloseBtn');
+  const okBtn = document.getElementById('confirmApplyOkBtn');
+  const cancelBtn = document.getElementById('confirmApplyCancelBtn');
+  const applyBtn = document.getElementById('applyBtn');
+
+  if (closeBtn) closeBtn.addEventListener('click', () => closeConfirmApplyModal());
+  if (cancelBtn) cancelBtn.addEventListener('click', () => closeConfirmApplyModal());
+  if (okBtn) okBtn.addEventListener('click', () => {
+    const cb = _confirmApplyOnOk;
+    closeConfirmApplyModal({ force: true });
+    try { cb?.(); } catch {}
+  });
+
+  if (overlay) {
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) closeConfirmApplyModal();
+    });
+  }
+
+  // ESC closes this modal (capture so it wins)
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape') return;
+    if (_isOverlayOpen('confirmApplyOverlay')) {
+      e.preventDefault();
+      e.stopPropagation();
+      closeConfirmApplyModal();
+    }
+  }, true);
+
+  // Intercept Apply Patch click (capture), show confirmation modal,
+  // then re-trigger click once user confirms (bypass flag avoids recursion).
+  if (applyBtn && applyBtn.dataset.confirmApplyWired !== '1') {
+    applyBtn.dataset.confirmApplyWired = '1';
+    applyBtn.addEventListener('click', (e) => {
+      if (_confirmApplyBypass) { _confirmApplyBypass = false; return; }
+      if (applyBtn.disabled) return;
+
+      e.preventDefault();
+      e.stopImmediatePropagation();
+
+      const modelSel = document.getElementById('modelSelect');
+      const modelName = String(modelSel?.value || '').trim();
+
+      openConfirmApplyModal({
+        modelName,
+        onOk: () => {
+          _confirmApplyBypass = true;
+          try { applyBtn.click(); } catch {}
+        }
+      });
+    }, true);
+  }
  }
 
  function openPinChangeModal() {
@@ -590,6 +734,13 @@ function refreshUiAfterLanguageChange() {
    wirePinChangeAndResetModalsOnce();
  }
 
+ // Confirm Apply modal wiring
+ if (document.readyState === 'loading') {
+   document.addEventListener('DOMContentLoaded', wireConfirmApplyModalOnce, { once: true });
+ } else {
+   wireConfirmApplyModalOnce();
+ }
+
  const MAX_RETRIES = 3;
  const MAX_FILE_SIZE_MB = 5;  // Warn if larger; adjust based on API limits
  let originalFileName = 'file.txt';  // Default for pasted content
@@ -623,6 +774,7 @@ const i18nMgr = createI18nManager({
       'historyOverlay'
       ,'pinChangeOverlay'
       ,'cleanResetOverlay'
+      ,'confirmApplyOverlay'
     ]
   }
 });
@@ -762,6 +914,7 @@ function initHistoryManagerOnce() {
         'languageOverlay'
         ,'pinChangeOverlay'
         ,'cleanResetOverlay'
+        ,'confirmApplyOverlay'
       ]
     }
   });

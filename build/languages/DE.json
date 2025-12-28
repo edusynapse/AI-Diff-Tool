@@ -281,5 +281,11 @@
         "cancel": "Abbrechen",
         "inProgress": "Wird zurückgesetzt…",
         "failed": "Zurücksetzen fehlgeschlagen. Bitte versuchen Sie es erneut."
+    },
+    "confirmApply": {
+        "title": "Patch-Anwendung bestätigen",
+        "bodyFmt": "Anwendung des Patches mit dem {model}-Modell bestätigen?",
+        "ok": "OK",
+        "cancel": "Abbrechen"
     }
 }

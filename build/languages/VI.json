@@ -281,5 +281,11 @@
         "cancel": "Hủy",
         "inProgress": "Đang đặt lại…",
         "failed": "Đặt lại thất bại. Vui lòng thử lại."
+    },
+    "confirmApply": {
+        "title": "Xác nhận Áp dụng Bản vá",
+        "bodyFmt": "Xác nhận áp dụng bản vá sử dụng mô hình {model} ?",
+        "ok": "OK",
+        "cancel": "Hủy"
     }
 }

@@ -281,5 +281,11 @@
         "cancel": "취소",
         "inProgress": "초기화 중…",
         "failed": "초기화 실패. 다시 시도해 주세요."
+    },
+    "confirmApply": {
+        "title": "패치 적용 확인",
+        "bodyFmt": "{model} 모델을 사용한 패치 적용을 확인하시겠습니까?",
+        "ok": "확인",
+        "cancel": "취소"
     }
 }

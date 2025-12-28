@@ -281,5 +281,11 @@
         "cancel": "キャンセル",
         "inProgress": "リセット中…",
         "failed": "リセットに失敗しました。もう一度お試しください。"
+    },
+    "confirmApply": {
+        "title": "パッチ適用確認",
+        "bodyFmt": "{model} モデルを使用してパッチを適用しますか？",
+        "ok": "OK",
+        "cancel": "キャンセル"
     }
 }

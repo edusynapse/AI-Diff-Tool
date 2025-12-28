@@ -281,5 +281,11 @@
         "cancel": "Annulla",
         "inProgress": "Reimpostazione…",
         "failed": "Reimpostazione fallita. Riprova."
+    },
+    "confirmApply": {
+        "title": "Conferma Applicazione Patch",
+        "bodyFmt": "Conferma l'applicazione della patch usando il modello {model} ?",
+        "ok": "OK",
+        "cancel": "Annulla"
     }
 }
