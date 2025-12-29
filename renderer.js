@@ -425,6 +425,68 @@ let _confirmApplyOnOk = null;
 let _confirmApplyBypass = false;
 const CONFIRM_APPLY_MODEL_TOKEN = '__MODEL__';
 
+// -------------------------
+// Resume pending Apply/Retry after PIN unlock / API key save
+// -------------------------
+let _pendingModelActionAfterApiReady = null; // 'applyBtn' | 'retryBtn'
+let _lastModelActionBtnId = null;           // last clicked model action button id
+let _apiReadyResumeWired = false;
+
+function _wireApiReadyResumeOnce() {
+  if (_apiReadyResumeWired) return;
+  _apiReadyResumeWired = true;
+
+  // Track last model-triggering button the user clicked.
+  // (Capture so it runs even when other handlers stop propagation, e.g. confirm modal.)
+  document.addEventListener('click', (e) => {
+    const btn = e.target?.closest?.('button');
+    const id = String(btn?.id || '');
+    if (id === 'applyBtn' || id === 'retryBtn') _lastModelActionBtnId = id;
+  }, true);
+
+  // When apikeys.js signals that keys are ready (unlock/save), resume the pending action.
+  window.addEventListener('apikeys:ready', () => {
+    const id = _pendingModelActionAfterApiReady;
+    if (!id) return;
+
+    const btn = document.getElementById(id);
+    if (!btn || btn.disabled) {
+      _pendingModelActionAfterApiReady = null;
+      return;
+    }
+
+    _pendingModelActionAfterApiReady = null;
+
+    // User already confirmed before entering PIN; skip the confirmation modal on resume.
+    if (id === 'applyBtn') _confirmApplyBypass = true;
+
+    // Let the PIN modal close paint first, then re-trigger.
+    setTimeout(() => {
+      try { btn.click(); } catch {}
+    }, 0);
+  });
+}
+
+function _wrapEnsureKeyOrPromptForResume(apiMgr) {
+  if (!apiMgr || apiMgr.__resumeEnsureWrapped) return;
+  apiMgr.__resumeEnsureWrapped = true;
+
+  const orig = apiMgr.ensureKeyOrPrompt;
+  if (typeof orig !== 'function') return;
+
+  apiMgr.ensureKeyOrPrompt = async (opts = {}) => {
+    const ok = await orig(opts);
+    if (ok) return true;
+
+    // A modal was opened (unlock/setup). Remember what to resume after apikeys:ready.
+    _pendingModelActionAfterApiReady = _lastModelActionBtnId || 'applyBtn';
+    return false;
+  };
+}
+
+// Wire resume logic immediately (safe even before DOMContentLoaded).
+_wireApiReadyResumeOnce();
+
 function setConfirmApplyBodyWithHighlightedModel(bodyEl, modelName) {
   if (!bodyEl) return;
   const model = String(modelName || '').trim() || '?';
@@ -1906,6 +1968,7 @@ function initApiKeysManagerOnce() {
   if (apiKeysMgr) return apiKeysMgr;
   apiKeysMgr = createApiKeyManager({ t, tFmt, ipcRenderer });
 
+  try { _wrapEnsureKeyOrPromptForResume(apiKeysMgr); } catch {}
   try { initModelProviderGateOnce(); } catch {}
   return apiKeysMgr;
  }

@@ -897,12 +897,7 @@ body.dark .modal-close {
 }
 
 
-/* -------------------------
-   Confirm Apply modal: footer buttons layout
-   (avoid global button margin-right spacing weirdness)
-   ------------------------- */
-#confirmApplyOverlay .modal-footer { gap: 10px; }
-#confirmApplyOverlay .modal-footer button { margin-right: 0; }
+
 
 /* =========================
    Dark mode scrollbars (Electron/Chromium)

@@ -71,6 +71,24 @@ function createApiKeyManager({ t, tFmt, ipcRenderer }) {
     } catch {}
   }
 
+  // Fired when keys become usable for this session (PIN unlock OR key saved).
+  // Renderer uses this to resume a pending Apply/Retry after the PIN modal.
+  function _emitApiKeysReady(detail = {}) {
+    try {
+      if (
+        typeof window !== 'undefined' &&
+        typeof window.dispatchEvent === 'function' &&
+        typeof window.CustomEvent === 'function'
+      ) {
+        window.dispatchEvent(
+          new window.CustomEvent('apikeys:ready', {
+            detail: { ...(detail || {}) }
+          })
+        );
+      }
+    } catch {}
+  }
+
   function providerForModel(model) {
     const m = (model || '').trim();
     // Convention: OpenAI models start with "gpt-"
@@ -628,6 +646,10 @@ function createApiKeyManager({ t, tFmt, ipcRenderer }) {
 
       sessionPin = pin; // keep PIN in RAM for this session
       closeApiKeyModal({ force: true });
+      _emitApiKeysReady({
+        mode: 'unlock',
+        providers: PROVIDERS.filter(p => !!(sessionApiKeys[p] || ''))
+      });
     } catch {
       if (hintEl) hintEl.textContent = t('apiKey.pinDecryptFailed', 'Invalid PIN (or corrupted stored key). Try again.');
       clearPinBoxes({ focusIndex: 0 });
@@ -686,9 +708,11 @@ function createApiKeyManager({ t, tFmt, ipcRenderer }) {
       // Notify renderer to re-evaluate model dropdown gating
       _emitApiKeysChanged(provider);
 
-      // If this modal was blocking (startup / apply flow), close immediately after save.
+      // If this modal was blocking (startup / apply flow), close immediately after save,
+      // then notify that keys are ready so the renderer can resume the pending action.
       if (apiModalBlocking) {
         closeApiKeyModal({ force: true });
+        _emitApiKeysReady({ mode: 'save', provider });
         return;
       }
 
@@ -696,6 +720,9 @@ function createApiKeyManager({ t, tFmt, ipcRenderer }) {
       setApiKeyRowLocked(apiInput, editBtn, key.length);
       if (hintEl) hintEl.textContent = t('apiKey.saved', 'Saved.');
       if (apiModalAskPin) clearPinBoxes({ focusIndex: 0 });
+
+      // Non-blocking save (menu flow): still announce readiness (harmless if nobody is waiting).
+      _emitApiKeysReady({ mode: 'save', provider });
     } catch (e) {
       if (hintEl) hintEl.textContent = tFmt('apiKey.saveFailed', { err: (e?.message || e) }, `Failed to encrypt and save: ${e?.message || e}`);
     }
