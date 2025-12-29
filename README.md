@@ -15,9 +15,55 @@ You paste (or load) a diff patch + original file content, pick a model, and the 
 - Work in **multiple tabs/workspaces** (each tab keeps its own inputs, model, prompt, output, and diff)
 - Use **System Prompts** per tab (defaults + your own saved prompts)
 - Store both **xAI and OpenAI API keys** locally (encrypted)
+- Auto-check for updates on startup (via **GitHub Releases**) and show an update modal when a new version is available
 - Toggle **Dark Mode**
 - View and reopen past runs in **History** (open any past run in a new tab)
 - Switch UI language (with an **EN fallback**)
+
+---
+
+## Download (prebuilt binaries) — recommended
+
+If you just want to run the app without building from source, download a prebuilt binary from the GitHub Releases page:
+
+- https://github.com/edusynapse/AI-Diff-Tool/releases
+
+Steps:
+
+1. Open the Releases page and click the **latest release**.
+2. Under **Assets**, download the file for your OS:
+   - **Linux:** `.AppImage`
+   - **Windows:** portable `.exe`
+   - **macOS:** `.zip`
+3. Run it:
+   - **Linux (AppImage):**
+     ```bash
+     chmod +x "AI Diff Tool-*.AppImage"
+     ./"AI Diff Tool-*.AppImage"
+     ```
+   - **Windows (portable EXE):** double-click the `.exe`
+   - **macOS (zip):** unzip and open the app (you may need to allow it in Privacy/Security)
+
+Notes:
+
+- The app **auto-checks for updates on startup** and will prompt you to download the newer version from GitHub Releases.
+- This section is for **end users** (download + run). Source build instructions remain below.
+
+---
+
+## Screenshots
+
+Screenshots live in the repo at:
+
+- `images/screenshot_1.jpg`
+- `images/screenshot_2.jpg`
+- `images/screenshot_3.jpg`
+
+Add/replace those files and commit them. They will render automatically below:
+
+![AI Diff Tool — Screenshot 1](images/screenshot_1.jpg)
+![AI Diff Tool — Screenshot 2](images/screenshot_2.jpg)
+![AI Diff Tool — Screenshot 3](images/screenshot_3.jpg)
 
 ---
 
@@ -26,7 +72,7 @@ You paste (or load) a diff patch + original file content, pick a model, and the 
 1. Clone:
 
    ```bash
-   git clone https://github.com/yourusername/AI-Diff-Tool.git
+   git clone https://github.com/edusynapse/AI-Diff-Tool.git
    ```
 2. Enter repo:
 
