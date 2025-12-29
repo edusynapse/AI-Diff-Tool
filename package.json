@@ -5,7 +5,9 @@
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "build": "electron-builder"
+    "build": "electron-builder",
+    "dist:win:docker": "docker run --rm -t -v \"$PWD\":/project -w /project -v \"$HOME/.cache/electron\":/root/.cache/electron -v \"$HOME/.cache/electron-builder\":/root/.cache/electron-builder electronuserland/builder:wine bash -lc \"npm ci && npx electron-builder --win portable --x64\"",
+    "dist:mac": "electron-builder --mac zip --x64 --arm64"
   },
   "author": "Your Name",
   "license": "MIT",
@@ -25,6 +27,14 @@
     "linux": {
       "target": "AppImage",
       "icon": "build/icons"
+    },
+    "win": {
+      "target": [{ "target": "portable", "arch": ["x64"] }],
+      "icon": "build/icons/icon.ico"
+    },
+    "mac": {
+      "target": [{ "target": "zip", "arch": ["x64", "arm64"] }],
+      "icon": "build/icons/icon.icns"
     },
     "directories": {
       "output": "dist",
