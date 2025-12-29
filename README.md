@@ -14,7 +14,7 @@ To create a standalone executable (e.g., for distribution or icon-click launch),
 1. Install electron-builder if not already: `npm install --save-dev electron-builder`
 2. Run the build command: `npm run build`
    - This generates files in the `dist/` folder.
-   - On Linux, it creates a single `AI Diff Tool-1.0.0.AppImage` file (portable, no installation needed).
+   - On Linux, it creates a single `AI Diff Tool-1.0.1.AppImage` file (portable, no installation needed).
    - On other platforms, it creates corresponding executables (e.g., .exe on Windows, .dmg on macOS).
 3. For custom builds (e.g., Linux only): Modify the "build" script in `package.json` to target specific platforms, e.g., `"build": "electron-builder --linux appimage"`.
 
@@ -29,14 +29,14 @@ The packaged app bundles all dependencies (Node, Electron), so no Node installat
 
 ### On Linux (Using the Packaged AppImage)
 1. Navigate to `dist/` after building.
-2. Make the AppImage executable (if needed): `chmod +x "AI Diff Tool-1.0.0.AppImage"`
-3. Double-click the AppImage file to launch, or run `./"AI Diff Tool-1.0.0.AppImage"` from terminal.
+2. Make the AppImage executable (if needed): `chmod +x "AI Diff Tool-1.0.1.AppImage"`
+3. Double-click the AppImage file to launch, or run `./"AI Diff Tool-1.0.1.AppImage"` from terminal.
 4. For desktop icon launch:
    - Create a `.desktop` file in `~/.local/share/applications/` (e.g., `ai-diff-tool.desktop`):
      ```
      [Desktop Entry]
      Name=AI Diff Tool
-     Exec=/path/to/dist/AI Diff Tool-1.0.0.AppImage
+     Exec=/path/to/dist/AI Diff Tool-1.0.1.AppImage
      Icon=/path/to/icon.png  # Optional: Add your icon
      Type=Application
      Categories=Utility;
