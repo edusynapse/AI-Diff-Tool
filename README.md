@@ -59,10 +59,16 @@ Screenshots live in the repo at:
 - `images/screenshot_2.jpg`
 - `images/screenshot_3.jpg`
 
-Add/replace those files and commit them. They will render automatically below:
+Default Interface
 
 ![AI Diff Tool — Screenshot 1](images/screenshot_1.jpg)
+
+History View
+
 ![AI Diff Tool — Screenshot 2](images/screenshot_2.jpg)
+
+Dark Mode
+
 ![AI Diff Tool — Screenshot 3](images/screenshot_3.jpg)
 
 ---
