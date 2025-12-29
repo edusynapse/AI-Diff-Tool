@@ -2,14 +2,14 @@
   "name": "ai-diff-tool",
   "version": "1.0.1",
   "description": "Desktop app to apply diff patches using Grok 4 API",
-  "main": "main.js",
+  "main": "lib/main.js",
   "scripts": {
     "start": "electron .",
     "build": "electron-builder",
     "dist:win:docker": "docker run --rm -t -v \"$PWD\":/project -w /project -v \"$HOME/.cache/electron\":/root/.cache/electron -v \"$HOME/.cache/electron-builder\":/root/.cache/electron-builder electronuserland/builder:wine bash -lc \"npm ci && npx electron-builder --win portable --x64\"",
     "dist:mac": "electron-builder --mac zip --x64 --arm64"
   },
-  "author": "Your Name",
+  "author": "Surajit Ray",
   "license": "MIT",
   "dependencies": {
     "diff": "^5.2.0",
