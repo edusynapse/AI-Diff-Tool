@@ -1,6 +1,23 @@
-# AI-Diff-Tool
+# AI Diff Tool
 
-A desktop app built with Electron and Node.js to apply diff patches to files using the xAI Grok 4 API.
+A desktop app built with **Electron + Node.js** to apply **unified diff patches** to files using either:
+
+- **xAI (Grok models)**, or
+- **OpenAI (GPT models)**
+
+You paste (or load) a diff patch + original file content, pick a model, and the app produces the patched output and a **side-by-side diff**.
+
+---
+
+## What you can do
+
+- Apply unified diff patches using **xAI Grok** or **OpenAI GPT**
+- Work in **multiple tabs/workspaces** (each tab keeps its own inputs, model, prompt, output, and diff)
+- Use **System Prompts** per tab (defaults + your own saved prompts)
+- Store both **xAI and OpenAI API keys** locally (encrypted)
+- Toggle **Dark Mode**
+- View and reopen past runs in **History** (open any past run in a new tab)
+- Switch UI language (with an **EN fallback**)
 
 ---
 
@@ -29,13 +46,152 @@ A desktop app built with Electron and Node.js to apply diff patches to files usi
 
 ---
 
-## Usage
+## Quick start (first run)
 
-* Paste or load the diff patch into the top textarea (or select a file).
-* Paste or load the file content into the bottom textarea (or select a file).
-* Select the Grok model from the dropdown (saved preference).
-* Enter xAI API key (get from [https://console.x.ai](https://console.x.ai); saved locally for future sessions).
-* Click **Apply Patch** – preview the modified content in the output area and download the result.
+1. Create or pick a workspace tab (left sidebar).
+2. Select a model from the dropdown:
+   - `grok-*` models use **xAI**
+   - `gpt-*` models use **OpenAI**
+3. Paste or load:
+   - **Diff Patch** (unified diff)
+   - **File Content** (original content)
+4. Add your API key (xAI or OpenAI) if needed:
+   - If **no keys exist at all**, the app will first ask which provider you want to set up (**xAI** or **OpenAI**).
+5. Click **Apply Patch**.
+6. Review the output + “Diff with original”, then **Copy** or **Download**.
+
+---
+
+## API keys (xAI + OpenAI) and PIN encryption
+
+This app supports **both** providers. You can store **one xAI key** and **one OpenAI key**.
+
+### How to add/update your xAI API key
+
+- Open: **File → xAI API Key…** (shortcut: **Cmd/Ctrl + K**)
+- Paste your xAI key (get it from xAI’s console)
+- Set a **6-digit PIN** (only required when creating your first key / when no PIN is set)
+- Click **Save**
+
+### How to add/update your OpenAI API key
+
+- Open: **File → OpenAI API Key…** (shortcut: **Cmd/Ctrl + Shift + K**)
+- Paste your OpenAI key (`sk-...`)
+- If your PIN is already set in this session, you won’t be asked again
+- Click **Save**
+
+### How provider selection works
+
+- When you pick a **Grok** model (`grok-*`), the app uses your **xAI key**
+- When you pick a **GPT** model (`gpt-*`), the app uses your **OpenAI key**
+- If the required provider key is missing (or locked), the app will prompt you
+
+### What the PIN does (and does NOT do)
+
+- Your API keys are stored **encrypted locally** using your **6-digit PIN**
+- The **PIN is not stored** on disk
+- You “unlock” your saved keys **once per app session** (so you don’t have to keep re-entering it)
+- You can change your PIN via **File → PIN Change…** (re-encrypts your saved keys locally)
+
+> If you forget your PIN, you won’t be able to decrypt your previously saved keys.
+> You can use **File → Clean and Reset…** to wipe local app data and set up keys again.
+
+---
+
+## Tabs / Workspaces
+
+Tabs live in the **left sidebar** and behave like independent workspaces.
+
+Each tab keeps its own:
+
+- Selected model
+- System prompt selection
+- Diff patch text
+- File content text
+- Output
+- Diff view
+- Expand/minimize state of the text areas
+
+### Tab actions
+
+- **New tab:** click **+** (or **Cmd/Ctrl + T**)
+- **Rename:** double-click a tab
+- **Close:** click the **×** on the tab (or **Cmd/Ctrl + W**) — a confirmation dialog appears
+- **Switch tabs:** **Cmd/Ctrl + Tab** (next) / **Cmd/Ctrl + Shift + Tab** (previous)
+
+---
+
+## Menu items (what they do)
+
+### File
+
+- **xAI API Key…** (**Cmd/Ctrl + K**)  
+  Add/update your xAI key (encrypted with your PIN).
+- **OpenAI API Key…** (**Cmd/Ctrl + Shift + K**)  
+  Add/update your OpenAI key (encrypted with your PIN).
+- **PIN Change…**  
+  Change your 6-digit PIN and re-encrypt saved keys locally.
+- **Clean and Reset…**  
+  Wipes local app data (keys, history, prompts, tabs, settings, language selection).
+- **Quit / Close**  
+  Standard platform behavior (Quit on Windows/Linux, Close on macOS).
+
+### Edit
+
+- Standard editing commands (Undo/Redo/Cut/Copy/Paste/Select All)
+- **System Prompt…** (**Cmd/Ctrl + Shift + P**)  
+  Manage saved prompts and apply one to the current tab.
+
+### View
+
+- **History…** (**Cmd/Ctrl + H**)  
+  Browse past runs and reopen any item in a new tab.
+- **Language…**  
+  Pick UI language (EN fallback). UI updates immediately (older builds may reload).
+- **Dark Mode** (**Cmd/Ctrl + D**)  
+  Toggle dark theme.
+- **Previous Change** (**F7**) / **Next Change** (**F8**)  
+  Jump between diff changes.
+- Standard Electron view items (Reload, DevTools, Zoom, Fullscreen)
+
+### Help
+
+- **Usage** (**F1**)  
+  Opens the in-app usage guide.
+- **About…**  
+  App info + GitHub link + donation section (if configured).
+
+---
+
+## Language support (i18n)
+
+- Change language from **View → Language…**
+- The app uses **EN** as the fallback language
+- Language packs live here:
+  - Dev: `build/languages/*.json`
+  - Packaged app: copied into the app’s resources folder as `languages/*.json`
+
+### Adding a new language
+
+1. Copy `build/languages/EN.json` to a new file, e.g. `build/languages/FR.json`
+2. Translate values (keep keys the same)
+3. Restart the app (or reopen the language modal) and select the new language
+
+---
+
+## History feature
+
+History keeps a local record of your past patch runs so you can return to them later.
+
+- Open: **View → History…**
+- Each entry includes metadata like timestamp, model, prompt name, and input file name
+- Click **Open in new tab** to restore that run into a new workspace tab
+- **Clear** removes all history (cannot be undone)
+
+Notes:
+
+- History is stored **locally** (in the app’s local storage) and compressed to save space
+- History contains your inputs/outputs for those runs (diff text, file content, model output)
 
 ---
 
@@ -169,7 +325,7 @@ Output:
   * macOS icon should be `.icns` at: `build/icons/icon.icns`
 * **Settings persistence**
 
-  * API keys and preferences persist via Electron’s local storage in your user profile.
+  * API keys (encrypted), prompts, history, and preferences persist via Electron’s local storage / user profile storage.
 * **File support**
 
   * Works for any text-based files (JS, HTML, etc.). Large inputs show warnings.
