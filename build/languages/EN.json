@@ -298,5 +298,11 @@
         "later": "Later",
         "closeAria": "Close update",
         "checkFailed": "Couldn’t check for updates."
+    },
+    "rightClickMenu": {
+        "selectAll": "Select All",
+        "copy": "Copy",
+        "paste": "Paste",
+        "delete": "Delete"
     }
 }

@@ -298,5 +298,11 @@
         "later": "बाद में",
         "closeAria": "अपडेट बंद करें",
         "checkFailed": "अपडेट की जाँच नहीं हो सकी।"
+    },
+    "rightClickMenu": {
+        "selectAll": "सभी चुनें",
+        "copy": "कॉपी",
+        "paste": "पेस्ट",
+        "delete": "हटाएँ"
     }
 }

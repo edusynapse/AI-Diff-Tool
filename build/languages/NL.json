@@ -298,5 +298,11 @@
         "later": "Later",
         "closeAria": "Update sluiten",
         "checkFailed": "Kon geen updates controleren."
+    },
+    "rightClickMenu": {
+        "selectAll": "Alles selecteren",
+        "copy": "Kopiëren",
+        "paste": "Plakken",
+        "delete": "Verwijderen"
     }
 }

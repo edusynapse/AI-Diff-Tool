@@ -298,5 +298,11 @@
         "later": "পরে",
         "closeAria": "আপডেট বন্ধ করুন",
         "checkFailed": "আপডেট চেক করতে পারিনি।"
+    },
+    "rightClickMenu": {
+        "selectAll": "সব নির্বাচন করুন",
+        "copy": "কপি",
+        "paste": "পেস্ট",
+        "delete": "মুছুন"
     }
 }

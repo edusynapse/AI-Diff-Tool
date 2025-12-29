@@ -298,5 +298,11 @@
         "later": "나중에",
         "closeAria": "업데이트 닫기",
         "checkFailed": "업데이트를 확인할 수 없습니다."
+    },
+    "rightClickMenu": {
+        "selectAll": "전체 선택",
+        "copy": "복사",
+        "paste": "붙여넣기",
+        "delete": "삭제"
     }
 }

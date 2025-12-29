@@ -298,5 +298,11 @@
         "later": "Più tardi",
         "closeAria": "Chiudi aggiornamento",
         "checkFailed": "Impossibile verificare gli aggiornamenti."
+    },
+    "rightClickMenu": {
+        "selectAll": "Seleziona tutto",
+        "copy": "Copia",
+        "paste": "Incolla",
+        "delete": "Elimina"
     }
 }

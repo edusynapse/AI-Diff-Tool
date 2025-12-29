@@ -298,5 +298,11 @@
         "later": "Sau",
         "closeAria": "Đóng cập nhật",
         "checkFailed": "Không thể kiểm tra cập nhật."
+    },
+    "rightClickMenu": {
+        "selectAll": "Chọn Tất Cả",
+        "copy": "Sao Chép",
+        "paste": "Dán",
+        "delete": "Xóa"
     }
 }

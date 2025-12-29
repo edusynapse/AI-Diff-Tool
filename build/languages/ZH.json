@@ -298,5 +298,11 @@
         "later": "稍后",
         "closeAria": "关闭更新",
         "checkFailed": "无法检查更新。"
+    },
+    "rightClickMenu": {
+        "selectAll": "全选",
+        "copy": "复制",
+        "paste": "粘贴",
+        "delete": "删除"
     }
 }

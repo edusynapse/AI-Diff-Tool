@@ -298,5 +298,11 @@
         "later": "Senare",
         "closeAria": "Stäng uppdatering",
         "checkFailed": "Kunde inte kontrollera efter uppdateringar."
+    },
+    "rightClickMenu": {
+        "selectAll": "Markera alla",
+        "copy": "Kopiera",
+        "paste": "Klistra in",
+        "delete": "Ta bort"
     }
 }

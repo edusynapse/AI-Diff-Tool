@@ -298,5 +298,11 @@
         "later": "لاحقًا",
         "closeAria": "إغلاق التحديث",
         "checkFailed": "تعذر التحقق من التحديثات."
+    },
+    "rightClickMenu": {
+        "selectAll": "تحديد الكل",
+        "copy": "نسخ",
+        "paste": "لصق",
+        "delete": "حذف"
     }
 }

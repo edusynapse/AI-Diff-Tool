@@ -298,5 +298,11 @@
         "later": "Plus tard",
         "closeAria": "Fermer la mise à jour",
         "checkFailed": "Impossible de vérifier les mises à jour."
+    },
+    "rightClickMenu": {
+        "selectAll": "Sélectionner tout",
+        "copy": "Copier",
+        "paste": "Coller",
+        "delete": "Supprimer"
     }
 }

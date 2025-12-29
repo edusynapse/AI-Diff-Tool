@@ -298,5 +298,11 @@
         "later": "Sonra",
         "closeAria": "Güncellemeyi kapat",
         "checkFailed": "Güncellemeler kontrol edilemedi."
+    },
+    "rightClickMenu": {
+        "selectAll": "Tümünü Seç",
+        "copy": "Kopyala",
+        "paste": "Yapıştır",
+        "delete": "Sil"
     }
 }

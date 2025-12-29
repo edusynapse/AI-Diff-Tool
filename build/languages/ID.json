@@ -298,5 +298,11 @@
         "later": "Nanti",
         "closeAria": "Tutup pembaruan",
         "checkFailed": "Tidak dapat memeriksa pembaruan."
+    },
+    "rightClickMenu": {
+        "selectAll": "Pilih Semua",
+        "copy": "Salin",
+        "paste": "Tempel",
+        "delete": "Hapus"
     }
 }
