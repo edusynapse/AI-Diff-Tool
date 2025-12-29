@@ -189,7 +189,15 @@
         "emptyPage": "Keine Einträge auf dieser Seite.",
         "emptyAll": "Noch kein Verlauf.",
         "openInNewTab": "In neuem Tab öffnen",
-        "loadFailed": "Verlaufseintrag konnte nicht geladen werden (möglicherweise gelöscht oder Speicher beschädigt)."
+        "loadFailed": "Verlaufseintrag konnte nicht geladen werden (möglicherweise gelöscht oder Speicher beschädigt).",
+        "import": "Verlauf importieren",
+        "export": "Verlauf exportieren",
+        "importConfirm": "Das Importieren ersetzt Ihren aktuellen Verlauf. Fortfahren?",
+        "importNotOurs": "Diese ZIP-Datei sieht nicht wie ein Verlaufs-Export aus dieser App aus.",
+        "importFailed": "Import fehlgeschlagen. Die Datei könnte beschädigt oder nicht unterstützt sein.",
+        "importSuccessFmt": "Importiert {count} Verlaufseintrag(e).",
+        "exportFailed": "Export fehlgeschlagen. Bitte versuchen Sie es erneut.",
+        "clearConfirm": "Alle Verläufe löschen? Dies kann nicht rückgängig gemacht werden."
     },
     "language": {
         "title": "Sprache",

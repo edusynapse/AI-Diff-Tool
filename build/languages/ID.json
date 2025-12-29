@@ -189,7 +189,15 @@
         "emptyPage": "Tidak ada item di halaman ini.",
         "emptyAll": "Belum ada riwayat.",
         "openInNewTab": "Buka di tab baru",
-        "loadFailed": "Tidak dapat memuat item riwayat ini (mungkin sudah dihapus atau penyimpanan rusak)."
+        "loadFailed": "Tidak dapat memuat item riwayat ini (mungkin sudah dihapus atau penyimpanan rusak).",
+        "import": "Impor Riwayat",
+        "export": "Ekspor Riwayat",
+        "importConfirm": "Mengimpor akan mengganti riwayat saat ini Anda. Lanjutkan?",
+        "importNotOurs": "ZIP ini tidak terlihat seperti ekspor riwayat dari aplikasi ini.",
+        "importFailed": "Impor gagal. File mungkin rusak atau tidak didukung.",
+        "importSuccessFmt": "Diimpor {count} item riwayat.",
+        "exportFailed": "Ekspor gagal. Silakan coba lagi.",
+        "clearConfirm": "Hapus semua riwayat? Ini tidak bisa dibatalkan."
     },
     "language": {
         "title": "Bahasa",

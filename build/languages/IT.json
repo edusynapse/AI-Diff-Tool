@@ -189,7 +189,15 @@
         "emptyPage": "Nessun elemento in questa pagina.",
         "emptyAll": "Nessuna cronologia ancora.",
         "openInNewTab": "Apri in nuova scheda",
-        "loadFailed": "Impossibile caricare questo elemento della cronologia (potrebbe essere stato cancellato o lo storage è corrotto)."
+        "loadFailed": "Impossibile caricare questo elemento della cronologia (potrebbe essere stato cancellato o lo storage è corrotto).",
+        "import": "Importa Cronologia",
+        "export": "Esporta Cronologia",
+        "importConfirm": "L'importazione sostituirà la tua cronologia attuale. Continuare?",
+        "importNotOurs": "Questo ZIP non sembra un'esportazione di cronologia da questa app.",
+        "importFailed": "Importazione fallita. Il file potrebbe essere corrotto o non supportato.",
+        "importSuccessFmt": "Importati {count} elemento(i) di cronologia.",
+        "exportFailed": "Esportazione fallita. Riprova.",
+        "clearConfirm": "Cancella tutta la cronologia? Questa azione non può essere annullata."
     },
     "language": {
         "title": "Lingua",

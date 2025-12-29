@@ -189,7 +189,15 @@
         "emptyPage": "Nenhum item nesta página.",
         "emptyAll": "Ainda sem histórico.",
         "openInNewTab": "Abrir em nova aba",
-        "loadFailed": "Não foi possível carregar este item do histórico (pode ter sido limpo ou armazenamento corrompido)."
+        "loadFailed": "Não foi possível carregar este item do histórico (pode ter sido limpo ou armazenamento corrompido).",
+        "import": "Importar Histórico",
+        "export": "Exportar Histórico",
+        "importConfirm": "Importar substituirá seu histórico atual. Continuar?",
+        "importNotOurs": "Este ZIP não parece ser uma exportação de histórico deste app.",
+        "importFailed": "Importação falhou. O arquivo pode estar corrompido ou não suportado.",
+        "importSuccessFmt": "Importado {count} item(ns) de histórico.",
+        "exportFailed": "Exportação falhou. Tente novamente.",
+        "clearConfirm": "Limpar todo o histórico? Isso não pode ser desfeito."
     },
     "language": {
         "title": "Idioma",

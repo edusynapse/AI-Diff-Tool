@@ -189,7 +189,15 @@
         "emptyPage": "No items on this page.",
         "emptyAll": "No history yet.",
         "openInNewTab": "Open in new tab",
-        "loadFailed": "Could not load this history item (it may have been cleared or storage is corrupted)."
+        "loadFailed": "Could not load this history item (it may have been cleared or storage is corrupted).",
+        "import": "Import History",
+        "export": "Export History",
+        "importConfirm": "Importing will replace your current history. Continue?",
+        "importNotOurs": "This ZIP does not look like a history export from this app.",
+        "importFailed": "Import failed. The file may be corrupted or unsupported.",
+        "importSuccessFmt": "Imported {count} history item(s).",
+        "exportFailed": "Export failed. Please try again.",
+        "clearConfirm": "Clear all history? This cannot be undone."
     },
     "language": {
         "title": "Language",

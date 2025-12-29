@@ -189,7 +189,15 @@
         "emptyPage": "Bu sayfada öğe yok.",
         "emptyAll": "Henüz geçmiş yok.",
         "openInNewTab": "Yeni sekmede aç",
-        "loadFailed": "Bu geçmiş öğesi yüklenemedi (temizlenmiş olabilir veya depolama bozulmuş)."
+        "loadFailed": "Bu geçmiş öğesi yüklenemedi (temizlenmiş olabilir veya depolama bozulmuş).",
+        "import": "Geçmişi İçe Aktar",
+        "export": "Geçmişi Dışa Aktar",
+        "importConfirm": "İçe aktarma mevcut geçmişinizi değiştirecek. Devam etmek istiyor musunuz?",
+        "importNotOurs": "Bu ZIP, bu uygulamadan bir geçmiş dışa aktarımı gibi görünmüyor.",
+        "importFailed": "İçe aktarma başarısız oldu. Dosya bozuk veya desteklenmiyor olabilir.",
+        "importSuccessFmt": "{count} geçmiş öğesi(leri) içe aktarıldı.",
+        "exportFailed": "Dışa aktarma başarısız oldu. Lütfen tekrar deneyin.",
+        "clearConfirm": "Tüm geçmişi temizle? Bu işlem geri alınamaz."
     },
     "language": {
         "title": "Dil",

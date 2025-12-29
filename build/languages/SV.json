@@ -189,7 +189,15 @@
         "emptyPage": "Inga objekt på denna sida.",
         "emptyAll": "Ingen historik ännu.",
         "openInNewTab": "Öppna i ny flik",
-        "loadFailed": "Kunde inte ladda detta historikobjekt (det kan ha rensats eller lagringen är korrupt)."
+        "loadFailed": "Kunde inte ladda detta historikobjekt (det kan ha rensats eller lagringen är korrupt).",
+        "import": "Importera historik",
+        "export": "Exportera historik",
+        "importConfirm": "Importering kommer att ersätta din nuvarande historik. Fortsätta?",
+        "importNotOurs": "Denna ZIP ser inte ut som en historikexport från denna app.",
+        "importFailed": "Import misslyckades. Filen kan vara korrupt eller inte stödd.",
+        "importSuccessFmt": "Importerade {count} historikobjekt.",
+        "exportFailed": "Export misslyckades. Försök igen.",
+        "clearConfirm": "Rensa all historik? Detta kan inte ångras."
     },
     "language": {
         "title": "Språk",

@@ -189,7 +189,15 @@
         "emptyPage": "No hay elementos en esta página.",
         "emptyAll": "Aún no hay historial.",
         "openInNewTab": "Abrir en nueva pestaña",
-        "loadFailed": "No se pudo cargar este elemento del historial (puede haber sido borrado o el almacenamiento está corrupto)."
+        "loadFailed": "No se pudo cargar este elemento del historial (puede haber sido borrado o el almacenamiento está corrupto).",
+        "import": "Importar Historial",
+        "export": "Exportar Historial",
+        "importConfirm": "Importar reemplazará tu historial actual. ¿Continuar?",
+        "importNotOurs": "Este ZIP no parece un export de historial de esta app.",
+        "importFailed": "Importación fallida. El archivo puede estar corrupto o no ser compatible.",
+        "importSuccessFmt": "Importados {count} elemento(s) de historial.",
+        "exportFailed": "Exportación fallida. Por favor, intenta de nuevo.",
+        "clearConfirm": "¿Borrar todo el historial? Esto no se puede deshacer."
     },
     "language": {
         "title": "Idioma",

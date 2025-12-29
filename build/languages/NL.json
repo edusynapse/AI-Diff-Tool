@@ -189,7 +189,15 @@
         "emptyPage": "Geen items op deze pagina.",
         "emptyAll": "Nog geen geschiedenis.",
         "openInNewTab": "Openen in nieuw tabblad",
-        "loadFailed": "Kon dit geschiedenisitem niet laden (mogelijk gewist of opslag corrupt)."
+        "loadFailed": "Kon dit geschiedenisitem niet laden (mogelijk gewist of opslag corrupt).",
+        "import": "Geschiedenis Importeren",
+        "export": "Geschiedenis Exporteren",
+        "importConfirm": "Het importeren zal je huidige geschiedenis vervangen. Doorgaan?",
+        "importNotOurs": "Dit ZIP-bestand lijkt niet op een geschiedenisexport van deze app.",
+        "importFailed": "Importeren mislukt. Het bestand is mogelijk beschadigd of niet ondersteund.",
+        "importSuccessFmt": "Geïmporteerd {count} geschiedenisitem(s).",
+        "exportFailed": "Exporteren mislukt. Probeer het opnieuw.",
+        "clearConfirm": "Alle geschiedenis wissen? Dit kan niet ongedaan worden gemaakt."
     },
     "language": {
         "title": "Taal",

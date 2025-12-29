@@ -189,7 +189,15 @@
         "emptyPage": "Aucun élément sur cette page.",
         "emptyAll": "Aucun historique pour le moment.",
         "openInNewTab": "Ouvrir dans un nouvel onglet",
-        "loadFailed": "Impossible de charger cet élément d'historique (il a peut-être été effacé ou le stockage est corrompu)."
+        "loadFailed": "Impossible de charger cet élément d'historique (il a peut-être été effacé ou le stockage est corrompu).",
+        "import": "Importer l'historique",
+        "export": "Exporter l'historique",
+        "importConfirm": "L'importation remplacera votre historique actuel. Continuer ?",
+        "importNotOurs": "Ce fichier ZIP ne ressemble pas à un export d'historique de cette application.",
+        "importFailed": "Échec de l'importation. Le fichier peut être corrompu ou non pris en charge.",
+        "importSuccessFmt": "Importé {count} élément(s) d'historique.",
+        "exportFailed": "Échec de l'exportation. Veuillez réessayer.",
+        "clearConfirm": "Effacer tout l'historique ? Cela ne peut pas être annulé."
     },
     "language": {
         "title": "Langue",

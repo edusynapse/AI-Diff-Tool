@@ -189,7 +189,15 @@
         "emptyPage": "Brak elementów na tej stronie.",
         "emptyAll": "Brak historii.",
         "openInNewTab": "Otwórz w nowej karcie",
-        "loadFailed": "Nie udało się załadować tego elementu historii (może został wyczyszczony lub magazyn jest uszkodzony)."
+        "loadFailed": "Nie udało się załadować tego elementu historii (może został wyczyszczony lub magazyn jest uszkodzony).",
+        "import": "Importuj historię",
+        "export": "Eksportuj historię",
+        "importConfirm": "Importowanie zastąpi Twoją obecną historię. Kontynuować?",
+        "importNotOurs": "Ten ZIP nie wygląda na eksport historii z tej aplikacji.",
+        "importFailed": "Import nie powiódł się. Plik może być uszkodzony lub nieobsługiwany.",
+        "importSuccessFmt": "Zaimportowano {count} element(ów) historii.",
+        "exportFailed": "Eksport nie powiódł się. Spróbuj ponownie.",
+        "clearConfirm": "Wyczyścić całą historię? Tej operacji nie można cofnąć."
     },
     "language": {
         "title": "Język",

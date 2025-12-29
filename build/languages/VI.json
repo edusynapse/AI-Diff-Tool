@@ -189,7 +189,15 @@
         "emptyPage": "Không có mục nào ở trang này.",
         "emptyAll": "Chưa có lịch sử.",
         "openInNewTab": "Mở trong tab mới",
-        "loadFailed": "Không thể tải mục lịch sử này (có thể đã bị xóa hoặc bộ nhớ bị hỏng)."
+        "loadFailed": "Không thể tải mục lịch sử này (có thể đã bị xóa hoặc bộ nhớ bị hỏng).",
+        "import": "Nhập Lịch Sử",
+        "export": "Xuất Lịch Sử",
+        "importConfirm": "Việc nhập sẽ thay thế lịch sử hiện tại của bạn. Tiếp tục?",
+        "importNotOurs": "Tệp ZIP này không giống như xuất lịch sử từ ứng dụng này.",
+        "importFailed": "Nhập thất bại. Tệp có thể bị hỏng hoặc không được hỗ trợ.",
+        "importSuccessFmt": "Đã nhập {count} mục lịch sử.",
+        "exportFailed": "Xuất thất bại. Vui lòng thử lại.",
+        "clearConfirm": "Xóa toàn bộ lịch sử? Thao tác này không thể hoàn tác."
     },
     "language": {
         "title": "Ngôn ngữ",

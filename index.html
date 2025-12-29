@@ -590,7 +590,14 @@
       </div>
 
       <div class="modal-footer">
-        <button id="historyOkBtn" class="modal-ok" type="button">Close</button>
+        <div style="display: flex; width: 100%; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+          <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <button id="historyImportBtn" class="modal-ok" type="button">Import History</button>
+            <button id="historyExportBtn" class="modal-ok" type="button">Export History</button>
+            <input type="file" id="historyImportFile" class="hidden" accept=".zip,application/zip">
+          </div>
+          <button id="historyOkBtn" class="modal-ok" type="button">Close</button>
+        </div>
       </div>
     </div>
   </div>
