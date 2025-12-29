@@ -217,11 +217,34 @@ Each tab keeps its own:
 
 ## Language support (i18n)
 
-- Change language from **View → Language…**
-- The app uses **EN** as the fallback language
-- Language packs live here:
-  - Dev: `build/languages/*.json`
-  - Packaged app: copied into the app’s resources folder as `languages/*.json`
+* Change language from **View → Language…**
+* The app uses **EN** as the fallback language
+* Language packs live here:
+
+  * Dev: `build/languages/*.json`
+  * Packaged app: copied into the app’s resources folder as `languages/*.json`
+
+### Supported languages
+
+- **English** (`en`)
+- **हिन्दी** (`hi`)
+- **Español** (`es`)
+- **Français** (`fr`)
+- **Deutsch** (`de`)
+- **中文 (简体)** (`zh`)
+- **日本語** (`ja`)
+- **Русский** (`ru`)
+- **Português** (`pt`)
+- **العربية** (`ar`)
+- **বাংলা** (`bn`)
+- **한국어** (`ko`)
+- **Italiano** (`it`)
+- **Nederlands** (`nl`)
+- **Svenska** (`sv`)
+- **Türkçe** (`tr`)
+- **Polski** (`pl`)
+- **Tiếng Việt** (`vi`)
+- **Bahasa Indonesia** (`id`)
 
 ### Adding a new language
 
