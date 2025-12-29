@@ -287,5 +287,16 @@
         "bodyFmt": "¿Confirmar aplicación del parche usando el modelo {model}?",
         "ok": "Aceptar",
         "cancel": "Cancelar"
+    },
+    "versionUpdate": {
+        "title": "Actualización disponible",
+        "introFmt": "Una versión más reciente de {appName} está disponible.",
+        "currentLabel": "Actual",
+        "latestLabel": "Última",
+        "notesTitle": "Qué hay de nuevo",
+        "download": "Descargar",
+        "later": "Más tarde",
+        "closeAria": "Cerrar actualización",
+        "checkFailed": "No se pudo verificar actualizaciones."
     }
 }

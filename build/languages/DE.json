@@ -287,5 +287,16 @@
         "bodyFmt": "Anwendung des Patches mit dem {model}-Modell bestätigen?",
         "ok": "OK",
         "cancel": "Abbrechen"
+    },
+    "versionUpdate": {
+        "title": "Update verfügbar",
+        "introFmt": "Eine neuere Version von {appName} ist verfügbar.",
+        "currentLabel": "Aktuell",
+        "latestLabel": "Neueste",
+        "notesTitle": "Was ist neu",
+        "download": "Herunterladen",
+        "later": "Später",
+        "closeAria": "Update schließen",
+        "checkFailed": "Konnte nach Updates nicht prüfen."
     }
 }

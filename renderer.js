@@ -9,6 +9,9 @@ const { createTabsManager } = require('./tabs');
 const { createApiKeyManager } = require('./apikeys');
 const { createI18nManager } = require('./i18n');
 const { createHistoryManager } = require('./history');
+const { createVersionManager } = require('./version');
+
+let versionMgr = null;
 
 // --- Close modals + keep tabs safe when switching language ---
 function closeAllModalsForLanguageChange() {
@@ -26,6 +29,7 @@ function closeAllModalsForLanguageChange() {
   try { closePinChangeModal({ force: true }); } catch {}
   try { closeCleanResetModal({ force: true }); } catch {}
   try { closeConfirmApplyModal({ force: true }); } catch {}
+  try { versionMgr?.closeUpdateModal?.({ force: true }); } catch {}
 
   try {
     const api = initApiKeysManagerOnce();
@@ -229,6 +233,7 @@ function refreshUiAfterLanguageChange() {
   try { applyI18nToPinChangeModal(); } catch {}
   try { applyI18nToCleanResetModal(); } catch {}
   try { applyI18nToConfirmApplyModal(); } catch {}
+  try { versionMgr?.applyI18nToUpdateModal?.(); } catch {}
 }
 
 // -------------------------
@@ -382,7 +387,8 @@ function refreshUiAfterLanguageChange() {
      'languageOverlay',
      'pinChangeOverlay',
      'cleanResetOverlay',
-     'confirmApplyOverlay'
+     'confirmApplyOverlay',
+     'versionOverlay'
    ].some(_isOverlayOpen);
    document.body.classList.toggle('modal-open', anyOpen);
  }
@@ -833,10 +839,11 @@ const i18nMgr = createI18nManager({
       'tabCloseOverlay',
       'sysPromptOverlay',
       'aboutOverlay',
-      'historyOverlay'
-      ,'pinChangeOverlay'
-      ,'cleanResetOverlay'
-      ,'confirmApplyOverlay'
+      'historyOverlay',
+      'pinChangeOverlay',
+      'cleanResetOverlay',
+      'confirmApplyOverlay',
+      'versionOverlay'
     ]
   }
 });
@@ -850,7 +857,36 @@ const {
   isLanguageModalOpen,
   openLanguageModal,
   closeLanguageModal,
-} = i18nMgr;
+ } = i18nMgr;
+
+// -------------------------
+// Version check + update modal (GitHub Releases)
+// -------------------------
+versionMgr = createVersionManager({
+  window,
+  document,
+  ipcRenderer,
+  t,
+  tFmt,
+  externalOpen: (url) => { try { ipcRenderer.send('external:open', url); } catch {} },
+  syncBodyModalOpen: () => { try { _syncBodyModalOpen(); } catch {} },
+  modal: {
+    overlayId: 'versionOverlay',
+    closeBtnId: 'versionCloseBtn',
+    downloadBtnId: 'versionDownloadBtn',
+    laterBtnId: 'versionLaterBtn',
+    titleId: 'versionTitle',
+    introId: 'versionIntro',
+    currentLabelId: 'versionCurrentLabel',
+    currentValueId: 'versionCurrentValue',
+    latestLabelId: 'versionLatestLabel',
+    latestValueId: 'versionLatestValue',
+    notesWrapId: 'versionNotesWrap',
+    notesTitleId: 'versionNotesTitle',
+    notesTextId: 'versionNotes',
+    hintId: 'versionHint'
+  }
+});
 
 // -------------------------
 // Boot language gate: ensure language is chosen before initializing the rest of the app
@@ -862,6 +898,12 @@ async function bootLanguageGate() {
 
   await initI18n();
   applyI18nToStaticUi();
+
+  // Only check for updates on startup if language was already configured
+  // (If language selection gate is shown on a clean slate start, do NOT check.)
+  if (configured) {
+    try { void versionMgr?.checkAtStartup?.(); } catch {}
+  }
 
   if (!configured) {
     await new Promise((resolve) => {
@@ -977,6 +1019,7 @@ function initHistoryManagerOnce() {
         ,'pinChangeOverlay'
         ,'cleanResetOverlay'
         ,'confirmApplyOverlay'
+        ,'versionOverlay'
       ]
     }
   });

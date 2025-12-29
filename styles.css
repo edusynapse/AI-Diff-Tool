@@ -2001,3 +2001,47 @@ body.dark .confirm-model{
   background: rgba(255,255,255,0.12);
   border-color: rgba(255,255,255,0.16);
 }
+
+
+/* -------------------------
+   Version Update modal
+-------------------------- */
+.modal-update .version-meta{
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--modal-border, rgba(127,127,127,0.25));
+  background: var(--modal-panel, rgba(127,127,127,0.08));
+}
+.modal-update .version-row{
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 4px 0;
+}
+.modal-update .version-label{
+  opacity: 0.78;
+}
+.modal-update .version-value{
+  font-weight: 700;
+  letter-spacing: 0.2px;
+}
+.modal-update .version-notes{
+  margin-top: 12px;
+}
+.modal-update .version-notes-title{
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+.modal-update .version-notes-text{
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--modal-border, rgba(127,127,127,0.25));
+  background: var(--modal-panel, rgba(127,127,127,0.06));
+  max-height: 220px;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}

@@ -287,5 +287,16 @@
         "bodyFmt": "Xác nhận áp dụng bản vá sử dụng mô hình {model} ?",
         "ok": "OK",
         "cancel": "Hủy"
+    },
+    "versionUpdate": {
+        "title": "Có bản cập nhật mới",
+        "introFmt": "Có phiên bản mới hơn của {appName} sẵn có.",
+        "currentLabel": "Hiện tại",
+        "latestLabel": "Mới nhất",
+        "notesTitle": "Có gì mới",
+        "download": "Tải xuống",
+        "later": "Sau",
+        "closeAria": "Đóng cập nhật",
+        "checkFailed": "Không thể kiểm tra cập nhật."
     }
 }

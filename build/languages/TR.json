@@ -287,5 +287,16 @@
         "bodyFmt": "{model} modeli kullanarak yamayı uygulamayı onaylayın mı ?",
         "ok": "Tamam",
         "cancel": "İptal"
+    },
+    "versionUpdate": {
+        "title": "Güncelleme mevcut",
+        "introFmt": "{appName} için daha yeni bir sürüm mevcut.",
+        "currentLabel": "Mevcut",
+        "latestLabel": "En Son",
+        "notesTitle": "Yenilikler",
+        "download": "İndir",
+        "later": "Sonra",
+        "closeAria": "Güncellemeyi kapat",
+        "checkFailed": "Güncellemeler kontrol edilemedi."
     }
 }

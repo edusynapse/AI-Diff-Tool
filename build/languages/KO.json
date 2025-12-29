@@ -287,5 +287,16 @@
         "bodyFmt": "{model} 모델을 사용한 패치 적용을 확인하시겠습니까?",
         "ok": "확인",
         "cancel": "취소"
+    },
+    "versionUpdate": {
+        "title": "업데이트 사용 가능",
+        "introFmt": "{appName}의 최신 버전이 사용 가능합니다.",
+        "currentLabel": "현재",
+        "latestLabel": "최신",
+        "notesTitle": "새로운 내용",
+        "download": "다운로드",
+        "later": "나중에",
+        "closeAria": "업데이트 닫기",
+        "checkFailed": "업데이트를 확인할 수 없습니다."
     }
 }

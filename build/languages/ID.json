@@ -287,5 +287,16 @@
         "bodyFmt": "Konfirmasi penerapan patch menggunakan model {model} ?",
         "ok": "OK",
         "cancel": "Batal"
+    },
+    "versionUpdate": {
+        "title": "Pembaruan tersedia",
+        "introFmt": "Versi terbaru {appName} tersedia.",
+        "currentLabel": "Saat ini",
+        "latestLabel": "Terbaru",
+        "notesTitle": "Apa yang baru",
+        "download": "Unduh",
+        "later": "Nanti",
+        "closeAria": "Tutup pembaruan",
+        "checkFailed": "Tidak dapat memeriksa pembaruan."
     }
 }

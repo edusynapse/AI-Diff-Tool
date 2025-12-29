@@ -287,5 +287,16 @@
         "bodyFmt": "Potwierdź zastosowanie łatki za pomocą modelu {model} ?",
         "ok": "OK",
         "cancel": "Anuluj"
+    },
+    "versionUpdate": {
+        "title": "Dostępna aktualizacja",
+        "introFmt": "Dostępna jest nowsza wersja {appName}.",
+        "currentLabel": "Aktualna",
+        "latestLabel": "Najnowsza",
+        "notesTitle": "Co nowego",
+        "download": "Pobierz",
+        "later": "Później",
+        "closeAria": "Zamknij aktualizację",
+        "checkFailed": "Nie udało się sprawdzić aktualizacji."
     }
 }

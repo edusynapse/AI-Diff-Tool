@@ -287,5 +287,16 @@
         "bodyFmt": "{model} モデルを使用してパッチを適用しますか？",
         "ok": "OK",
         "cancel": "キャンセル"
+    },
+    "versionUpdate": {
+        "title": "更新が利用可能です",
+        "introFmt": "{appName} の新しいバージョンが利用可能です。",
+        "currentLabel": "現在",
+        "latestLabel": "最新",
+        "notesTitle": "新着情報",
+        "download": "ダウンロード",
+        "later": "後で",
+        "closeAria": "更新を閉じる",
+        "checkFailed": "更新のチェックに失敗しました。"
     }
 }

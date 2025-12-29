@@ -13,7 +13,7 @@
     style-src-elem 'self' 'unsafe-inline' https://cdn.razorpay.com https://*.razorpay.com;
     script-src 'self' 'unsafe-eval' https://checkout.razorpay.com https://cdn.razorpay.com https://browser.sentry-cdn.com;
     script-src-elem 'self' 'unsafe-eval' https://checkout.razorpay.com https://cdn.razorpay.com https://browser.sentry-cdn.com;
-    connect-src 'self' https://*.razorpay.com https://razorpay.com https://*.sentry.io;
+    connect-src 'self' https://*.razorpay.com https://razorpay.com https://*.sentry.io https://api.github.com;
     frame-src 'self' https://*.razorpay.com https://razorpay.com http://127.0.0.1:* http://localhost:*;
     form-action 'self' https://*.razorpay.com https://razorpay.com;
   ">
@@ -622,6 +622,43 @@
       <div class="modal-footer">
         <button id="confirmApplyOkBtn" class="modal-ok" type="button">OK</button>
         <button id="confirmApplyCancelBtn" class="modal-ok" type="button">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Version Update overlay (shown on startup if a newer GitHub Release exists) -->
+  <div id="versionOverlay" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="versionTitle">
+    <div class="modal-content modal-update" role="document">
+      <div class="modal-header">
+        <h2 id="versionTitle">Update available</h2>
+        <button id="versionCloseBtn" class="modal-close" aria-label="Close update">×</button>
+      </div>
+
+      <div class="modal-body">
+        <p id="versionIntro" class="modal-hint">A newer version is available.</p>
+
+        <div class="version-meta" aria-label="Version information">
+          <div class="version-row">
+            <div class="version-label" id="versionCurrentLabel">Current</div>
+            <div class="version-value" id="versionCurrentValue">—</div>
+          </div>
+          <div class="version-row">
+            <div class="version-label" id="versionLatestLabel">Latest</div>
+            <div class="version-value" id="versionLatestValue">—</div>
+          </div>
+        </div>
+
+        <div id="versionNotesWrap" class="version-notes hidden">
+          <div class="version-notes-title" id="versionNotesTitle">What's new</div>
+          <pre id="versionNotes" class="version-notes-text"></pre>
+        </div>
+
+        <div id="versionHint" class="modal-hint"></div>
+      </div>
+
+      <div class="modal-footer">
+        <button id="versionDownloadBtn" class="modal-ok" type="button">Download</button>
+        <button id="versionLaterBtn" class="modal-ok" type="button">Later</button>
       </div>
     </div>
   </div>

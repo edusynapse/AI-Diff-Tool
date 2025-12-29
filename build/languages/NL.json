@@ -287,5 +287,16 @@
         "bodyFmt": "Bevestig toepassing van de patch met {model}-model ?",
         "ok": "OK",
         "cancel": "Annuleren"
+    },
+    "versionUpdate": {
+        "title": "Update beschikbaar",
+        "introFmt": "Een nieuwere versie van {appName} is beschikbaar.",
+        "currentLabel": "Huidige",
+        "latestLabel": "Nieuwste",
+        "notesTitle": "Wat is nieuw",
+        "download": "Downloaden",
+        "later": "Later",
+        "closeAria": "Update sluiten",
+        "checkFailed": "Kon geen updates controleren."
     }
 }

@@ -287,5 +287,16 @@
         "bodyFmt": "确认使用 {model} 模型应用补丁？",
         "ok": "确定",
         "cancel": "取消"
+    },
+    "versionUpdate": {
+        "title": "有更新可用",
+        "introFmt": "{appName} 有更新的版本可用。",
+        "currentLabel": "当前",
+        "latestLabel": "最新",
+        "notesTitle": "新增内容",
+        "download": "下载",
+        "later": "稍后",
+        "closeAria": "关闭更新",
+        "checkFailed": "无法检查更新。"
     }
 }

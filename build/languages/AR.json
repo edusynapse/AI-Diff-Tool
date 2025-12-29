@@ -287,5 +287,16 @@
         "bodyFmt": "تأكيد تطبيق التصحيح باستخدام نموذج {model}؟",
         "ok": "موافق",
         "cancel": "إلغاء"
+    },
+    "versionUpdate": {
+        "title": "تحديث متاح",
+        "introFmt": "إصدار أحدث من {appName} متاح.",
+        "currentLabel": "الحالي",
+        "latestLabel": "الأحدث",
+        "notesTitle": "ما الجديد",
+        "download": "تحميل",
+        "later": "لاحقًا",
+        "closeAria": "إغلاق التحديث",
+        "checkFailed": "تعذر التحقق من التحديثات."
     }
 }

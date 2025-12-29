@@ -287,5 +287,16 @@
         "bodyFmt": "Bekräfta tillämpning av patchen med {model} modell?",
         "ok": "OK",
         "cancel": "Avbryt"
+    },
+    "versionUpdate": {
+        "title": "Uppdatering tillgänglig",
+        "introFmt": "En nyare version av {appName} är tillgänglig.",
+        "currentLabel": "Nuvarande",
+        "latestLabel": "Senaste",
+        "notesTitle": "Vad är nytt",
+        "download": "Ladda ner",
+        "later": "Senare",
+        "closeAria": "Stäng uppdatering",
+        "checkFailed": "Kunde inte kontrollera efter uppdateringar."
     }
 }

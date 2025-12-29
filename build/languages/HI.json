@@ -287,5 +287,16 @@
         "bodyFmt": "क्या {model} मॉडल का उपयोग करके पैच के एप्लिकेशन की पुष्टि करें?",
         "ok": "ठीक",
         "cancel": "रद्द करें"
+    },
+    "versionUpdate": {
+        "title": "अपडेट उपलब्ध है",
+        "introFmt": "{appName} का एक नया संस्करण उपलब्ध है।",
+        "currentLabel": "वर्तमान",
+        "latestLabel": "नवीनतम",
+        "notesTitle": "नया क्या है",
+        "download": "डाउनलोड",
+        "later": "बाद में",
+        "closeAria": "अपडेट बंद करें",
+        "checkFailed": "अपडेट की जाँच नहीं हो सकी।"
     }
 }

@@ -287,5 +287,16 @@
         "bodyFmt": "Confirmar aplicação do patch usando o modelo {model} ?",
         "ok": "OK",
         "cancel": "Cancelar"
+    },
+    "versionUpdate": {
+        "title": "Atualização disponível",
+        "introFmt": "Uma versão mais recente do {appName} está disponível.",
+        "currentLabel": "Atual",
+        "latestLabel": "Mais recente",
+        "notesTitle": "O que há de novo",
+        "download": "Baixar",
+        "later": "Depois",
+        "closeAria": "Fechar atualização",
+        "checkFailed": "Não foi possível verificar atualizações."
     }
 }

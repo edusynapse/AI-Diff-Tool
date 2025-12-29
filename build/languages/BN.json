@@ -287,5 +287,16 @@
         "bodyFmt": "{model} মডেল ব্যবহার করে প্যাচ প্রয়োগ নিশ্চিত করুন ?",
         "ok": "ঠিক",
         "cancel": "বাতিল"
+    },
+    "versionUpdate": {
+        "title": "আপডেট উপলব্ধ",
+        "introFmt": "{appName} এর একটি নতুন সংস্করণ উপলব্ধ।",
+        "currentLabel": "বর্তমান",
+        "latestLabel": "সর্বশেষ",
+        "notesTitle": "কী নতুন",
+        "download": "ডাউনলোড",
+        "later": "পরে",
+        "closeAria": "আপডেট বন্ধ করুন",
+        "checkFailed": "আপডেট চেক করতে পারিনি।"
     }
 }
