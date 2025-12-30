@@ -2098,3 +2098,72 @@ body.dark .confirm-model{
 #cancelApiOverlay .modal-actions button{
   margin-right: 0;
 }
+/* =========================
+   Confirm Apply Patch Modal – Max Tokens Section
+   ========================= */
+
+/* Wrapper injected by renderer.js – give it proper spacing and layout */
+.confirm-apply-tokens {
+  margin: 16px 0 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Label */
+.confirm-apply-tokens__label {
+  font-weight: 600;
+  font-size: 14px;
+  color: inherit;
+}
+
+/* Number input – consistent with other inputs */
+.confirm-apply-tokens__input {
+  padding: 10px 12px;
+  font-size: 15px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  background: #fff;
+  color: #111;
+  width: 100%;
+  box-sizing: border-box;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.confirm-apply-tokens__input:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25);
+}
+
+/* Hint text */
+.confirm-apply-tokens__hint {
+  font-size: 13px;
+  opacity: 0.85;
+  line-height: 1.4;
+  color: inherit;
+}
+
+/* Dark mode */
+body.dark .confirm-apply-tokens__input {
+  background: var(--panel2);
+  color: var(--text);
+  border-color: var(--border);
+}
+
+body.dark .confirm-apply-tokens__input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(169, 130, 93, 0.25);
+}
+
+body.dark .confirm-apply-tokens__hint {
+  opacity: 0.9;
+}
+
+/* Optional: make the whole section look like a compact card on narrow screens */
+@media (max-width: 520px) {
+  .confirm-apply-tokens {
+    margin: 14px 0 6px;
+  }
+}

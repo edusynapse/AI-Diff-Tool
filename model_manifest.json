@@ -1,0 +1,352 @@
+{
+    "manifest_version": 1,
+    "unit": "usd_per_million_tokens",
+    "currency": "USD",
+    "defaults": {
+        "model": "grok-4-fast-reasoning"
+    },
+    "providers": [
+        {
+            "id": "openai",
+            "label": "OpenAI",
+            "models": [
+                {
+                    "id": "gpt-5.2",
+                    "label": "gpt-5.2",
+                    "pricing": {
+                        "input": 1.75,
+                        "cached_input": 0.175,
+                        "output": 14.0
+                    },
+                    "context_tokens": 400000,
+                    "max_tokens": 128000
+                },
+                {
+                    "id": "gpt-5.1",
+                    "label": "gpt-5.1",
+                    "pricing": {
+                        "input": 1.25,
+                        "cached_input": 0.125,
+                        "output": 10.0
+                    },
+                    "context_tokens": 400000,
+                    "max_tokens": 128000
+                },
+                {
+                    "id": "gpt-5",
+                    "label": "gpt-5",
+                    "pricing": {
+                        "input": 1.25,
+                        "cached_input": 0.125,
+                        "output": 10.0
+                    },
+                    "context_tokens": 400000,
+                    "max_tokens": 128000
+                },
+                {
+                    "id": "gpt-5-mini",
+                    "label": "gpt-5-mini",
+                    "pricing": {
+                        "input": 0.25,
+                        "cached_input": 0.025,
+                        "output": 2.0
+                    },
+                    "context_tokens": 400000,
+                    "max_tokens": 128000
+                },
+                {
+                    "id": "gpt-5-nano",
+                    "label": "gpt-5-nano",
+                    "pricing": {
+                        "input": 0.05,
+                        "cached_input": 0.005,
+                        "output": 0.4
+                    },
+                    "context_tokens": 400000,
+                    "max_tokens": 128000
+                },
+                {
+                    "id": "gpt-5.2-chat-latest",
+                    "label": "gpt-5.2-chat-latest",
+                    "pricing": {
+                        "input": 1.75,
+                        "cached_input": 0.175,
+                        "output": 14.0
+                    },
+                    "context_tokens": 128000,
+                    "max_tokens": 16384
+                },
+                {
+                    "id": "gpt-5.1-chat-latest",
+                    "label": "gpt-5.1-chat-latest",
+                    "pricing": {
+                        "input": 1.25,
+                        "cached_input": 0.125,
+                        "output": 10.0
+                    },
+                    "context_tokens": 128000,
+                    "max_tokens": 16384
+                },
+                {
+                    "id": "gpt-5-chat-latest",
+                    "label": "gpt-5-chat-latest",
+                    "pricing": {
+                        "input": 1.25,
+                        "cached_input": 0.125,
+                        "output": 10.0
+                    },
+                    "context_tokens": 128000,
+                    "max_tokens": 16384
+                },
+                {
+                    "id": "gpt-5.1-codex-max",
+                    "label": "gpt-5.1-codex-max",
+                    "pricing": {
+                        "input": 1.25,
+                        "cached_input": 0.125,
+                        "output": 10.0
+                    },
+                    "context_tokens": 400000,
+                    "max_tokens": 128000
+                },
+                {
+                    "id": "gpt-5.1-codex",
+                    "label": "gpt-5.1-codex",
+                    "pricing": {
+                        "input": 1.25,
+                        "cached_input": 0.125,
+                        "output": 10.0
+                    },
+                    "context_tokens": 400000,
+                    "max_tokens": 128000
+                },
+                {
+                    "id": "gpt-5-codex",
+                    "label": "gpt-5-codex",
+                    "pricing": {
+                        "input": 1.25,
+                        "cached_input": 0.125,
+                        "output": 10.0
+                    },
+                    "context_tokens": 400000,
+                    "max_tokens": 128000
+                },
+                {
+                    "id": "gpt-5.2-pro",
+                    "label": "gpt-5.2-pro",
+                    "pricing": {
+                        "input": 21.0,
+                        "cached_input": null,
+                        "output": 168.0
+                    },
+                    "context_tokens": 400000,
+                    "max_tokens": 128000
+                },
+                {
+                    "id": "gpt-5-pro",
+                    "label": "gpt-5-pro",
+                    "pricing": {
+                        "input": 15.0,
+                        "cached_input": null,
+                        "output": 120.0
+                    },
+                    "context_tokens": 400000,
+                    "max_tokens": 272000
+                },
+                {
+                    "id": "gpt-4.1",
+                    "label": "gpt-4.1",
+                    "pricing": {
+                        "input": 2.0,
+                        "cached_input": 0.5,
+                        "output": 8.0
+                    },
+                    "context_tokens": 1047576,
+                    "max_tokens": 32768
+                },
+                {
+                    "id": "gpt-4.1-mini",
+                    "label": "gpt-4.1-mini",
+                    "pricing": {
+                        "input": 0.4,
+                        "cached_input": 0.1,
+                        "output": 1.6
+                    },
+                    "context_tokens": 1047576,
+                    "max_tokens": 32768
+                },
+                {
+                    "id": "gpt-4.1-nano",
+                    "label": "gpt-4.1-nano",
+                    "pricing": {
+                        "input": 0.1,
+                        "cached_input": 0.025,
+                        "output": 0.4
+                    },
+                    "context_tokens": 1047576,
+                    "max_tokens": 32768
+                },
+                {
+                    "id": "gpt-4o",
+                    "label": "gpt-4o",
+                    "pricing": {
+                        "input": 2.5,
+                        "cached_input": 1.25,
+                        "output": 10.0
+                    },
+                    "context_tokens": 128000,
+                    "max_tokens": 16384
+                },
+                {
+                    "id": "gpt-4o-2024-05-13",
+                    "label": "gpt-4o-2024-05-13",
+                    "pricing": {
+                        "input": 5.0,
+                        "cached_input": null,
+                        "output": 15.0
+                    },
+                    "context_tokens": 128000,
+                    "max_tokens": 4096
+                },
+                {
+                    "id": "gpt-4o-mini",
+                    "label": "gpt-4o-mini",
+                    "pricing": {
+                        "input": 0.15,
+                        "cached_input": 0.075,
+                        "output": 0.6
+                    },
+                    "context_tokens": 128000,
+                    "max_tokens": 16384
+                },
+                {
+                    "id": "gpt-realtime",
+                    "label": "gpt-realtime",
+                    "pricing": {
+                        "input": 4.0,
+                        "cached_input": 0.4,
+                        "output": 16.0
+                    },
+                    "context_tokens": 32000,
+                    "max_tokens": 4096
+                },
+                {
+                    "id": "gpt-realtime-mini",
+                    "label": "gpt-realtime-mini",
+                    "pricing": {
+                        "input": 0.6,
+                        "cached_input": 0.06,
+                        "output": 2.4
+                    },
+                    "context_tokens": 32000,
+                    "max_tokens": 4096
+                },
+                {
+                    "id": "gpt-4o-realtime-preview",
+                    "label": "gpt-4o-realtime-preview",
+                    "pricing": {
+                        "input": 5.0,
+                        "cached_input": 2.5,
+                        "output": 20.0
+                    },
+                    "context_tokens": 32000,
+                    "max_tokens": 4096
+                },
+                {
+                    "id": "gpt-4o-mini-realtime-preview",
+                    "label": "gpt-4o-mini-realtime-preview",
+                    "pricing": {
+                        "input": 0.6,
+                        "cached_input": 0.3,
+                        "output": 2.4
+                    },
+                    "context_tokens": 16000,
+                    "max_tokens": 4096
+                }
+            ]
+        },
+        {
+            "id": "xai",
+            "label": "xAI",
+            "models": [
+                {
+                    "id": "grok-4-1-fast-reasoning",
+                    "label": "grok-4-1-fast-reasoning",
+                    "context_tokens": 2000000,
+                    "pricing": {
+                        "input": 0.2,
+                        "cached_input": null,
+                        "output": 0.5
+                    },
+                    "max_tokens": 2000000
+                },
+                {
+                    "id": "grok-4-1-fast-non-reasoning",
+                    "label": "grok-4-1-fast-non-reasoning",
+                    "context_tokens": 2000000,
+                    "pricing": {
+                        "input": 0.2,
+                        "cached_input": null,
+                        "output": 0.5
+                    },
+                    "max_tokens": 2000000
+                },
+                {
+                    "id": "grok-code-fast-1",
+                    "label": "grok-code-fast-1",
+                    "context_tokens": 256000,
+                    "pricing": {
+                        "input": 0.2,
+                        "cached_input": null,
+                        "output": 1.5
+                    },
+                    "max_tokens": 256000
+                },
+                {
+                    "id": "grok-4-fast-reasoning",
+                    "label": "grok-4-fast-reasoning",
+                    "context_tokens": 2000000,
+                    "pricing": {
+                        "input": 0.2,
+                        "cached_input": null,
+                        "output": 0.5
+                    },
+                    "max_tokens": 2000000
+                },
+                {
+                    "id": "grok-4-fast-non-reasoning",
+                    "label": "grok-4-fast-non-reasoning",
+                    "context_tokens": 2000000,
+                    "pricing": {
+                        "input": 0.2,
+                        "cached_input": null,
+                        "output": 0.5
+                    },
+                    "max_tokens": 2000000
+                },
+                {
+                    "id": "grok-4-0709",
+                    "label": "grok-4-0709",
+                    "context_tokens": 256000,
+                    "pricing": {
+                        "input": 3.0,
+                        "cached_input": null,
+                        "output": 15.0
+                    },
+                    "max_tokens": 256000
+                },
+                {
+                    "id": "grok-3-mini",
+                    "label": "grok-3-mini",
+                    "context_tokens": 131072,
+                    "pricing": {
+                        "input": 0.3,
+                        "cached_input": null,
+                        "output": 0.3
+                    },
+                    "max_tokens": 131072
+                }
+            ]
+        }
+    ]
+}
