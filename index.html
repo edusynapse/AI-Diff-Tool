@@ -151,6 +151,9 @@
 
     <div class="section-row" aria-label="Output header row">
       <div class="section-title" id="outputSectionTitle">Output from Model</div>
+    </div>
+    <div class="section-row output-meta-row" aria-label="Output actions and meta row">
+      <button id="download" class="hidden" type="button">Download Modified File</button>
       <div id="modelTime" class="section-meta hidden" aria-label="Time taken by model to reply"></div>
     </div>
     <div id="output-container" class="ta-container">
@@ -163,11 +166,10 @@
       <pre id="output"></pre>
     </div>
 
-    <button id="download" class="hidden">Download Modified File</button>
-
-    <div class="section-row" aria-label="Diff header row">
-      <div class="section-title" id="diffSectionTitle">Diff with original</div>
-    </div>
+ 
+     <div class="section-row" aria-label="Diff header row">
+       <div class="section-title" id="diffSectionTitle">Diff with original</div>
+     </div>
     <div id="diffView"></div>
     <div id="error"></div>
   </div>

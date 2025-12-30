@@ -2045,3 +2045,23 @@ body.dark .confirm-model{
   white-space: pre-wrap;
   word-break: break-word;
 }
+
+/* Output header second row: Download button (left) + time/tokens (right) */
+.output-meta-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* Ensure the download button stays left-aligned in its row */
+.output-meta-row #download {
+  margin: 0;
+}
+
+/* Keep time/tokens aligned to the right */
+.output-meta-row .section-meta {
+  margin-left: auto;
+  text-align: right;
+}
