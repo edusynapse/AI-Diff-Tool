@@ -312,5 +312,13 @@
         "copy": "Kopyala",
         "paste": "Yapıştır",
         "delete": "Sil"
+    },
+    "cancelApi": {
+        "button": "İptal",
+        "title": "API çağrısını iptal et",
+        "body": "API çağrısını iptal et ?",
+        "yes": "Evet",
+        "no": "Hayır",
+        "cancelled": "İptal edildi."
     }
 }

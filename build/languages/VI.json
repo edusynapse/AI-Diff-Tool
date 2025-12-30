@@ -312,5 +312,13 @@
         "copy": "Sao Chép",
         "paste": "Dán",
         "delete": "Xóa"
+    },
+    "cancelApi": {
+        "button": "Hủy",
+        "title": "Hủy cuộc gọi API",
+        "body": "Hủy cuộc gọi API ?",
+        "yes": "Có",
+        "no": "Không",
+        "cancelled": "Đã hủy."
     }
 }

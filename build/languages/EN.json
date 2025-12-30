@@ -312,5 +312,13 @@
         "copy": "Copy",
         "paste": "Paste",
         "delete": "Delete"
+    },
+    "cancelApi": {
+        "button": "Cancel",
+        "title": "Cancel API call",
+        "body": "Cancel the API call ?",
+        "yes": "Yes",
+        "no": "No",
+        "cancelled": "Cancelled."
     }
 }

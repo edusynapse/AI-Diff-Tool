@@ -312,5 +312,13 @@
         "copy": "复制",
         "paste": "粘贴",
         "delete": "删除"
+    },
+    "cancelApi": {
+        "button": "取消",
+        "title": "取消 API 调用",
+        "body": "取消 API 调用？",
+        "yes": "是",
+        "no": "否",
+        "cancelled": "已取消。"
     }
 }

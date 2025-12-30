@@ -110,12 +110,26 @@
       </div>
       <div class="model-action-right">
         <button id="retryBtn" class="hidden" type="button">Retry</button>
-        <button id="sysPromptBtn" type="button" title="System prompt">Default</button>
-        <button id="applyBtn" type="button">Apply Patch</button>
+        <button id="sysPromptBtn" class="with-icon" type="button" title="System prompt" aria-label="System prompt">
+          <span class="btn-ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 20h16"/><path d="M7 17l4-4"/><path d="M9 7l8 8"/><path d="M14 4l6 6"/></svg></span>
+          <span class="btn-label">Prompt</span>
+        </button>
+        <button id="cancelBtn" class="with-icon" type="button" disabled>
+          <span class="btn-ico" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9 9l6 6"/><path d="M15 9l-6 6"/></svg></span>
+          <span class="btn-label">Cancel</span>
+        </button>
+        <button id="applyBtn" class="with-icon" type="button">
+          <span class="btn-ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg></span>
+          <span class="btn-label">Apply Patch</span>
+        </button>
       </div>
     </div>
 
-    <div id="loading" class="hidden"><div class="spinner"></div> <span id="loadingText">Processing...</span></div>
+    <div id="loading" class="hidden">
+      <div class="spinner"></div>
+      <span id="loadingText">Processing...</span>
+      <span id="loadingElapsed" class="loading-elapsed hidden" aria-label="Elapsed time">00:00</span>
+    </div>
 
     <label for="diff" id="diffLabel">Diff Patch (paste or load file):</label>
     <div class="file-picker" id="diffFilePicker" aria-label="Diff patch file picker" style="margin: 6px 0 10px;">
@@ -668,6 +682,23 @@
       <div class="modal-footer">
         <button id="versionDownloadBtn" class="modal-ok" type="button">Download</button>
         <button id="versionLaterBtn" class="modal-ok" type="button">Later</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Cancel API call confirmation modal -->
+  <div id="cancelApiOverlay" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="cancelApiTitle">
+    <div class="modal-content" role="document">
+      <div class="modal-header">
+        <h2 id="cancelApiTitle">Cancel API call</h2>
+        <button id="cancelApiCloseBtn" class="modal-close" aria-label="Close cancel modal">×</button>
+      </div>
+      <div class="modal-body">
+        <div id="cancelApiBody">Cancel the API call ?</div>
+        <div class="modal-actions">
+          <button id="cancelApiYesBtn" class="modal-ok" type="button">Yes</button>
+          <button id="cancelApiNoBtn" type="button">No</button>
+        </div>
       </div>
     </div>
   </div>

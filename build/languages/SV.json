@@ -312,5 +312,13 @@
         "copy": "Kopiera",
         "paste": "Klistra in",
         "delete": "Ta bort"
+    },
+    "cancelApi": {
+        "button": "Avbryt",
+        "title": "Avbryt API-anrop",
+        "body": "Avbryt API-anropet ?",
+        "yes": "Ja",
+        "no": "Nej",
+        "cancelled": "Avbrutet."
     }
 }

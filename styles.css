@@ -1960,16 +1960,32 @@ body.dark {
   display: none;
 }
 
-
-/* Topbar button icons (no icon pack / no external assets) */
-.topbar-btn.with-icon { display: inline-flex; align-items: center; gap: 8px; }
-.topbar-btn.with-icon .btn-ico { display: inline-flex; width: 1.05em; height: 1.05em; flex: 0 0 auto; }
-.topbar-btn.with-icon .btn-ico svg {
-    width: 100%; height: 100%;
-    stroke: currentColor; fill: none;
-    stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+/* Button icons (no icon pack / no external assets)
+   IMPORTANT: .topbar-btn is ONLY for the fixed topbar.
+   Normal page buttons can still use .with-icon. */
+button.with-icon,
+.with-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
 }
-.topbar-btn.with-icon .btn-label { display: inline-block; }
+.with-icon .btn-ico {
+  display: inline-flex;
+  width: 1.05em;
+  height: 1.05em;
+  flex: 0 0 auto;
+}
+.with-icon .btn-ico svg {
+  width: 100%;
+  height: 100%;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.with-icon .btn-label { display: inline-block; }
 
 
 /* ------------------------------------------------------------
@@ -2064,4 +2080,21 @@ body.dark .confirm-model{
 .output-meta-row .section-meta {
   margin-left: auto;
   text-align: right;
+}
+
+
+/* =========================
+   Cancel API call modal: right-align Yes/No actions
+   ========================= */
+#cancelApiOverlay .modal-actions{
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+/* override global button margin-right so the group is truly flush-right */
+#cancelApiOverlay .modal-actions button{
+  margin-right: 0;
 }

@@ -312,5 +312,13 @@
         "copy": "복사",
         "paste": "붙여넣기",
         "delete": "삭제"
+    },
+    "cancelApi": {
+        "button": "취소",
+        "title": "API 호출 취소",
+        "body": "API 호출을 취소하시겠습니까 ?",
+        "yes": "예",
+        "no": "아니요",
+        "cancelled": "취소되었습니다."
     }
 }

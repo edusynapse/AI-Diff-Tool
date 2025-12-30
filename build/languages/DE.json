@@ -312,5 +312,13 @@
         "copy": "Kopieren",
         "paste": "Einfügen",
         "delete": "Löschen"
+    },
+    "cancelApi": {
+        "button": "Abbrechen",
+        "title": "API-Aufruf abbrechen",
+        "body": "API-Aufruf abbrechen ?",
+        "yes": "Ja",
+        "no": "Nein",
+        "cancelled": "Abgebrochen."
     }
 }

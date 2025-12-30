@@ -312,5 +312,13 @@
         "copy": "Salin",
         "paste": "Tempel",
         "delete": "Hapus"
+    },
+    "cancelApi": {
+        "button": "Batal",
+        "title": "Batal panggilan API",
+        "body": "Batal panggilan API?",
+        "yes": "Ya",
+        "no": "Tidak",
+        "cancelled": "Dibatalkan."
     }
 }

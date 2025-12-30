@@ -312,5 +312,13 @@
         "copy": "Kopiëren",
         "paste": "Plakken",
         "delete": "Verwijderen"
+    },
+    "cancelApi": {
+        "button": "Annuleren",
+        "title": "API-oproep annuleren",
+        "body": "API-oproep annuleren ?",
+        "yes": "Ja",
+        "no": "Nee",
+        "cancelled": "Geannuleerd."
     }
 }
