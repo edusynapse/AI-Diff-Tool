@@ -1,6 +1,6 @@
 {
   "name": "ai-diff-tool",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "Desktop app to apply diff patches using Grok 4 API",
   "main": "lib/main.js",
   "scripts": {
