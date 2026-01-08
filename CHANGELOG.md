@@ -3,7 +3,7 @@ All notable changes to this project will be documented in this file.
 
 ## [1.0.6] - 2026-01-08
 ### Added
-- Abilility to save modified file in same location
+- Ability to save modified file in same location
 ### Fixed
 - File name display includes full path above input file
 
